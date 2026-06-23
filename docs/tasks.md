@@ -59,11 +59,19 @@ Source: `docs/spec.md`
 
 - [ ] Choose and document parser tooling, with Grammar-Kit plus JFlex as the
   preferred default unless current docs indicate otherwise.
+- [ ] Identify the PSI and token boundaries the formatter needs before starting
+  formatter implementation.
 - [ ] Add grammar source for Firestore Rules files.
 - [ ] Add or generate PSI nodes for rules files, version declarations, service
   blocks, match blocks, match paths, path segments, wildcards, recursive
   wildcards, allow statements, operation lists, functions, parameters, return
   statements, expressions, calls, and member access.
+- [ ] Ensure PSI exposes braced block boundaries for `service`, `match`, and
+  `function` constructs.
+- [ ] Ensure PSI exposes semicolon-terminated statements, including
+  `rules_version`, `allow`, and `return`.
+- [ ] Ensure PSI exposes comments so the formatter can preserve and indent them
+  without moving them across code.
 - [ ] Register parser support through `com.intellij.lang.parserDefinition`.
 - [ ] Ensure malformed statements recover without preventing the rest of the file
   from parsing.
@@ -76,17 +84,53 @@ Source: `docs/spec.md`
 
 ## Milestone 3: Formatter
 
-- [ ] Implement IntelliJ formatter support for Firestore Rules.
-- [ ] Register formatter support through `com.intellij.lang.formatter`.
-- [ ] Indent nested `service`, `match`, `allow`, and `function` blocks.
+- [ ] Re-check current JetBrains formatter docs through Context7 before changing
+  formatter APIs or `plugin.xml` registration.
+- [ ] Add `dev.lezli.hotrulez.formatting` package.
+- [ ] Add `FirestoreRulesFormattingModelBuilder`.
+- [ ] Add a recursive `FirestoreRulesBlock` implementation backed by PSI/AST
+  nodes.
+- [ ] Add formatter token sets for braces, semicolon-terminated statements,
+  comma-separated lists, path punctuation, expression operators, comments, and
+  whitespace-sensitive error recovery.
+- [ ] Add spacing rules for `rules_version = '2';`.
+- [ ] Add spacing rules for `service cloud.firestore {`.
+- [ ] Add spacing rules for `match /path/{wildcard} {`, including no spaces
+  around path separators or inside path wildcards.
+- [ ] Add spacing rules for recursive wildcards such as `{document=**}`.
+- [ ] Add spacing rules for `allow read, write: if condition;`.
+- [ ] Add spacing rules for function declarations, calls, and comma-separated
+  parameter or argument lists.
+- [ ] Add spacing rules for member access such as `request.auth.uid` without
+  spaces around dots.
+- [ ] Add expression operator spacing for parsed binary, logical, equality,
+  relational, and membership operators.
+- [ ] Keep unary operators attached to their operands.
+- [ ] Indent nested `service`, `match`, and `function` blocks by one level.
+- [ ] Indent `allow` and `return` statements relative to their containing block.
+- [ ] Align closing braces with their opening declaration.
+- [ ] Implement child attributes so pressing Enter inside braced blocks chooses
+  the expected indentation.
 - [ ] Preserve semicolon-terminated statements.
 - [ ] Keep short `allow read, write: if condition;` statements on one line when
   appropriate.
 - [ ] Preserve user-intended multiline conditions.
+- [ ] Preserve line and block comments and indent them with their containing
+  block.
+- [ ] Preserve intentional blank lines subject to normal IDE code style settings.
 - [ ] Avoid reordering operations or rewriting expressions.
-- [ ] Add formatter tests for compact input.
+- [ ] Avoid formatting across unrecoverable syntax errors; leave unknown text
+  unchanged while still formatting known surrounding blocks.
+- [ ] Register formatter support through `com.intellij.lang.formatter`.
+- [ ] Add formatter test infrastructure using `CodeStyleManager.reformatText`.
+- [ ] Add formatter fixtures under `src/test/testData/formatter`.
+- [ ] Add formatter tests for compact input to expected formatted output.
 - [ ] Add formatter tests for nested blocks.
 - [ ] Add formatter tests for multiline conditions.
+- [ ] Add formatter tests for comments inside and between blocks.
+- [ ] Add formatter tests for recursive wildcards and path variables.
+- [ ] Add formatter recovery tests for malformed but partially parseable input.
+- [ ] Run `./gradlew test` after formatter implementation.
 
 ## Milestone 4: Diagnostics
 
@@ -126,7 +170,10 @@ Source: `docs/spec.md`
 - [ ] `.rules` file recognition works.
 - [ ] Syntax highlighting is stable and useful.
 - [ ] Parser errors surface in the editor.
-- [ ] Formatting handles common Firestore Rules structure.
+- [ ] Automatic formatting handles common Firestore Rules structure through
+  IntelliJ formatter APIs.
+- [ ] Formatting preserves comments, multiline conditions, path wildcard syntax,
+  and Firestore Rules semantics.
 - [ ] Diagnostics catch documented invalid constructs.
 - [ ] Tests cover lexer, parser, formatter, and diagnostics fixtures.
 - [ ] Implementation choices follow current official JetBrains and Firebase docs.

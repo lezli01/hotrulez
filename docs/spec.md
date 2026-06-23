@@ -36,6 +36,10 @@ Current documentation was checked through Context7 on 2026-06-23:
 - `/websites/plugins_jetbrains_intellij` for IntelliJ Platform Plugin SDK
   guidance on file type registration, syntax highlighter registration, custom
   language support, formatter registration, Gradle plugin 2.x setup, and tests.
+  Formatter-specific guidance covered `FormattingModelBuilder`, recursive
+  `Block` trees, `SpacingBuilder`, indentation, child attributes, the
+  `com.intellij.lang.formatter` extension point, and formatter tests through
+  `CodeStyleManager`.
 - `/llmstxt/firebase_google_llms_txt` for official Firebase Cloud Firestore
   Security Rules syntax and semantics including `rules_version = '2';`,
   `service cloud.firestore`, `match` blocks, recursive wildcards, `allow`
@@ -48,19 +52,25 @@ through Context7.
 
 ## Current Repository State
 
-The repository is currently a very small scaffold:
+The repository currently has:
 
-- `AGENTS.md` defines the project identity, desired plugin shape, Firebase Rules
-  notes, development rules, and verification expectations.
-- `README.md` only contains repeated project title lines.
-- There is no Gradle project yet.
-- There is no `src/main` or `src/test` tree yet.
-- There is no `plugin.xml`, lexer, parser, PSI, syntax highlighter, formatter,
-  annotator, inspection, or test suite yet.
-- CodeGraph is configured for the workspace but currently has no indexed source
-  files for this repo.
+- A Gradle Kotlin DSL project with wrapper, `settings.gradle.kts`,
+  `build.gradle.kts`, and IntelliJ Platform Gradle Plugin 2.x setup.
+- Plugin metadata in `src/main/resources/META-INF/plugin.xml`.
+- Kotlin source under `src/main/kotlin/dev/lezli/hotrulez`.
+- Language and file type registration for `.rules` files.
+- A handwritten lexer used for syntax highlighting.
+- Syntax highlighter classes and extension-point registration.
+- Tests for file type recognition, lexer behavior, and syntax highlighting.
+- GitHub CI and Release Please workflows.
 
-This means the next implementation step is project scaffolding, not refactoring.
+The repository does not yet have parser/PSI support, formatter support,
+annotators, inspections, formatter fixtures, or diagnostic fixtures.
+
+This means automatic formatting depends first on Milestone 2 parser/PSI work.
+The existing highlighting lexer is useful for tokens, but IntelliJ formatter
+support should be built on PSI-aware formatting blocks rather than on ad hoc text
+rewrites.
 
 ## Product Goals
 
@@ -299,20 +309,103 @@ highlighter factory extension point.
 
 ### Formatter
 
-Formatter support should produce stable output for common Firestore Rules files.
+Formatter support should produce stable output for common Firestore Rules files
+when users invoke JetBrains automatic formatting, including whole-file reformat,
+selection reformat, and editor actions that call the platform formatter.
 
-Formatting rules:
+Formatter support depends on parser/PSI support. Do not implement the formatter
+as a standalone string transformer. The formatter should use IntelliJ formatting
+APIs so the IDE can make minimal whitespace changes while preserving user text,
+comments, and semantic structure.
 
-- Indent nested blocks by one level.
-- Put block bodies on their own indentation level.
-- Preserve semicolon-terminated statements.
-- Keep `allow read, write: if condition;` on one line when it fits.
-- Allow multiline conditions without collapsing user-intended line breaks.
-- Do not aggressively reorder operations or rewrite expressions.
-- Do not change semantics.
+Implementation shape:
+
+- Add a `formatting` package under `dev.lezli.hotrulez`.
+- Implement a `FormattingModelBuilder` for the Firestore Rules language.
+- Build a recursive `Block` tree from Firestore Rules PSI.
+- Use a `SpacingBuilder` or equivalent formatting rules for whitespace between
+  known token pairs.
+- Use `Indent` rules so children of braced blocks are indented one level and
+  closing braces align with their opener.
+- Implement child attributes so pressing Enter inside `service`, `match`, and
+  `function` blocks uses the expected indentation.
+- Register the formatter through the IntelliJ language formatter extension point
+  in `plugin.xml`, using the current SDK docs' `lang.formatter` XML tag for
+  `com.intellij.lang.formatter`.
+- Defer custom code style settings until the fixed default style is implemented
+  and covered by tests.
+
+Automatic formatting should normalize structural whitespace while avoiding
+semantic rewrites. The default style is:
+
+- Keep `rules_version = '2';` at top-level indentation.
+- Use one space around the `rules_version` assignment operator.
+- Keep opening braces on the same line as `service`, `match`, and `function`
+  declarations.
+- Put non-empty block bodies on their own indentation level.
+- Put closing braces on their own line aligned with the opening declaration.
+- Indent nested `service`, `match`, `allow`, `function`, and `return` statements
+  by one level per containing block.
+- Use one space between declaration keywords and their subject:
+  `service cloud.firestore`, `match /path`, `function name(...)`.
+- Do not add spaces around dots in `cloud.firestore` or member expressions such
+  as `request.auth.uid`.
+- Do not add spaces around match path separators.
+- Do not add spaces inside path wildcards: `{database}`, `{city}`,
+  `{document=**}`.
+- Use one space before an opening block brace.
+- Use no space before semicolons.
+- Use one space after commas in operation lists, argument lists, list literals,
+  and map entries.
+- Use no space before commas.
+- Use no space before `(` in function calls or declarations.
+- Use no space immediately inside `(`, `)`, `[`, or `]`.
+- Use one space after `allow` operations before `: if`.
+- Format short allow statements as `allow read, write: if condition;` when the
+  statement fits on one line.
+- Preserve multiline allow conditions rather than forcing them onto one line.
+- Use one space around binary, logical, equality, relational, and membership
+  operators when they are parsed as expression operators.
+- Keep unary operators attached to their operand.
+- Preserve comments and keep them attached to the surrounding code block.
+- Preserve intentional blank lines up to normal IDE code style settings.
+- Avoid formatting across unrecoverable syntax errors. For malformed PSI,
+  prefer local indentation of known blocks and leave unknown text unchanged.
 
 Formatter implementation should use IntelliJ formatting APIs and be registered
 with the language formatter extension point.
+
+Example compact input:
+
+```rules
+rules_version='2';service cloud.firestore{match /databases/{database}/documents{match /cities/{city}{allow read,write: if request.auth!=null;function ownsCity(uid){return resource.data.owner==uid;}}}}
+```
+
+Expected formatted output:
+
+```rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /cities/{city} {
+      allow read, write: if request.auth != null;
+
+      function ownsCity(uid) {
+        return resource.data.owner == uid;
+      }
+    }
+  }
+}
+```
+
+Formatter non-goals:
+
+- Do not sort `allow` operations.
+- Do not reorder `match`, `allow`, or `function` declarations.
+- Do not simplify or rewrite expressions.
+- Do not change string quote style.
+- Do not infer authorization behavior or security quality.
+- Do not make Firestore deployment, emulator, or project-specific assumptions.
 
 ### Diagnostics
 
@@ -357,7 +450,13 @@ Recommended test fixtures:
 - Invalid operation name.
 - Missing rules version.
 - Malformed match path.
-- Formatter fixture for nested service, match, allow, and function blocks.
+- Formatter compact input and expected output.
+- Formatter fixture for nested `service`, `match`, `allow`, and `function`
+  blocks.
+- Formatter fixture for multiline `allow` conditions.
+- Formatter fixture for comments inside and between blocks.
+- Formatter fixture for recursive wildcards and path variables.
+- Formatter recovery fixture for malformed but partially parseable input.
 
 Use `src/test/testData` for fixtures and keep tests narrow. Do not add broad
 release verification until the project has a real Gradle setup.
