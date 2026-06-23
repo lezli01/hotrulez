@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "dev.lezli"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.0-SNAPSHOT" // x-release-please-version
 
 repositories {
     mavenCentral()
