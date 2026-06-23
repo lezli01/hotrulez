@@ -20,5 +20,13 @@
         <lang.syntaxHighlighterFactory
             language="FirestoreRules"
             implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesSyntaxHighlighterFactory"/>
+
+        <lang.parserDefinition
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.parser.FirestoreRulesParserDefinition"/>
+
+        <lang.formatter
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.formatting.FirestoreRulesFormattingModelBuilder"/>
     </extensions>
 </idea-plugin>

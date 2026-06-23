@@ -1,0 +1,1 @@
+service cloud.firestore{match /databases/{database}/documents{match /cities/{city}/{document=**}{allow read,write: if true;}}}
