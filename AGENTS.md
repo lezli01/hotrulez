@@ -89,3 +89,11 @@ checks available, such as:
 
 Update this file when the project gains concrete build commands, test commands,
 or a different implementation stack.
+
+## Current Commands
+
+The project now has a Gradle wrapper. Use the narrowest useful check for the
+work being changed:
+
+- `./gradlew test` for the current lexer, syntax highlighting, file type, and
+  plugin scaffold tests.

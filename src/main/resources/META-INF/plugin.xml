@@ -1,0 +1,24 @@
+<idea-plugin>
+    <id>dev.lezli.hotrulez</id>
+    <name>hotrulez</name>
+    <vendor>Lezli</vendor>
+
+    <description><![CDATA[
+        JetBrains IDE language support for Firebase Cloud Firestore Security Rules.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType
+            name="Firestore Rules"
+            implementationClass="dev.lezli.hotrulez.FirestoreRulesFileType"
+            fieldName="INSTANCE"
+            language="FirestoreRules"
+            extensions="rules"/>
+
+        <lang.syntaxHighlighterFactory
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesSyntaxHighlighterFactory"/>
+    </extensions>
+</idea-plugin>

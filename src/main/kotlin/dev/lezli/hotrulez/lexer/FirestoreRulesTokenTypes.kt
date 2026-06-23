@@ -1,0 +1,26 @@
+package dev.lezli.hotrulez.lexer
+
+object FirestoreRulesTokenTypes {
+    val KEYWORD = FirestoreRulesTokenType("KEYWORD")
+    val OPERATION = FirestoreRulesTokenType("OPERATION")
+    val BUILTIN = FirestoreRulesTokenType("BUILTIN")
+    val IDENTIFIER = FirestoreRulesTokenType("IDENTIFIER")
+    val STRING = FirestoreRulesTokenType("STRING")
+    val NUMBER = FirestoreRulesTokenType("NUMBER")
+    val LINE_COMMENT = FirestoreRulesTokenType("LINE_COMMENT")
+    val BLOCK_COMMENT = FirestoreRulesTokenType("BLOCK_COMMENT")
+    val PATH_SEPARATOR = FirestoreRulesTokenType("PATH_SEPARATOR")
+    val L_BRACE = FirestoreRulesTokenType("L_BRACE")
+    val R_BRACE = FirestoreRulesTokenType("R_BRACE")
+    val L_PAREN = FirestoreRulesTokenType("L_PAREN")
+    val R_PAREN = FirestoreRulesTokenType("R_PAREN")
+    val L_BRACKET = FirestoreRulesTokenType("L_BRACKET")
+    val R_BRACKET = FirestoreRulesTokenType("R_BRACKET")
+    val COMMA = FirestoreRulesTokenType("COMMA")
+    val DOT = FirestoreRulesTokenType("DOT")
+    val COLON = FirestoreRulesTokenType("COLON")
+    val SEMICOLON = FirestoreRulesTokenType("SEMICOLON")
+    val EQUALS = FirestoreRulesTokenType("EQUALS")
+    val STAR_STAR = FirestoreRulesTokenType("STAR_STAR")
+    val OPERATOR = FirestoreRulesTokenType("OPERATOR")
+}

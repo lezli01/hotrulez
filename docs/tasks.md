@@ -6,54 +6,54 @@ Source: `docs/spec.md`
 
 ## Ground Rules
 
-- [ ] Re-check official JetBrains or Firebase docs through Context7 before
+- [x] Re-check official JetBrains or Firebase docs through Context7 before
   changing IntelliJ Platform APIs, Gradle setup, generated parser tooling, or
   Firebase Rules semantics.
-- [ ] Keep implementation scoped to a JetBrains plugin for Cloud Firestore
+- [x] Keep implementation scoped to a JetBrains plugin for Cloud Firestore
   Security Rules.
-- [ ] Do not add Firebase credentials, project IDs, emulator state, web app
+- [x] Do not add Firebase credentials, project IDs, emulator state, web app
   frameworks, or runtime authorization evaluation.
-- [ ] Add focused tests with each lexer, parser, formatter, or diagnostics
+- [x] Add focused tests with each lexer, parser, formatter, or diagnostics
   change.
-- [ ] Update `AGENTS.md` with concrete commands only after those Gradle tasks or
+- [x] Update `AGENTS.md` with concrete commands only after those Gradle tasks or
   scripts exist.
 
 ## Milestone 0: Project Scaffold
 
-- [ ] Create `settings.gradle.kts`.
-- [ ] Create `build.gradle.kts` using Gradle Kotlin DSL.
-- [ ] Configure the IntelliJ Platform Gradle Plugin 2.x.
-- [ ] Configure Kotlin or Java source compatibility for the selected IDE target.
-- [ ] Add IntelliJ Platform test framework dependencies.
-- [ ] Create `src/main/kotlin/dev/lezli/hotrulez`.
-- [ ] Create `src/main/resources/META-INF/plugin.xml`.
-- [ ] Create `src/test/kotlin/dev/lezli/hotrulez`.
-- [ ] Create `src/test/testData`.
-- [ ] Verify the scaffold with the narrowest available Gradle check once the
+- [x] Create `settings.gradle.kts`.
+- [x] Create `build.gradle.kts` using Gradle Kotlin DSL.
+- [x] Configure the IntelliJ Platform Gradle Plugin 2.x.
+- [x] Configure Kotlin or Java source compatibility for the selected IDE target.
+- [x] Add IntelliJ Platform test framework dependencies.
+- [x] Create `src/main/kotlin/dev/lezli/hotrulez`.
+- [x] Create `src/main/resources/META-INF/plugin.xml`.
+- [x] Create `src/test/kotlin/dev/lezli/hotrulez`.
+- [x] Create `src/test/testData`.
+- [x] Verify the scaffold with the narrowest available Gradle check once the
   wrapper or Gradle invocation exists.
 
 ## Milestone 1: File Recognition and Highlighting
 
-- [ ] Add `FirestoreRulesLanguage`.
-- [ ] Add `FirestoreRulesFileType`.
-- [ ] Register `.rules` files through the `com.intellij.fileType` extension
+- [x] Add `FirestoreRulesLanguage`.
+- [x] Add `FirestoreRulesFileType`.
+- [x] Register `.rules` files through the `com.intellij.fileType` extension
   point.
-- [ ] Add a lexer for initial highlighting.
-- [ ] Tokenize whitespace, comments, keywords, identifiers, strings, numbers,
+- [x] Add a lexer for initial highlighting.
+- [x] Tokenize whitespace, comments, keywords, identifiers, strings, numbers,
   path punctuation, structural punctuation, operators, and invalid characters.
-- [ ] Recognize Firestore Rules keywords:
+- [x] Recognize Firestore Rules keywords:
   `rules_version`, `service`, `match`, `allow`, `if`, `function`, `return`,
   `true`, `false`, and `null`.
-- [ ] Recognize operations:
+- [x] Recognize operations:
   `get`, `list`, `read`, `create`, `update`, `delete`, and `write`.
-- [ ] Recognize Firestore built-ins and helpers:
+- [x] Recognize Firestore built-ins and helpers:
   `request`, `resource`, `exists`, `existsAfter`, `get`, and `getAfter`.
-- [ ] Add syntax highlighter classes under a highlighting package.
-- [ ] Register the syntax highlighter through
+- [x] Add syntax highlighter classes under a highlighting package.
+- [x] Register the syntax highlighter through
   `com.intellij.lang.syntaxHighlighterFactory`.
-- [ ] Add highlighting coverage for a minimal valid Firestore Rules v2 file.
-- [ ] Add highlighting coverage for a nested `service` and `match` example.
-- [ ] Add highlighting coverage for invalid tokens.
+- [x] Add highlighting coverage for a minimal valid Firestore Rules v2 file.
+- [x] Add highlighting coverage for a nested `service` and `match` example.
+- [x] Add highlighting coverage for invalid tokens.
 
 ## Milestone 2: Parser and PSI
 
@@ -119,7 +119,7 @@ Source: `docs/spec.md`
 - [ ] Check brace, quote, and comment handling against JetBrains conventions.
 - [ ] Replace the repeated-title `README.md` with a concise project README.
 - [ ] Document implemented features and current limitations in `README.md`.
-- [ ] Update `AGENTS.md` with real build and test commands once they exist.
+- [x] Update `AGENTS.md` with real build and test commands once they exist.
 
 ## Release-Quality Acceptance
 
