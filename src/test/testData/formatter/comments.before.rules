@@ -1,0 +1,2 @@
+service cloud.firestore{/* service body */match /databases/{database}/documents{// city access
+match /cities/{city}{allow read: if true;}}}
