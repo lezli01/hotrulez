@@ -61,16 +61,22 @@ The repository currently has:
 - Language and file type registration for `.rules` files.
 - A handwritten lexer used for syntax highlighting.
 - Syntax highlighter classes and extension-point registration.
+- Structural parser/PSI support for the formatter-oriented Firestore Rules
+  syntax slice.
+- IntelliJ formatter registration and implementation for common Firestore Rules
+  structure.
 - Tests for file type recognition, lexer behavior, and syntax highlighting.
+- Parser and formatter tests for representative Firestore Rules files.
 - GitHub CI and Release Please workflows.
 
-The repository does not yet have parser/PSI support, formatter support,
-annotators, inspections, formatter fixtures, or diagnostic fixtures.
+The repository does not yet have generated parser tooling, typed PSI classes for
+every grammar production, annotators, inspections, or diagnostic fixtures.
 
-This means automatic formatting depends first on Milestone 2 parser/PSI work.
-The existing highlighting lexer is useful for tokens, but IntelliJ formatter
-support should be built on PSI-aware formatting blocks rather than on ad hoc text
-rewrites.
+Automatic formatting now uses PSI-aware formatting blocks rather than ad hoc text
+rewrites. The current parser is intentionally structural and recoverable; it
+provides formatter boundaries for version declarations, service blocks, match
+blocks, match paths, path wildcards, allow statements, functions, returns,
+expressions, comments, and malformed statements.
 
 ## Product Goals
 
@@ -280,6 +286,14 @@ Parser implementation options:
   keeps generated PSI maintainable.
 - Keep generated parser/PSI separate from handwritten support classes.
 - Do not hand-roll a large parser unless generated tooling proves unsuitable.
+
+Current implementation note:
+
+- The first parser implementation is a handwritten structural `PsiParser`
+  backed by the existing handwritten lexer. This keeps the formatter milestone
+  moving without adding generated tooling before the expression grammar is fully
+  specified. Revisit Grammar-Kit plus JFlex when expanding from formatter-grade
+  structural parsing to a full Firestore Rules grammar with typed PSI.
 
 ### Syntax Highlighting
 
