@@ -11,7 +11,13 @@ class FirestoreRulesParser : PsiParser {
     override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
         val file = builder.mark()
         while (!builder.eof()) {
+            val offset = builder.currentOffset
             parseTopLevel(builder)
+            // Guarantee forward progress: a stray token (e.g. an unbalanced `}`)
+            // that no production consumes would otherwise loop forever.
+            if (builder.currentOffset == offset && !builder.eof()) {
+                builder.advanceLexer()
+            }
         }
         file.done(root)
         return builder.treeBuilt
@@ -119,7 +125,11 @@ class FirestoreRulesParser : PsiParser {
         val marker = builder.mark()
         consumeIf(builder, FirestoreRulesTokenTypes.L_BRACE)
         while (!builder.eof() && builder.tokenType != FirestoreRulesTokenTypes.R_BRACE) {
+            val offset = builder.currentOffset
             parseBlockMember(builder)
+            if (builder.currentOffset == offset) {
+                builder.advanceLexer()
+            }
         }
         consumeIf(builder, FirestoreRulesTokenTypes.R_BRACE)
         marker.done(FirestoreRulesElementTypes.BLOCK)
@@ -213,9 +223,10 @@ class FirestoreRulesParser : PsiParser {
     ) {
         var parenDepth = 0
         var bracketDepth = 0
+        var braceDepth = 0
         while (!builder.eof()) {
             val tokenType = builder.tokenType
-            if (parenDepth == 0 && bracketDepth == 0) {
+            if (parenDepth == 0 && bracketDepth == 0 && braceDepth == 0) {
                 if (stopAtSemicolon && tokenType == FirestoreRulesTokenTypes.SEMICOLON) {
                     break
                 }
@@ -228,6 +239,8 @@ class FirestoreRulesParser : PsiParser {
                 FirestoreRulesTokenTypes.R_PAREN -> parenDepth = (parenDepth - 1).coerceAtLeast(0)
                 FirestoreRulesTokenTypes.L_BRACKET -> bracketDepth++
                 FirestoreRulesTokenTypes.R_BRACKET -> bracketDepth = (bracketDepth - 1).coerceAtLeast(0)
+                FirestoreRulesTokenTypes.L_BRACE -> braceDepth++
+                FirestoreRulesTokenTypes.R_BRACE -> braceDepth = (braceDepth - 1).coerceAtLeast(0)
             }
             builder.advanceLexer()
         }
