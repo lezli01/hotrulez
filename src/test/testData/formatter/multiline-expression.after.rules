@@ -1,0 +1,13 @@
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSubscribed() {
+      return isSubscriptionFreePeriodEnabled()
+      || (
+        isAuthenticated()
+        && request.auth.token.subscription != null
+        && request.auth.token.subscription.subscribedUntil != null
+        && isSubscriptionActive()
+      );
+    }
+  }
+}

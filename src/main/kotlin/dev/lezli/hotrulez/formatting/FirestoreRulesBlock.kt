@@ -18,11 +18,38 @@ class FirestoreRulesBlock(
     val astNode: ASTNode,
     private val blockIndent: Indent? = Indent.getNoneIndent(),
 ) : AbstractBlock(astNode, Wrap.createWrap(WrapType.NONE, false), null) {
-    override fun buildChildren(): List<Block> =
-        astNode
-            .getChildren(null)
-            .filterNot { it.elementType == TokenType.WHITE_SPACE }
-            .map { child -> FirestoreRulesBlock(child, childIndent(child)) }
+    override fun buildChildren(): List<Block> {
+        val children = astNode.getChildren(null).filterNot { it.elementType == TokenType.WHITE_SPACE }
+        if (astNode.elementType == FirestoreRulesElementTypes.EXPRESSION) {
+            return buildExpressionChildren(children)
+        }
+        return children.map { child -> FirestoreRulesBlock(child, childIndent(child)) }
+    }
+
+    // The expression is a flat token sequence with no grammar for grouping, so
+    // indent each wrapped line by the depth of the parenthesis/bracket group it
+    // sits in. This restores the nesting a user writes for multi-line conditions
+    // (single-line expressions are unaffected, since indent only applies at line
+    // starts and depth-0 tokens keep the statement's indent).
+    private fun buildExpressionChildren(children: List<ASTNode>): List<Block> {
+        var depth = 0
+        return children.map { child ->
+            val type = child.elementType
+            if (type == FirestoreRulesTokenTypes.R_PAREN || type == FirestoreRulesTokenTypes.R_BRACKET) {
+                depth = (depth - 1).coerceAtLeast(0)
+            }
+            val indent = if (depth > 0) {
+                Indent.getSpaceIndent(depth * INDENT_SIZE)
+            } else {
+                Indent.getNoneIndent()
+            }
+            val block = FirestoreRulesBlock(child, indent)
+            if (type == FirestoreRulesTokenTypes.L_PAREN || type == FirestoreRulesTokenTypes.L_BRACKET) {
+                depth++
+            }
+            block
+        }
+    }
 
     override fun getIndent(): Indent? = blockIndent
 
@@ -133,12 +160,17 @@ class FirestoreRulesBlock(
         }
         if (leftType == FirestoreRulesTokenTypes.DOT ||
             rightType == FirestoreRulesTokenTypes.DOT ||
-            rightType == FirestoreRulesTokenTypes.L_PAREN ||
             leftType == FirestoreRulesTokenTypes.L_PAREN ||
             rightType == FirestoreRulesTokenTypes.R_PAREN ||
             leftType == FirestoreRulesTokenTypes.L_BRACKET ||
             rightType == FirestoreRulesTokenTypes.R_BRACKET
         ) {
+            return noSpace()
+        }
+        // Suppress the space before `(` only for a call/subscript paren (one that
+        // follows a callable); a grouping paren after an operator or keyword keeps
+        // its space, e.g. `a || (b && c)`.
+        if (rightType == FirestoreRulesTokenTypes.L_PAREN && isCallable(leftType)) {
             return noSpace()
         }
         if (leftType in FirestoreRulesTokenSets.EXPRESSION_OPERATORS ||
@@ -151,6 +183,13 @@ class FirestoreRulesBlock(
         }
         return oneSpace()
     }
+
+    private fun isCallable(leftType: IElementType): Boolean =
+        leftType == FirestoreRulesTokenTypes.FUNCTION_CALL ||
+            leftType == FirestoreRulesTokenTypes.BUILTIN ||
+            leftType == FirestoreRulesTokenTypes.IDENTIFIER ||
+            leftType == FirestoreRulesTokenTypes.R_PAREN ||
+            leftType == FirestoreRulesTokenTypes.R_BRACKET
 
     private fun separatedByBlankLine(left: ASTNode, right: ASTNode): Boolean {
         // A leading comment stays attached to the member it documents, so any
@@ -197,6 +236,7 @@ class FirestoreRulesBlock(
     private fun blankLine(): Spacing = Spacing.createSpacing(0, 0, 2, true, 1)
 
     private companion object {
-        val NESTED_INDENT: Indent = Indent.getSpaceIndent(2)
+        private const val INDENT_SIZE = 2
+        val NESTED_INDENT: Indent = Indent.getSpaceIndent(INDENT_SIZE)
     }
 }
