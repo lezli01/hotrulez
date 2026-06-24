@@ -1,0 +1,10 @@
+service cloud.firestore {
+match /databases/{database}/documents {
+function hasFields() {
+return {
+'a': 1,
+'b': 2
+}.keys().hasOnly(['a', 'b']);
+}
+}
+}

@@ -35,6 +35,12 @@ kotlin {
 }
 
 intellijPlatform {
+    // This plugin ships no UI forms and relies on no @NotNull bytecode
+    // instrumentation, so code instrumentation is disabled. It also avoids a
+    // local toolchain issue where instrumentCode resolves a JDK path that does
+    // not exist. CI behavior is unaffected because no instrumented code exists.
+    instrumentCode = false
+
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "252"

@@ -10,6 +10,10 @@ object FirestoreRulesHighlightingColors {
         "FIRESTORE_RULES_KEYWORD",
         DefaultLanguageHighlighterColors.KEYWORD,
     )
+    val CONSTANT: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_CONSTANT",
+        DefaultLanguageHighlighterColors.CONSTANT,
+    )
     val OPERATION: TextAttributesKey = createTextAttributesKey(
         "FIRESTORE_RULES_OPERATION",
         DefaultLanguageHighlighterColors.KEYWORD,
@@ -17,6 +21,30 @@ object FirestoreRulesHighlightingColors {
     val BUILTIN: TextAttributesKey = createTextAttributesKey(
         "FIRESTORE_RULES_BUILTIN",
         DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL,
+    )
+    val TYPE: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_TYPE",
+        DefaultLanguageHighlighterColors.CLASS_NAME,
+    )
+    val SERVICE_NAME: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_SERVICE_NAME",
+        DefaultLanguageHighlighterColors.CLASS_NAME,
+    )
+    val FUNCTION_DECLARATION: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_FUNCTION_DECLARATION",
+        DefaultLanguageHighlighterColors.FUNCTION_DECLARATION,
+    )
+    val FUNCTION_CALL: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_FUNCTION_CALL",
+        DefaultLanguageHighlighterColors.FUNCTION_CALL,
+    )
+    val PATH_VARIABLE: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_PATH_VARIABLE",
+        DefaultLanguageHighlighterColors.LOCAL_VARIABLE,
+    )
+    val RECURSIVE_WILDCARD: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_RECURSIVE_WILDCARD",
+        DefaultLanguageHighlighterColors.METADATA,
     )
     val IDENTIFIER: TextAttributesKey = createTextAttributesKey(
         "FIRESTORE_RULES_IDENTIFIER",

@@ -21,6 +21,13 @@
             language="FirestoreRules"
             implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesSyntaxHighlighterFactory"/>
 
+        <annotator
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesAnnotator"/>
+
+        <colorSettingsPage
+            implementation="dev.lezli.hotrulez.highlighting.FirestoreRulesColorSettingsPage"/>
+
         <lang.parserDefinition
             language="FirestoreRules"
             implementationClass="dev.lezli.hotrulez.parser.FirestoreRulesParserDefinition"/>

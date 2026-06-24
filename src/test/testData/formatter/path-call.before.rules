@@ -1,0 +1,9 @@
+service cloud.firestore {
+match /databases/{database}/documents {
+function isSubscriptionFreePeriodEnabled() {
+return exists(/databases/$(database)/documents/platform/platform)
+&& get(/databases/$(database)/documents/platform/platform).data.freeUntil != null
+&& get(/databases/$(database)/documents/platform/platform).data.freeUntil > request.time;
+}
+}
+}

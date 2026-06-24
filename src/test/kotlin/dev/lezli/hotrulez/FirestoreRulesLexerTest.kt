@@ -5,6 +5,7 @@ import com.intellij.psi.tree.IElementType
 import dev.lezli.hotrulez.lexer.FirestoreRulesLexer
 import dev.lezli.hotrulez.lexer.FirestoreRulesTokenTypes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -37,6 +38,92 @@ class FirestoreRulesLexerTest {
     fun tokenizesGetAsOperationAndHelper() {
         assertEquals(FirestoreRulesTokenTypes.OPERATION, tokenTypes("allow get: if true;")[1])
         assertEquals(FirestoreRulesTokenTypes.BUILTIN, tokenTypes("get(/databases/$(database)/documents/users/user)")[0])
+    }
+
+    @Test
+    fun tokenizesBooleansAndNullAsConstants() {
+        assertEquals(listOf(FirestoreRulesTokenTypes.CONSTANT), tokenTypes("true"))
+        assertEquals(listOf(FirestoreRulesTokenTypes.CONSTANT), tokenTypes("false"))
+        assertEquals(listOf(FirestoreRulesTokenTypes.CONSTANT), tokenTypes("null"))
+    }
+
+    @Test
+    fun tokenizesUserFunctionCallsDistinctlyFromIdentifiers() {
+        assertEquals(FirestoreRulesTokenTypes.FUNCTION_CALL, tokenTypes("isOwner(uid)")[0])
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("owner.field")[0])
+    }
+
+    @Test
+    fun tokenizesInAsOperator() {
+        assertEquals(FirestoreRulesTokenTypes.OPERATOR, tokenTypes("role in roles")[1])
+    }
+
+    @Test
+    fun keepsInAsMemberNameAfterDot() {
+        // `in` is a membership operator, but as a field access (e.g. resource.data.in)
+        // it must stay a member reference, not be miscolored as an operator.
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("resource.data.in == true")[4])
+    }
+
+    @Test
+    fun keepsInAsPathSegmentName() {
+        // A path segment named `in` (between path separators) is not an operator.
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("match /in/{doc}")[2])
+    }
+
+    @Test
+    fun tokenizesLetAsKeyword() {
+        // `let` introduces a local binding and must highlight as a keyword.
+        assertEquals(FirestoreRulesTokenTypes.KEYWORD, tokenTypes("let nowMs = request.time;")[0])
+    }
+
+    @Test
+    fun tokenizesDollarPathInterpolation() {
+        // `$(var)` path interpolation: the `$` is a real token, not a bad character.
+        val tokens = tokenTypes("exists(/databases/$(database)/documents)")
+        assertTrue(tokens.contains(FirestoreRulesTokenTypes.DOLLAR))
+        assertFalse(tokens.contains(TokenType.BAD_CHARACTER))
+    }
+
+    @Test
+    fun tokenizesTernaryQuestionMarkAsOperator() {
+        // `a ? b : c` ternary: `?` is an operator, not a bad character.
+        val tokens = tokenTypes("a ? b : c")
+        assertEquals(FirestoreRulesTokenTypes.OPERATOR, tokens[1])
+        assertFalse(tokens.contains(TokenType.BAD_CHARACTER))
+    }
+
+    @Test
+    fun tokenizesIsAsTypeOperatorFollowedByType() {
+        // `score is int`: `is` is an operator and `int` is a type name.
+        val tokens = tokenTypes("score is int")
+        assertEquals(FirestoreRulesTokenTypes.OPERATOR, tokens[1])
+        assertEquals(FirestoreRulesTokenTypes.TYPE, tokens[2])
+    }
+
+    @Test
+    fun keepsIsAsMemberNameAfterDot() {
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("resource.data.is == true")[4])
+    }
+
+    @Test
+    fun tokenizesGlobalNamespaceAsType() {
+        // `math.abs(x)`: the namespace `math` is a type/built-in, `abs` is a call.
+        val tokens = tokenTypes("math.abs(x)")
+        assertEquals(FirestoreRulesTokenTypes.TYPE, tokens[0])
+        assertEquals(FirestoreRulesTokenTypes.FUNCTION_CALL, tokens[2])
+    }
+
+    @Test
+    fun keepsTypeNameAsMemberNameAfterDot() {
+        // A field named like a type (e.g. resource.data.map) stays an identifier.
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("resource.data.map")[4])
+    }
+
+    @Test
+    fun tokenizesPathAsCallNotTypeWhenFollowedByParen() {
+        // `path('/x')` is a function call; `is path` (no paren) would be a type.
+        assertEquals(FirestoreRulesTokenTypes.FUNCTION_CALL, tokenTypes("path('/x')")[0])
     }
 
     private fun tokenTypes(text: String): List<IElementType> {

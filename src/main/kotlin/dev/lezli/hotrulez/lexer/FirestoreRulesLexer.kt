@@ -125,9 +125,14 @@ class FirestoreRulesLexer : LexerBase() {
         val text = buffer.subSequence(tokenStart, index).toString()
         val type = when {
             text in KEYWORDS -> FirestoreRulesTokenTypes.KEYWORD
+            text in CONSTANTS -> FirestoreRulesTokenTypes.CONSTANT
             text in BUILTINS && nextNonWhitespace(index) == '(' -> FirestoreRulesTokenTypes.BUILTIN
             text in OPERATIONS -> FirestoreRulesTokenTypes.OPERATION
             text in BUILTINS -> FirestoreRulesTokenTypes.BUILTIN
+            text in WORD_OPERATORS && inValuePosition(tokenStart) ->
+                FirestoreRulesTokenTypes.OPERATOR
+            nextNonWhitespace(index) == '(' -> FirestoreRulesTokenTypes.FUNCTION_CALL
+            text in TYPE_NAMES && inValuePosition(tokenStart) -> FirestoreRulesTokenTypes.TYPE
             else -> FirestoreRulesTokenTypes.IDENTIFIER
         }
         finish(type, index)
@@ -135,6 +140,9 @@ class FirestoreRulesLexer : LexerBase() {
 
     private fun scanSingleCharacter(current: Char) {
         when (current) {
+            // `/` is always lexed as a path separator. Firestore Rules also allow `/`
+            // as arithmetic division, but a context-free lexer cannot tell the two
+            // apart; paths dominate real rules and both share the operator color.
             '/' -> finish(FirestoreRulesTokenTypes.PATH_SEPARATOR, tokenStart + 1)
             '{' -> finish(FirestoreRulesTokenTypes.L_BRACE, tokenStart + 1)
             '}' -> finish(FirestoreRulesTokenTypes.R_BRACE, tokenStart + 1)
@@ -146,6 +154,7 @@ class FirestoreRulesLexer : LexerBase() {
             '.' -> finish(FirestoreRulesTokenTypes.DOT, tokenStart + 1)
             ':' -> finish(FirestoreRulesTokenTypes.COLON, tokenStart + 1)
             ';' -> finish(FirestoreRulesTokenTypes.SEMICOLON, tokenStart + 1)
+            '$' -> finish(FirestoreRulesTokenTypes.DOLLAR, tokenStart + 1)
             '=' -> {
                 val hasEquals = nextIs('=')
                 finish(
@@ -171,7 +180,7 @@ class FirestoreRulesLexer : LexerBase() {
                     tokenStart + if (hasPipe) 2 else 1,
                 )
             }
-            '+', '-', '*', '%' -> finish(FirestoreRulesTokenTypes.OPERATOR, tokenStart + 1)
+            '+', '-', '*', '%', '?' -> finish(FirestoreRulesTokenTypes.OPERATOR, tokenStart + 1)
             else -> finish(TokenType.BAD_CHARACTER, tokenStart + 1)
         }
     }
@@ -184,6 +193,23 @@ class FirestoreRulesLexer : LexerBase() {
             current++
         }
         return buffer.getOrNull(current)
+    }
+
+    private fun previousNonWhitespace(index: Int): Char? {
+        var current = index - 1
+        while (current >= 0 && buffer[current].isWhitespace()) {
+            current--
+        }
+        return if (current >= 0) buffer[current] else null
+    }
+
+    // A word operator (`in`, `is`) or built-in type/namespace name is only itself
+    // when it stands as a value. When it directly follows a member access `.`, a
+    // path separator `/`, or an opening wildcard/brace `{`, it is instead a field,
+    // path segment, or path variable name and must stay an identifier.
+    private fun inValuePosition(index: Int): Boolean {
+        val previous = previousNonWhitespace(index)
+        return previous != '.' && previous != '/' && previous != '{'
     }
 
     private fun finish(type: IElementType, end: Int) {
@@ -204,9 +230,21 @@ class FirestoreRulesLexer : LexerBase() {
             "if",
             "function",
             "return",
-            "true",
-            "false",
-            "null",
+            "let",
+        )
+
+        val CONSTANTS = setOf("true", "false", "null")
+
+        // Word-form operators in Firestore Rules conditions: membership (`x in list`)
+        // and type test (`x is string`).
+        val WORD_OPERATORS = setOf("in", "is")
+
+        // Built-in type names (used with the `is` operator) and global function
+        // namespaces (`math.*`, `timestamp.*`, `duration.*`, `latlng.*`, `hashing.*`).
+        val TYPE_NAMES = setOf(
+            "bool", "bytes", "float", "int", "number", "string",
+            "list", "map", "set", "path", "latlng", "timestamp",
+            "duration", "constraint", "map_diff", "math", "hashing",
         )
 
         val OPERATIONS = setOf("get", "list", "read", "create", "update", "delete", "write")
