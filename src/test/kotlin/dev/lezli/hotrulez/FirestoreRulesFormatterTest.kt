@@ -57,6 +57,14 @@ class FirestoreRulesFormatterTest : BasePlatformTestCase() {
         assertFormats("formatter/path-call.before.rules", "formatter/path-call.after.rules")
     }
 
+    fun testHangingIndentsChainedCallContinuation() {
+        assertFormats("formatter/chained-call.before.rules", "formatter/chained-call.after.rules")
+    }
+
+    fun testIndentsMultilineMapLiteral() {
+        assertFormats("formatter/map-literal.before.rules", "formatter/map-literal.after.rules")
+    }
+
     private fun assertFormats(beforePath: String, afterPath: String) {
         val file = myFixture.configureByFile(beforePath)
         WriteCommandAction.runWriteCommandAction(project) {
