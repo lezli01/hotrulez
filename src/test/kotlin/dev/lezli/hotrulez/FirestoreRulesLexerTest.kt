@@ -85,6 +85,47 @@ class FirestoreRulesLexerTest {
         assertFalse(tokens.contains(TokenType.BAD_CHARACTER))
     }
 
+    @Test
+    fun tokenizesTernaryQuestionMarkAsOperator() {
+        // `a ? b : c` ternary: `?` is an operator, not a bad character.
+        val tokens = tokenTypes("a ? b : c")
+        assertEquals(FirestoreRulesTokenTypes.OPERATOR, tokens[1])
+        assertFalse(tokens.contains(TokenType.BAD_CHARACTER))
+    }
+
+    @Test
+    fun tokenizesIsAsTypeOperatorFollowedByType() {
+        // `score is int`: `is` is an operator and `int` is a type name.
+        val tokens = tokenTypes("score is int")
+        assertEquals(FirestoreRulesTokenTypes.OPERATOR, tokens[1])
+        assertEquals(FirestoreRulesTokenTypes.TYPE, tokens[2])
+    }
+
+    @Test
+    fun keepsIsAsMemberNameAfterDot() {
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("resource.data.is == true")[4])
+    }
+
+    @Test
+    fun tokenizesGlobalNamespaceAsType() {
+        // `math.abs(x)`: the namespace `math` is a type/built-in, `abs` is a call.
+        val tokens = tokenTypes("math.abs(x)")
+        assertEquals(FirestoreRulesTokenTypes.TYPE, tokens[0])
+        assertEquals(FirestoreRulesTokenTypes.FUNCTION_CALL, tokens[2])
+    }
+
+    @Test
+    fun keepsTypeNameAsMemberNameAfterDot() {
+        // A field named like a type (e.g. resource.data.map) stays an identifier.
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("resource.data.map")[4])
+    }
+
+    @Test
+    fun tokenizesPathAsCallNotTypeWhenFollowedByParen() {
+        // `path('/x')` is a function call; `is path` (no paren) would be a type.
+        assertEquals(FirestoreRulesTokenTypes.FUNCTION_CALL, tokenTypes("path('/x')")[0])
+    }
+
     private fun tokenTypes(text: String): List<IElementType> {
         val lexer = FirestoreRulesLexer()
         val tokens = mutableListOf<IElementType>()

@@ -1,0 +1,7 @@
+service cloud.firestore {
+match /databases/{database}/documents {
+match /users/{id} {
+allow create: if request.resource.data.name is string && request.resource.data.score is int;
+}
+}
+}

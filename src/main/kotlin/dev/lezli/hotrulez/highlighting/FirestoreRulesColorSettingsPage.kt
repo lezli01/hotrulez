@@ -35,6 +35,7 @@ class FirestoreRulesColorSettingsPage : ColorSettingsPage {
             AttributesDescriptor("Allow operation", FirestoreRulesHighlightingColors.OPERATION),
             AttributesDescriptor("Boolean and null", FirestoreRulesHighlightingColors.CONSTANT),
             AttributesDescriptor("Built-in variable and helper", FirestoreRulesHighlightingColors.BUILTIN),
+            AttributesDescriptor("Type and built-in namespace", FirestoreRulesHighlightingColors.TYPE),
             AttributesDescriptor("Service name", FirestoreRulesHighlightingColors.SERVICE_NAME),
             AttributesDescriptor("Function declaration", FirestoreRulesHighlightingColors.FUNCTION_DECLARATION),
             AttributesDescriptor("Function call", FirestoreRulesHighlightingColors.FUNCTION_CALL),
@@ -77,8 +78,10 @@ class FirestoreRulesColorSettingsPage : ColorSettingsPage {
                 }
 
                 match /scores/{<pathvar>score</pathvar>} {
-                  /* numeric and membership conditions */
-                  allow read: if resource.data.value >= 100 && resource.data.tier in ['gold', 'silver'];
+                  /* type test, ternary, and membership */
+                  allow read: if resource.data.value is int
+                    ? resource.data.value >= 100
+                    : resource.data.tier in ['gold', 'silver'];
                 }
 
                 match /logs/{<pathvar>document</pathvar>=**} {

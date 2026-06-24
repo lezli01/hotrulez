@@ -71,6 +71,16 @@ class FirestoreRulesSyntaxHighlighterTest {
         assertTrue(keys.contains(FirestoreRulesHighlightingColors.RECURSIVE_WILDCARD))
     }
 
+    @Test
+    fun highlightsTypeTestTernaryAndTypeNames() {
+        val keys = highlightedKeys("allow read: if resource.data.value is int ? true : false;")
+
+        assertTrue(keys.contains(FirestoreRulesHighlightingColors.TYPE))
+        assertTrue(keys.contains(FirestoreRulesHighlightingColors.OPERATOR))
+        // The ternary `?` and the `is` operator must not be flagged as invalid.
+        assertFalse(keys.contains(FirestoreRulesHighlightingColors.BAD_CHARACTER))
+    }
+
     private fun highlightedKeys(text: String): Set<TextAttributesKey> {
         val highlighter = FirestoreRulesSyntaxHighlighter()
         val lexer = highlighter.highlightingLexer
