@@ -14,8 +14,10 @@ class FirestoreRulesSyntaxHighlighter : SyntaxHighlighterBase() {
     override fun getTokenHighlights(tokenType: IElementType): Array<TextAttributesKey> =
         when (tokenType) {
             FirestoreRulesTokenTypes.KEYWORD -> pack(FirestoreRulesHighlightingColors.KEYWORD)
+            FirestoreRulesTokenTypes.CONSTANT -> pack(FirestoreRulesHighlightingColors.CONSTANT)
             FirestoreRulesTokenTypes.OPERATION -> pack(FirestoreRulesHighlightingColors.OPERATION)
             FirestoreRulesTokenTypes.BUILTIN -> pack(FirestoreRulesHighlightingColors.BUILTIN)
+            FirestoreRulesTokenTypes.FUNCTION_CALL -> pack(FirestoreRulesHighlightingColors.FUNCTION_CALL)
             FirestoreRulesTokenTypes.IDENTIFIER -> pack(FirestoreRulesHighlightingColors.IDENTIFIER)
             FirestoreRulesTokenTypes.STRING -> pack(FirestoreRulesHighlightingColors.STRING)
             FirestoreRulesTokenTypes.NUMBER -> pack(FirestoreRulesHighlightingColors.NUMBER)
@@ -30,9 +32,9 @@ class FirestoreRulesSyntaxHighlighter : SyntaxHighlighterBase() {
             FirestoreRulesTokenTypes.R_BRACKET -> pack(FirestoreRulesHighlightingColors.BRACKETS)
             FirestoreRulesTokenTypes.COMMA -> pack(FirestoreRulesHighlightingColors.COMMA)
             FirestoreRulesTokenTypes.DOT -> pack(FirestoreRulesHighlightingColors.DOT)
+            FirestoreRulesTokenTypes.STAR_STAR -> pack(FirestoreRulesHighlightingColors.RECURSIVE_WILDCARD)
             FirestoreRulesTokenTypes.COLON,
             FirestoreRulesTokenTypes.EQUALS,
-            FirestoreRulesTokenTypes.STAR_STAR,
             FirestoreRulesTokenTypes.OPERATOR -> pack(FirestoreRulesHighlightingColors.OPERATOR)
             FirestoreRulesTokenTypes.SEMICOLON -> pack(FirestoreRulesHighlightingColors.SEMICOLON)
             TokenType.BAD_CHARACTER -> pack(FirestoreRulesHighlightingColors.BAD_CHARACTER)

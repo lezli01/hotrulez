@@ -125,9 +125,13 @@ class FirestoreRulesLexer : LexerBase() {
         val text = buffer.subSequence(tokenStart, index).toString()
         val type = when {
             text in KEYWORDS -> FirestoreRulesTokenTypes.KEYWORD
+            text in CONSTANTS -> FirestoreRulesTokenTypes.CONSTANT
             text in BUILTINS && nextNonWhitespace(index) == '(' -> FirestoreRulesTokenTypes.BUILTIN
             text in OPERATIONS -> FirestoreRulesTokenTypes.OPERATION
             text in BUILTINS -> FirestoreRulesTokenTypes.BUILTIN
+            text in WORD_OPERATORS && isOperatorPosition(tokenStart) ->
+                FirestoreRulesTokenTypes.OPERATOR
+            nextNonWhitespace(index) == '(' -> FirestoreRulesTokenTypes.FUNCTION_CALL
             else -> FirestoreRulesTokenTypes.IDENTIFIER
         }
         finish(type, index)
@@ -186,6 +190,22 @@ class FirestoreRulesLexer : LexerBase() {
         return buffer.getOrNull(current)
     }
 
+    private fun previousNonWhitespace(index: Int): Char? {
+        var current = index - 1
+        while (current >= 0 && buffer[current].isWhitespace()) {
+            current--
+        }
+        return if (current >= 0) buffer[current] else null
+    }
+
+    // A word operator like `in` is only an operator between values. When it
+    // directly follows a member access `.`, a path separator `/`, or an opening
+    // wildcard/brace `{`, it is a field, path segment, or path variable name.
+    private fun isOperatorPosition(index: Int): Boolean {
+        val previous = previousNonWhitespace(index)
+        return previous != '.' && previous != '/' && previous != '{'
+    }
+
     private fun finish(type: IElementType, end: Int) {
         tokenType = type
         tokenEnd = end
@@ -204,10 +224,12 @@ class FirestoreRulesLexer : LexerBase() {
             "if",
             "function",
             "return",
-            "true",
-            "false",
-            "null",
         )
+
+        val CONSTANTS = setOf("true", "false", "null")
+
+        // Word-form membership operator used in Firestore Rules conditions, e.g. `'admin' in roles`.
+        val WORD_OPERATORS = setOf("in")
 
         val OPERATIONS = setOf("get", "list", "read", "create", "update", "delete", "write")
 

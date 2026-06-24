@@ -2,8 +2,10 @@ package dev.lezli.hotrulez.lexer
 
 object FirestoreRulesTokenTypes {
     val KEYWORD = FirestoreRulesTokenType("KEYWORD")
+    val CONSTANT = FirestoreRulesTokenType("CONSTANT")
     val OPERATION = FirestoreRulesTokenType("OPERATION")
     val BUILTIN = FirestoreRulesTokenType("BUILTIN")
+    val FUNCTION_CALL = FirestoreRulesTokenType("FUNCTION_CALL")
     val IDENTIFIER = FirestoreRulesTokenType("IDENTIFIER")
     val STRING = FirestoreRulesTokenType("STRING")
     val NUMBER = FirestoreRulesTokenType("NUMBER")
