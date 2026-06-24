@@ -49,6 +49,10 @@ class FirestoreRulesFormatterTest : BasePlatformTestCase() {
         assertFormats("formatter/comment-before-function.before.rules", "formatter/comment-before-function.after.rules")
     }
 
+    fun testIndentsMultilineParenthesizedExpression() {
+        assertFormats("formatter/multiline-expression.before.rules", "formatter/multiline-expression.after.rules")
+    }
+
     private fun assertFormats(beforePath: String, afterPath: String) {
         val file = myFixture.configureByFile(beforePath)
         WriteCommandAction.runWriteCommandAction(project) {
