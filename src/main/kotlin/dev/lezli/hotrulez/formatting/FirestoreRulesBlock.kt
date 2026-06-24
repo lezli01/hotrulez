@@ -35,16 +35,27 @@ class FirestoreRulesBlock(
         var depth = 0
         return children.map { child ->
             val type = child.elementType
-            if (type == FirestoreRulesTokenTypes.R_PAREN || type == FirestoreRulesTokenTypes.R_BRACKET) {
+            if (type == FirestoreRulesTokenTypes.R_PAREN ||
+                type == FirestoreRulesTokenTypes.R_BRACKET ||
+                type == FirestoreRulesTokenTypes.R_BRACE
+            ) {
                 depth = (depth - 1).coerceAtLeast(0)
             }
-            val indent = if (depth > 0) {
-                Indent.getSpaceIndent(depth * INDENT_SIZE)
+            // A leading `.` on a wrapped line is a method-chain continuation; give it
+            // one extra level so it hangs under the call instead of aligning with the
+            // statement. Mid-line dots are unaffected, since indent only applies at the
+            // first token of a line.
+            val indentDepth = if (type == FirestoreRulesTokenTypes.DOT) depth + 1 else depth
+            val indent = if (indentDepth > 0) {
+                Indent.getSpaceIndent(indentDepth * INDENT_SIZE)
             } else {
                 Indent.getNoneIndent()
             }
             val block = FirestoreRulesBlock(child, indent)
-            if (type == FirestoreRulesTokenTypes.L_PAREN || type == FirestoreRulesTokenTypes.L_BRACKET) {
+            if (type == FirestoreRulesTokenTypes.L_PAREN ||
+                type == FirestoreRulesTokenTypes.L_BRACKET ||
+                type == FirestoreRulesTokenTypes.L_BRACE
+            ) {
                 depth++
             }
             block
