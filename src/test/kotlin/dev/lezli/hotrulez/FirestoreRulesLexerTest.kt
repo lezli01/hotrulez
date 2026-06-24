@@ -72,6 +72,12 @@ class FirestoreRulesLexerTest {
     }
 
     @Test
+    fun tokenizesLetAsKeyword() {
+        // `let` introduces a local binding and must highlight as a keyword.
+        assertEquals(FirestoreRulesTokenTypes.KEYWORD, tokenTypes("let nowMs = request.time;")[0])
+    }
+
+    @Test
     fun tokenizesDollarPathInterpolation() {
         // `$(var)` path interpolation: the `$` is a real token, not a bad character.
         val tokens = tokenTypes("exists(/databases/$(database)/documents)")

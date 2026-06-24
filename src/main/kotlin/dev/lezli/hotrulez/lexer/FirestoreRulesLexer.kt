@@ -225,6 +225,7 @@ class FirestoreRulesLexer : LexerBase() {
             "if",
             "function",
             "return",
+            "let",
         )
 
         val CONSTANTS = setOf("true", "false", "null")
