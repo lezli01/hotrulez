@@ -5,6 +5,7 @@ import com.intellij.psi.tree.IElementType
 import dev.lezli.hotrulez.lexer.FirestoreRulesLexer
 import dev.lezli.hotrulez.lexer.FirestoreRulesTokenTypes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -68,6 +69,14 @@ class FirestoreRulesLexerTest {
     fun keepsInAsPathSegmentName() {
         // A path segment named `in` (between path separators) is not an operator.
         assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("match /in/{doc}")[2])
+    }
+
+    @Test
+    fun tokenizesDollarPathInterpolation() {
+        // `$(var)` path interpolation: the `$` is a real token, not a bad character.
+        val tokens = tokenTypes("exists(/databases/$(database)/documents)")
+        assertTrue(tokens.contains(FirestoreRulesTokenTypes.DOLLAR))
+        assertFalse(tokens.contains(TokenType.BAD_CHARACTER))
     }
 
     private fun tokenTypes(text: String): List<IElementType> {

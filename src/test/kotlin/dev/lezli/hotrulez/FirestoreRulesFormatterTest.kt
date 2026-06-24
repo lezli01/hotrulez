@@ -53,6 +53,10 @@ class FirestoreRulesFormatterTest : BasePlatformTestCase() {
         assertFormats("formatter/multiline-expression.before.rules", "formatter/multiline-expression.after.rules")
     }
 
+    fun testFormatsPathExpressionsInCalls() {
+        assertFormats("formatter/path-call.before.rules", "formatter/path-call.after.rules")
+    }
+
     private fun assertFormats(beforePath: String, afterPath: String) {
         val file = myFixture.configureByFile(beforePath)
         WriteCommandAction.runWriteCommandAction(project) {

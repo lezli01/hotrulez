@@ -150,6 +150,7 @@ class FirestoreRulesLexer : LexerBase() {
             '.' -> finish(FirestoreRulesTokenTypes.DOT, tokenStart + 1)
             ':' -> finish(FirestoreRulesTokenTypes.COLON, tokenStart + 1)
             ';' -> finish(FirestoreRulesTokenTypes.SEMICOLON, tokenStart + 1)
+            '$' -> finish(FirestoreRulesTokenTypes.DOLLAR, tokenStart + 1)
             '=' -> {
                 val hasEquals = nextIs('=')
                 finish(
