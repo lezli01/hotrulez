@@ -17,6 +17,7 @@ class FirestoreRulesSyntaxHighlighter : SyntaxHighlighterBase() {
             FirestoreRulesTokenTypes.CONSTANT -> pack(FirestoreRulesHighlightingColors.CONSTANT)
             FirestoreRulesTokenTypes.OPERATION -> pack(FirestoreRulesHighlightingColors.OPERATION)
             FirestoreRulesTokenTypes.BUILTIN -> pack(FirestoreRulesHighlightingColors.BUILTIN)
+            FirestoreRulesTokenTypes.TYPE -> pack(FirestoreRulesHighlightingColors.TYPE)
             FirestoreRulesTokenTypes.FUNCTION_CALL -> pack(FirestoreRulesHighlightingColors.FUNCTION_CALL)
             FirestoreRulesTokenTypes.IDENTIFIER -> pack(FirestoreRulesHighlightingColors.IDENTIFIER)
             FirestoreRulesTokenTypes.STRING -> pack(FirestoreRulesHighlightingColors.STRING)

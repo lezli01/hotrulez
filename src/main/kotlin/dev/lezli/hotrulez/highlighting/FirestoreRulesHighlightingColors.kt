@@ -22,6 +22,10 @@ object FirestoreRulesHighlightingColors {
         "FIRESTORE_RULES_BUILTIN",
         DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL,
     )
+    val TYPE: TextAttributesKey = createTextAttributesKey(
+        "FIRESTORE_RULES_TYPE",
+        DefaultLanguageHighlighterColors.CLASS_NAME,
+    )
     val SERVICE_NAME: TextAttributesKey = createTextAttributesKey(
         "FIRESTORE_RULES_SERVICE_NAME",
         DefaultLanguageHighlighterColors.CLASS_NAME,
