@@ -39,6 +39,37 @@ class FirestoreRulesLexerTest {
         assertEquals(FirestoreRulesTokenTypes.BUILTIN, tokenTypes("get(/databases/$(database)/documents/users/user)")[0])
     }
 
+    @Test
+    fun tokenizesBooleansAndNullAsConstants() {
+        assertEquals(listOf(FirestoreRulesTokenTypes.CONSTANT), tokenTypes("true"))
+        assertEquals(listOf(FirestoreRulesTokenTypes.CONSTANT), tokenTypes("false"))
+        assertEquals(listOf(FirestoreRulesTokenTypes.CONSTANT), tokenTypes("null"))
+    }
+
+    @Test
+    fun tokenizesUserFunctionCallsDistinctlyFromIdentifiers() {
+        assertEquals(FirestoreRulesTokenTypes.FUNCTION_CALL, tokenTypes("isOwner(uid)")[0])
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("owner.field")[0])
+    }
+
+    @Test
+    fun tokenizesInAsOperator() {
+        assertEquals(FirestoreRulesTokenTypes.OPERATOR, tokenTypes("role in roles")[1])
+    }
+
+    @Test
+    fun keepsInAsMemberNameAfterDot() {
+        // `in` is a membership operator, but as a field access (e.g. resource.data.in)
+        // it must stay a member reference, not be miscolored as an operator.
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("resource.data.in == true")[4])
+    }
+
+    @Test
+    fun keepsInAsPathSegmentName() {
+        // A path segment named `in` (between path separators) is not an operator.
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("match /in/{doc}")[2])
+    }
+
     private fun tokenTypes(text: String): List<IElementType> {
         val lexer = FirestoreRulesLexer()
         val tokens = mutableListOf<IElementType>()

@@ -49,6 +49,25 @@ class FirestoreRulesSyntaxHighlighterTest {
         assertTrue(highlightedKeys("@").contains(FirestoreRulesHighlightingColors.BAD_CHARACTER))
     }
 
+    @Test
+    fun highlightsConstantsFunctionCallsAndRecursiveWildcards() {
+        val keys = highlightedKeys(
+            """
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /logs/{document=**} {
+                  allow read: if isOwner(request.auth.uid) && resource.data.active == true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+
+        assertTrue(keys.contains(FirestoreRulesHighlightingColors.CONSTANT))
+        assertTrue(keys.contains(FirestoreRulesHighlightingColors.FUNCTION_CALL))
+        assertTrue(keys.contains(FirestoreRulesHighlightingColors.RECURSIVE_WILDCARD))
+    }
+
     private fun highlightedKeys(text: String): Set<TextAttributesKey> {
         val highlighter = FirestoreRulesSyntaxHighlighter()
         val lexer = highlighter.highlightingLexer
