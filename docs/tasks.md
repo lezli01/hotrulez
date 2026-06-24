@@ -159,7 +159,7 @@ Source: `docs/spec.md`
 ## Milestone 5: IDE Polish and Docs
 
 - [ ] Add a file icon if it improves IDE polish.
-- [ ] Add a color settings page if the highlighter exposes meaningful categories.
+- [x] Add a color settings page if the highlighter exposes meaningful categories.
 - [ ] Check brace, quote, and comment handling against JetBrains conventions.
 - [ ] Replace the repeated-title `README.md` with a concise project README.
 - [ ] Document implemented features and current limitations in `README.md`.
