@@ -60,6 +60,12 @@ class FirestoreRulesBlock(
             if (left.elementType == FirestoreRulesTokenTypes.L_BRACE || right.elementType == FirestoreRulesTokenTypes.R_BRACE) {
                 return lineBreak()
             }
+            // Follow the Firebase docs' layout: separate block-level members
+            // (function declarations and match blocks) from their siblings with a
+            // blank line, while keeping simple statements (allow, return) tight.
+            if (separatedByBlankLine(left, right)) {
+                return blankLine()
+            }
             return lineBreak()
         }
 
@@ -146,6 +152,32 @@ class FirestoreRulesBlock(
         return oneSpace()
     }
 
+    private fun separatedByBlankLine(left: ASTNode, right: ASTNode): Boolean {
+        // A leading comment stays attached to the member it documents, so any
+        // blank line belongs before the comment, not between it and that member.
+        if (left.isComment()) {
+            return false
+        }
+        // Look past a leading comment so a documented function/match still gets
+        // separated from the previous member (the blank lands before the comment).
+        val rightTarget = if (right.isComment()) firstNonCommentSibling(right) else right
+        return isBlockMember(left) || (rightTarget != null && isBlockMember(rightTarget))
+    }
+
+    private fun isBlockMember(node: ASTNode): Boolean =
+        node.elementType == FirestoreRulesElementTypes.FUNCTION_DECLARATION ||
+            node.elementType == FirestoreRulesElementTypes.MATCH_BLOCK
+
+    private fun firstNonCommentSibling(node: ASTNode): ASTNode? {
+        var sibling = node.treeNext
+        while (sibling != null &&
+            (sibling.elementType == TokenType.WHITE_SPACE || sibling.isComment())
+        ) {
+            sibling = sibling.treeNext
+        }
+        return sibling
+    }
+
     private fun ASTNode.isBrace(): Boolean =
         elementType == FirestoreRulesTokenTypes.L_BRACE || elementType == FirestoreRulesTokenTypes.R_BRACE
 
@@ -161,6 +193,8 @@ class FirestoreRulesBlock(
     private fun oneSpace(): Spacing = Spacing.createSpacing(1, 1, 0, true, 1)
 
     private fun lineBreak(): Spacing = Spacing.createSpacing(0, 0, 1, true, 1)
+
+    private fun blankLine(): Spacing = Spacing.createSpacing(0, 0, 2, true, 1)
 
     private companion object {
         val NESTED_INDENT: Indent = Indent.getSpaceIndent(2)
