@@ -11,14 +11,19 @@ Created by `lezli01` at [lezli01.is-a.dev](https://lezli01.is-a.dev).
 Current support includes:
 
 - `.rules` file type recognition.
-- Syntax highlighting for Firestore Rules keywords, operations, paths,
-  wildcards, comments, strings, numbers, operators, built-ins, and invalid
-  tokens.
+- Syntax highlighting for Firestore Rules keywords, allow operations, booleans
+  and `null`, built-ins and helpers, service names, function declarations and
+  calls, path variables, recursive wildcards, paths, comments, strings, numbers,
+  operators, and invalid tokens.
+- A color settings page (Settings | Editor | Color Scheme | Firestore Rules)
+  exposing every highlight category with a live preview.
 - Structural parser/PSI support for common Firestore Rules files.
 - Automatic formatting for common `rules_version`, `service`, `match`, `allow`,
   `function`, and `return` structure.
 - Formatter handling for path wildcards, recursive wildcards, comments, blank
-  lines, multiline conditions, and malformed-but-recoverable input.
+  lines, multiline conditions, and malformed-but-recoverable input. Block-level
+  members are separated by a blank line (around function declarations and between
+  sibling match blocks) following the Firebase documentation's layout.
 
 Planned support includes fuller grammar coverage, typed PSI expansion, syntax
 error reporting, annotators or inspections, and user-facing diagnostics for

@@ -75,6 +75,45 @@ class FirestoreRulesParserTest : BasePlatformTestCase() {
         assertNotNull(file.findDescendant(FirestoreRulesElementTypes.EXPRESSION))
     }
 
+    fun testParsesMapLiteralInExpressionWithoutBraceStealing() {
+        // A map literal's inner `}` must not be mistaken for the block close; the
+        // following match block must still parse (and parsing must terminate).
+        val file = parse(
+            """
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                function hasFields() {
+                  return { 'a': 1, 'b': 2 }.keys().hasOnly(['a', 'b']);
+                }
+                match /items/{id} {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+
+        assertNotNull(file.findDescendant(FirestoreRulesElementTypes.FUNCTION_DECLARATION))
+        assertEquals(2, file.countDescendants(FirestoreRulesElementTypes.MATCH_BLOCK))
+    }
+
+    fun testRecoversFromStrayClosingBrace() {
+        // An unbalanced top-level `}` must not send the parser into an infinite loop.
+        val file = parse(
+            """
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                allow read: if true;
+              }
+            }
+            }
+            """.trimIndent(),
+        )
+
+        assertNotNull(file.findDescendant(FirestoreRulesElementTypes.SERVICE_DECLARATION))
+        assertNotNull(file.findDescendant(FirestoreRulesElementTypes.MATCH_BLOCK))
+    }
+
     fun testRecoversAfterMalformedAllowStatement() {
         val file = parse(
             """

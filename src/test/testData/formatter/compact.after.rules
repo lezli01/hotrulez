@@ -3,6 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /cities/{city} {
       allow read, write: if request.auth != null;
+
       function ownsCity(uid) {
         return resource.data.owner == uid;
       }

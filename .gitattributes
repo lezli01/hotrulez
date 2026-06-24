@@ -1,0 +1,11 @@
+# Normalize line endings so checkouts match the repository and CI on every OS.
+# Without this, core.autocrlf=true rewrites text files to CRLF in the working
+# tree, which breaks formatter fixture tests that compare against IDE-normalized
+# (LF) output.
+* text=auto eol=lf
+
+# Windows batch scripts must keep CRLF.
+*.bat text eol=crlf
+
+# Never normalize binaries.
+*.jar binary
