@@ -35,6 +35,7 @@ class FirestoreRulesSyntaxHighlighter : SyntaxHighlighterBase() {
             FirestoreRulesTokenTypes.STAR_STAR -> pack(FirestoreRulesHighlightingColors.RECURSIVE_WILDCARD)
             FirestoreRulesTokenTypes.COLON,
             FirestoreRulesTokenTypes.EQUALS,
+            FirestoreRulesTokenTypes.DOLLAR,
             FirestoreRulesTokenTypes.OPERATOR -> pack(FirestoreRulesHighlightingColors.OPERATOR)
             FirestoreRulesTokenTypes.SEMICOLON -> pack(FirestoreRulesHighlightingColors.SEMICOLON)
             TokenType.BAD_CHARACTER -> pack(FirestoreRulesHighlightingColors.BAD_CHARACTER)

@@ -3,6 +3,7 @@ package dev.lezli.hotrulez
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import dev.lezli.hotrulez.highlighting.FirestoreRulesHighlightingColors
 import dev.lezli.hotrulez.highlighting.FirestoreRulesSyntaxHighlighter
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -42,6 +43,8 @@ class FirestoreRulesSyntaxHighlighterTest {
         assertTrue(keys.contains(FirestoreRulesHighlightingColors.PATH_SEPARATOR))
         assertTrue(keys.contains(FirestoreRulesHighlightingColors.BRACES))
         assertTrue(keys.contains(FirestoreRulesHighlightingColors.BUILTIN))
+        // `$(...)` path interpolation must not be flagged as an invalid token.
+        assertFalse(keys.contains(FirestoreRulesHighlightingColors.BAD_CHARACTER))
     }
 
     @Test

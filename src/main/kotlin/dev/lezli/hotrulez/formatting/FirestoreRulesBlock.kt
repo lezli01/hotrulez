@@ -158,6 +158,13 @@ class FirestoreRulesBlock(
         if (leftType == FirestoreRulesTokenTypes.COLON) {
             return oneSpace()
         }
+        // Path expressions embedded in conditions (e.g. exists(/databases/$(db)/...))
+        // are not parsed as match paths, so glue their separators here too.
+        if (leftType == FirestoreRulesTokenTypes.PATH_SEPARATOR ||
+            rightType == FirestoreRulesTokenTypes.PATH_SEPARATOR
+        ) {
+            return noSpace()
+        }
         if (leftType == FirestoreRulesTokenTypes.DOT ||
             rightType == FirestoreRulesTokenTypes.DOT ||
             leftType == FirestoreRulesTokenTypes.L_PAREN ||
@@ -189,7 +196,8 @@ class FirestoreRulesBlock(
             leftType == FirestoreRulesTokenTypes.BUILTIN ||
             leftType == FirestoreRulesTokenTypes.IDENTIFIER ||
             leftType == FirestoreRulesTokenTypes.R_PAREN ||
-            leftType == FirestoreRulesTokenTypes.R_BRACKET
+            leftType == FirestoreRulesTokenTypes.R_BRACKET ||
+            leftType == FirestoreRulesTokenTypes.DOLLAR
 
     private fun separatedByBlankLine(left: ASTNode, right: ASTNode): Boolean {
         // A leading comment stays attached to the member it documents, so any

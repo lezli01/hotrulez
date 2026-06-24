@@ -24,5 +24,6 @@ object FirestoreRulesTokenTypes {
     val SEMICOLON = FirestoreRulesTokenType("SEMICOLON")
     val EQUALS = FirestoreRulesTokenType("EQUALS")
     val STAR_STAR = FirestoreRulesTokenType("STAR_STAR")
+    val DOLLAR = FirestoreRulesTokenType("DOLLAR")
     val OPERATOR = FirestoreRulesTokenType("OPERATOR")
 }
