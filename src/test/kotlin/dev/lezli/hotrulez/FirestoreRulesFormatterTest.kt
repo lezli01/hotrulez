@@ -37,6 +37,18 @@ class FirestoreRulesFormatterTest : BasePlatformTestCase() {
         assertFormats("formatter/malformed.before.rules", "formatter/malformed.after.rules")
     }
 
+    fun testSeparatesBlockMembersWithBlankLines() {
+        assertFormats("formatter/block-separation.before.rules", "formatter/block-separation.after.rules")
+    }
+
+    fun testSeparatesAllowFromNestedMatchBlock() {
+        assertFormats("formatter/nested-match.before.rules", "formatter/nested-match.after.rules")
+    }
+
+    fun testKeepsBlankLineBeforeCommentedFunction() {
+        assertFormats("formatter/comment-before-function.before.rules", "formatter/comment-before-function.after.rules")
+    }
+
     private fun assertFormats(beforePath: String, afterPath: String) {
         val file = myFixture.configureByFile(beforePath)
         WriteCommandAction.runWriteCommandAction(project) {
