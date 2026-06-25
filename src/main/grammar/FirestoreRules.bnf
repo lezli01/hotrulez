@@ -128,9 +128,11 @@ service_name ::= IDENTIFIER ('.' IDENTIFIER)*
 // ---------------------------------------------------------------------------
 
 block ::= '{' block_item * '}' { pin=1 }
-private block_item ::= match_declaration
+private block_item ::= !('}' | <<eof>>) block_decl { pin=1 recoverWhile=block_item_recover }
+private block_decl ::= match_declaration
                      | allow_statement
                      | function_declaration
+private block_item_recover ::= !('}' | 'match' | 'allow' | 'function')
 
 match_declaration ::= 'match' match_path block { pin=1 recoverWhile=statement_recover }
 
@@ -160,7 +162,24 @@ private path_part ::= '/' path_segment
 private path_segment ::= recursive_wildcard | path_wildcard | paren_path_segment | path_name_segment
 path_wildcard ::= '{' IDENTIFIER '}'
 recursive_wildcard ::= '{' IDENTIFIER '=' '**' '}'
-path_name_segment ::= IDENTIFIER
+path_name_segment ::= path_literal_token +
+private path_literal_token ::= IDENTIFIER
+                             | NUMBER
+                             | 'rules_version'
+                             | 'service'
+                             | 'match'
+                             | 'allow'
+                             | 'if'
+                             | 'function'
+                             | 'return'
+                             | 'let'
+                             | 'true'
+                             | 'false'
+                             | 'null'
+                             | 'in'
+                             | 'is'
+                             | '-'
+                             | '.'
 
 // ---------------------------------------------------------------------------
 // Expressions (Grammar-Kit operator-precedence form; lowest precedence first)
