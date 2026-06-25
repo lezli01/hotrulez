@@ -48,11 +48,12 @@ class FirestoreRulesStructureInspection : LocalInspectionTool() {
             val firstVersion = versions.first()
             val version = FirestoreRulesDiagnostics.rulesVersion(firstVersion)
             if (version != "2") {
+                val found = if (version == null) "no version value" else "version '$version'"
                 problems += problem(
                     manager,
                     firstVersion,
                     isOnTheFly,
-                    "Expected 'rules_version = '2';' declaration at the top of the file; found version '$version'.",
+                    "Expected 'rules_version = '2';' declaration at the top of the file; found $found.",
                 )
             }
 

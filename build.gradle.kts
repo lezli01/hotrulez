@@ -41,7 +41,7 @@ kotlin {
 // --- Grammar-Kit + JFlex code generation ---------------------------------
 // Source grammar lives in src/main/grammar; generated parser/PSI/lexer go to
 // build/generated/sources/grammarkit and are added to the main source set.
-// Regenerate explicitly with: ./gradlew generateParser generateLexer
+// Regenerate explicitly with: ./gradlew generateFirestoreParser generateFirestoreLexer
 // (both run automatically before compileKotlin/compileJava).
 val generatedSourcesDir = layout.buildDirectory.dir("generated/sources/grammarkit")
 

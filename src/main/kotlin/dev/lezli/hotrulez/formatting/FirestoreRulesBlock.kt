@@ -52,9 +52,10 @@ class FirestoreRulesBlock(
             // Braced statement blocks: indent every member, keep the braces flush.
             in BRACED_BLOCKS -> if (child.isBrace()) Indent.getNoneIndent() else NESTED_INDENT
 
-            // Bracketed literals and grouping parens: hang their contents one level
-            // and align the closing delimiter with the line that opened them.
-            T.MAP_LITERAL, T.LIST_LITERAL, T.PARENTHESIZED_EXPRESSION ->
+            // Bracketed literals, grouping parens, and call argument lists: hang their
+            // contents one level and align the closing delimiter with the line that
+            // opened them.
+            T.MAP_LITERAL, T.LIST_LITERAL, T.PARENTHESIZED_EXPRESSION, T.ARGUMENT_LIST ->
                 if (child.isDelimiter()) Indent.getNoneIndent() else NESTED_INDENT
 
             // A wrapped method-chain segment (`\n  .field`) hangs under the receiver;
@@ -155,11 +156,6 @@ class FirestoreRulesBlock(
             return noSpace()
         }
 
-        // Recursive wildcard `{name=**}` has no internal spaces.
-        if (parent == T.RECURSIVE_WILDCARD) {
-            return noSpace()
-        }
-
         // Everything else — binary/relational/logical operators, assignment in
         // `rules_version`/`let`, and keyword-separated tokens — takes one space on
         // each side.
@@ -232,8 +228,8 @@ class FirestoreRulesBlock(
             T.PATH_WILDCARD,
             T.PATH_INTERPOLATION,
             T.PAREN_PATH_SEGMENT,
-            // RECURSIVE_WILDCARD handled separately so the rule reads explicitly,
-            // but it is also space-free:
+            T.PATH_NAME_SEGMENT,
+            T.RECURSIVE_WILDCARD,
         )
     }
 }
