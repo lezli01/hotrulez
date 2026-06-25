@@ -142,18 +142,9 @@ class FirestoreRulesBlock(
             return noSpace()
         }
 
-        // Assignment '=' takes a space in `rules_version` and `let`.
-        if (left == T.ASSIGN || right == T.ASSIGN) {
-            return oneSpace()
-        }
-
-        // Binary/relational/logical operators take a space on both sides.
-        if (left in FirestoreRulesTokenSets.BINARY_OPERATORS ||
-            right in FirestoreRulesTokenSets.BINARY_OPERATORS
-        ) {
-            return oneSpace()
-        }
-
+        // Everything else — binary/relational/logical operators, assignment in
+        // `rules_version`/`let`, and keyword-separated tokens — takes one space on
+        // each side.
         return oneSpace()
     }
 
