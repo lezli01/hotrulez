@@ -17,28 +17,4 @@ object FirestoreRulesTokenSets {
     )
 
     val STRINGS: TokenSet = TokenSet.create(FirestoreRulesTypes.STRING)
-
-    val BRACES: TokenSet = TokenSet.create(
-        FirestoreRulesTypes.LBRACE,
-        FirestoreRulesTypes.RBRACE,
-    )
-
-    /** Binary/relational/logical operator tokens that take a space on each side. */
-    val BINARY_OPERATORS: TokenSet = TokenSet.create(
-        FirestoreRulesTypes.OR_OR,
-        FirestoreRulesTypes.AND_AND,
-        FirestoreRulesTypes.EQEQ,
-        FirestoreRulesTypes.NE,
-        FirestoreRulesTypes.LT,
-        FirestoreRulesTypes.LE,
-        FirestoreRulesTypes.GT,
-        FirestoreRulesTypes.GE,
-        FirestoreRulesTypes.PLUS,
-        FirestoreRulesTypes.MINUS,
-        FirestoreRulesTypes.STAR,
-        FirestoreRulesTypes.SLASH,
-        FirestoreRulesTypes.PERCENT,
-        FirestoreRulesTypes.IN_KEYWORD,
-        FirestoreRulesTypes.IS_KEYWORD,
-    )
 }
