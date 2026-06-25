@@ -48,10 +48,25 @@ class FirestoreRulesBlock(
         )
 
     private fun childIndent(child: ASTNode): Indent? =
-        if (node.elementType in BRACED_BLOCKS && !child.isBrace()) {
-            NESTED_INDENT
-        } else {
-            Indent.getNoneIndent()
+        when (node.elementType) {
+            // Braced statement blocks: indent every member, keep the braces flush.
+            in BRACED_BLOCKS -> if (child.isBrace()) Indent.getNoneIndent() else NESTED_INDENT
+
+            // Bracketed literals and grouping parens: hang their contents one level
+            // and align the closing delimiter with the line that opened them.
+            T.MAP_LITERAL, T.LIST_LITERAL, T.PARENTHESIZED_EXPRESSION ->
+                if (child.isDelimiter()) Indent.getNoneIndent() else NESTED_INDENT
+
+            // A wrapped method-chain segment (`\n  .field`) hangs under the receiver;
+            // the receiver itself stays aligned with the statement.
+            T.MEMBER_EXPRESSION ->
+                if (child.elementType == T.DOT || child.elementType == T.IDENTIFIER) {
+                    NESTED_INDENT
+                } else {
+                    Indent.getNoneIndent()
+                }
+
+            else -> Indent.getNoneIndent()
         }
 
     private fun spacingBetween(left: ASTNode?, right: ASTNode?): Spacing? {
@@ -181,6 +196,9 @@ class FirestoreRulesBlock(
     private fun ASTNode.isBrace(): Boolean =
         elementType == T.LBRACE || elementType == T.RBRACE
 
+    private fun ASTNode.isDelimiter(): Boolean =
+        elementType in DELIMITERS
+
     private fun ASTNode.isComment(): Boolean = elementType in FirestoreRulesTokenSets.COMMENTS
 
     private fun ASTNode.isBlockMember(): Boolean =
@@ -201,6 +219,12 @@ class FirestoreRulesBlock(
         val FILE: IElementType = dev.lezli.hotrulez.parser.FirestoreRulesParserDefinition.FILE
 
         val BRACED_BLOCKS = setOf(T.BLOCK, T.FUNCTION_BODY)
+
+        val DELIMITERS = setOf(
+            T.LBRACE, T.RBRACE,
+            T.LBRACKET, T.RBRACKET,
+            T.LPAREN, T.RPAREN,
+        )
 
         val PATH_ELEMENTS = setOf(
             T.MATCH_PATH,
