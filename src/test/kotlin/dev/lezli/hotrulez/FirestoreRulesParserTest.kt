@@ -234,6 +234,25 @@ class FirestoreRulesParserTest : BasePlatformTestCase() {
         assertNotNull(file.node.findDescendant(T.PAREN_PATH_SEGMENT))
     }
 
+    fun testParsesLiteralPathSegmentsBeyondIdentifiers() {
+        val file = parse(
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /match/123/user-profiles/{id} {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+
+        assertNoErrors(file)
+        assertEquals(2, file.node.countDescendants(T.MATCH_DECLARATION))
+        assertEquals(5, file.node.countDescendants(T.PATH_NAME_SEGMENT))
+    }
+
     fun testParsesScientificAndLeadingDotNumbers() {
         val file = parse(
             """
@@ -339,6 +358,25 @@ class FirestoreRulesParserTest : BasePlatformTestCase() {
         // The malformed `allow read if true;` must not prevent the rest from parsing.
         assertEquals(2, file.node.countDescendants(T.MATCH_DECLARATION))
         assertEquals(2, file.node.countDescendants(T.ALLOW_STATEMENT))
+    }
+
+    fun testRecoversFromUnknownItemInsideBlock() {
+        val file = parse(
+            """
+            service cloud.firestore {
+              oops;
+              match /databases/{database}/documents {
+                allow read: if true;
+              }
+            }
+            """.trimIndent(),
+        )
+
+        // A stray block item must not eject the following match from the service block.
+        val service = file.node.findDescendant(T.SERVICE_DECLARATION)
+        assertNotNull(service)
+        assertEquals(1, service!!.countDescendants(T.MATCH_DECLARATION))
+        assertEquals(1, service.countDescendants(T.ALLOW_STATEMENT))
     }
 
     fun testRecoversFromJunkBeforeFirstDeclaration() {

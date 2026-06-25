@@ -88,11 +88,14 @@ internal object FirestoreRulesDiagnostics {
         val first = segments[0] as? FirestoreRulesPathNameSegment ?: return false
         val third = segments[2] as? FirestoreRulesPathNameSegment ?: return false
         val database = segments[1]
-        return first.identifier.text == "databases" &&
+        return first.pathText() == "databases" &&
             (database is FirestoreRulesPathWildcard ||
                 (database as? FirestoreRulesParenPathSegment)?.identifier?.text == "default") &&
-            third.identifier.text == "documents"
+            third.pathText() == "documents"
     }
+
+    private fun FirestoreRulesPathNameSegment.pathText(): String =
+        text.filterNot { it.isWhitespace() }
 
     /**
      * Removes a single matching pair of surrounding quote characters, leaving any
