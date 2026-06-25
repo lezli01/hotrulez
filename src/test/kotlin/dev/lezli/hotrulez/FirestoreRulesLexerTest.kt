@@ -35,6 +35,13 @@ class FirestoreRulesLexerTest {
     }
 
     @Test
+    fun tokenizesBacktickAsInvalidCharacter() {
+        // Backtick is not a valid Firestore/CEL string delimiter; the highlighting
+        // lexer must treat it as a bad character, matching the JFlex parsing lexer.
+        assertEquals(listOf(TokenType.BAD_CHARACTER), tokenTypes("`"))
+    }
+
+    @Test
     fun tokenizesGetAsOperationAndHelper() {
         assertEquals(FirestoreRulesTokenTypes.OPERATION, tokenTypes("allow get: if true;")[1])
         assertEquals(FirestoreRulesTokenTypes.BUILTIN, tokenTypes("get(/databases/$(database)/documents/users/user)")[0])

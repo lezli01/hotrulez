@@ -48,7 +48,7 @@ class FirestoreRulesLexer : LexerBase() {
             current.isWhitespace() -> scanWhitespace()
             current == '/' && nextIs('/') -> scanLineComment()
             current == '/' && nextIs('*') -> scanBlockComment()
-            current == '\'' || current == '"' || current == '`' -> scanString(current)
+            current == '\'' || current == '"' -> scanString(current)
             current.isDigit() -> scanNumber()
             isIdentifierStart(current) -> scanIdentifier()
             current == '*' && nextIs('*') -> finish(FirestoreRulesTokenTypes.STAR_STAR, tokenStart + 2)
