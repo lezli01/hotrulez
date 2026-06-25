@@ -144,6 +144,22 @@ class FirestoreRulesAnnotatorTest : BasePlatformTestCase() {
         assertContainsDescription(errors, "must be the last segment of a match path")
     }
 
+    fun testRecursiveWildcardNonLastWithoutRulesVersionIsError() {
+        val errors = errorsFor(
+            """
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /{path=**}/songs {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "must be the last segment of a match path")
+    }
+
     fun testMultipleRecursiveWildcardsIsError() {
         val errors = errorsFor(
             """

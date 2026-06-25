@@ -106,8 +106,8 @@ class FirestoreRulesAnnotator : Annotator {
      * Match-path recursive wildcard rules. A match path may contain at most one
      * `{name=**}` (both rules versions). Under `rules_version = '1'` it must also
      * be the last segment; under rules_version '2' — the modern default, and what
-     * we assume when no version is declared — a recursive wildcard may appear
-     * anywhere in the match path.
+     * rules_version '2' may appear anywhere in the match path. In version '1'
+     * — the default when no version is declared — it must be the last segment.
      */
     private fun checkRecursiveWildcardPlacement(path: FirestoreRulesMatchPath, holder: AnnotationHolder) {
         val segments = FirestoreRulesDiagnostics.pathSegments(path)
@@ -119,11 +119,11 @@ class FirestoreRulesAnnotator : Annotator {
             error(holder, segment, "A match path may contain at most one recursive wildcard '{name=**}'.")
         }
 
-        // rules_version '1' additionally requires the (single allowed) recursive
-        // wildcard to be last. Only the first one is placement-checked here; any
-        // extras are already reported above as "at most one", so a stray wildcard
-        // never collects both an "at most one" and a "must be last" error.
-        if (FirestoreRulesDiagnostics.rulesVersion(path) == "1") {
+        // Any non-v2 ruleset requires the (single allowed) recursive wildcard to
+        // be last. Only the first one is placement-checked here; any extras are
+        // already reported above as "at most one", so a stray wildcard never
+        // collects both an "at most one" and a "must be last" error.
+        if (FirestoreRulesDiagnostics.rulesVersion(path) != "2") {
             val (index, segment) = recursive.first()
             if (index != segments.lastIndex) {
                 error(
