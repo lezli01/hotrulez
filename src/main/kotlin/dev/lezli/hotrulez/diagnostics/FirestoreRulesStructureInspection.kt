@@ -44,11 +44,24 @@ class FirestoreRulesStructureInspection : LocalInspectionTool() {
 
         if (versions.isEmpty()) {
             problems += problem(manager, anchor, isOnTheFly, "Missing 'rules_version = '2';' declaration at the top of the file.")
-        } else if (services.isNotEmpty()) {
-            val firstServiceOffset = services.minOf { it.textRange.startOffset }
-            val misplaced = versions.firstOrNull { it.textRange.startOffset > firstServiceOffset }
-            if (misplaced != null) {
-                problems += problem(manager, misplaced, isOnTheFly, "'rules_version' must be declared before the 'service' block.")
+        } else {
+            val firstVersion = versions.first()
+            val version = FirestoreRulesDiagnostics.rulesVersion(firstVersion)
+            if (version != "2") {
+                problems += problem(
+                    manager,
+                    firstVersion,
+                    isOnTheFly,
+                    "Expected 'rules_version = '2';' declaration at the top of the file; found version '$version'.",
+                )
+            }
+
+            if (services.isNotEmpty()) {
+                val firstServiceOffset = services.minOf { it.textRange.startOffset }
+                val misplaced = versions.firstOrNull { it.textRange.startOffset > firstServiceOffset }
+                if (misplaced != null) {
+                    problems += problem(manager, misplaced, isOnTheFly, "'rules_version' must be declared before the 'service' block.")
+                }
             }
         }
 

@@ -34,6 +34,21 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
         assertContainsDescription(warnings, "Missing 'rules_version = '2';'")
     }
 
+    fun testNonV2RulesVersionIsWarning() {
+        val warnings = warningsFor(
+            """
+            rules_version = '1';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                allow read: if true;
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(1, warnings.size)
+        assertContainsDescription(warnings, "Expected 'rules_version = '2';'")
+    }
+
     fun testRulesVersionAfterServiceIsWarning() {
         val warnings = warningsFor(
             """
@@ -121,7 +136,8 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent(),
         )
-        assertEquals(1, warnings.size)
+        assertEquals(2, warnings.size)
+        assertContainsDescription(warnings, "Expected 'rules_version = '2';'")
         assertContainsDescription(warnings, "Recursive wildcard '{document=**}' should be used with rules_version = '2'")
     }
 
@@ -179,7 +195,7 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
         assertEmpty(
             warningsFor(
                 """
-                rules_version = '1';
+                rules_version = '2';
                 service cloud.firestore {
                   match /databases/{database}/documents {
                     match /cities/{city} {
