@@ -7,80 +7,48 @@ import com.intellij.formatting.Spacing
 import com.intellij.formatting.Wrap
 import com.intellij.formatting.WrapType
 import com.intellij.lang.ASTNode
-import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.TokenType
+import com.intellij.psi.formatter.common.AbstractBlock
 import com.intellij.psi.tree.IElementType
-import dev.lezli.hotrulez.lexer.FirestoreRulesTokenTypes
-import dev.lezli.hotrulez.parser.FirestoreRulesElementTypes
 import dev.lezli.hotrulez.parser.FirestoreRulesTokenSets
+import dev.lezli.hotrulez.psi.FirestoreRulesTypes as T
 
+/**
+ * Formatter block backed by the Grammar-Kit PSI. Children of a braced block
+ * (`block` / `function_body`) are indented one level; everything else aligns
+ * with its statement. All spacings keep user line breaks so multiline
+ * conditions and intentional blank lines survive.
+ */
 class FirestoreRulesBlock(
-    val astNode: ASTNode,
+    node: ASTNode,
     private val blockIndent: Indent? = Indent.getNoneIndent(),
-) : AbstractBlock(astNode, Wrap.createWrap(WrapType.NONE, false), null) {
-    override fun buildChildren(): List<Block> {
-        val children = astNode.getChildren(null).filterNot { it.elementType == TokenType.WHITE_SPACE }
-        if (astNode.elementType == FirestoreRulesElementTypes.EXPRESSION) {
-            return buildExpressionChildren(children)
-        }
-        return children.map { child -> FirestoreRulesBlock(child, childIndent(child)) }
-    }
+) : AbstractBlock(node, Wrap.createWrap(WrapType.NONE, false), null) {
 
-    // The expression is a flat token sequence with no grammar for grouping, so
-    // indent each wrapped line by the depth of the parenthesis/bracket group it
-    // sits in. This restores the nesting a user writes for multi-line conditions
-    // (single-line expressions are unaffected, since indent only applies at line
-    // starts and depth-0 tokens keep the statement's indent).
-    private fun buildExpressionChildren(children: List<ASTNode>): List<Block> {
-        var depth = 0
-        return children.map { child ->
-            val type = child.elementType
-            if (type == FirestoreRulesTokenTypes.R_PAREN ||
-                type == FirestoreRulesTokenTypes.R_BRACKET ||
-                type == FirestoreRulesTokenTypes.R_BRACE
-            ) {
-                depth = (depth - 1).coerceAtLeast(0)
-            }
-            // A leading `.` on a wrapped line is a method-chain continuation; give it
-            // one extra level so it hangs under the call instead of aligning with the
-            // statement. Mid-line dots are unaffected, since indent only applies at the
-            // first token of a line.
-            val indentDepth = if (type == FirestoreRulesTokenTypes.DOT) depth + 1 else depth
-            val indent = if (indentDepth > 0) {
-                Indent.getSpaceIndent(indentDepth * INDENT_SIZE)
-            } else {
-                Indent.getNoneIndent()
-            }
-            val block = FirestoreRulesBlock(child, indent)
-            if (type == FirestoreRulesTokenTypes.L_PAREN ||
-                type == FirestoreRulesTokenTypes.L_BRACKET ||
-                type == FirestoreRulesTokenTypes.L_BRACE
-            ) {
-                depth++
-            }
-            block
-        }
-    }
+    override fun buildChildren(): List<Block> =
+        node
+            .getChildren(null)
+            .filterNot { it.elementType == TokenType.WHITE_SPACE || it.textLength == 0 }
+            .map { child -> FirestoreRulesBlock(child, childIndent(child)) }
 
     override fun getIndent(): Indent? = blockIndent
 
-    override fun getSpacing(child1: Block?, child2: Block): Spacing? =
-        spacingBetween(
-            (child1 as? FirestoreRulesBlock)?.astNode,
-            (child2 as? FirestoreRulesBlock)?.astNode,
-        )
-
-    override fun isLeaf(): Boolean = astNode.firstChildNode == null
+    override fun isLeaf(): Boolean = node.firstChildNode == null
 
     override fun getChildAttributes(newChildIndex: Int): ChildAttributes =
-        if (astNode.elementType == FirestoreRulesElementTypes.BLOCK) {
+        if (node.elementType in BRACED_BLOCKS) {
             ChildAttributes(NESTED_INDENT, null)
         } else {
             ChildAttributes(Indent.getNoneIndent(), null)
         }
 
+    override fun getSpacing(child1: Block?, child2: Block): Spacing? =
+        spacingBetween(
+            (child1 as? FirestoreRulesBlock)?.node,
+            (child2 as? FirestoreRulesBlock)?.node,
+        )
+
     private fun childIndent(child: ASTNode): Indent? =
-        if (astNode.elementType == FirestoreRulesElementTypes.BLOCK && !child.isBrace()) {
+        if (node.elementType in BRACED_BLOCKS && !child.isBrace()) {
             NESTED_INDENT
         } else {
             Indent.getNoneIndent()
@@ -90,161 +58,116 @@ class FirestoreRulesBlock(
         if (left == null || right == null) {
             return null
         }
+        val parent = node.elementType
 
-        if (astNode.elementType == FirestoreRulesElementTypes.BLOCK) {
-            if (left.elementType == FirestoreRulesTokenTypes.L_BRACE && right.elementType == FirestoreRulesTokenTypes.R_BRACE) {
+        // Braced blocks: opener/body/closer each on their own line.
+        if (parent in BRACED_BLOCKS) {
+            if (left.elementType == T.LBRACE && right.elementType == T.RBRACE) {
                 return noSpace()
             }
-            if (left.elementType == FirestoreRulesTokenTypes.L_BRACE || right.elementType == FirestoreRulesTokenTypes.R_BRACE) {
-                return lineBreak()
+            // Strip a blank line immediately after '{' or before '}'.
+            if (left.elementType == T.LBRACE || right.elementType == T.RBRACE) {
+                return lineBreakNoBlank()
             }
-            // Follow the Firebase docs' layout: separate block-level members
-            // (function declarations and match blocks) from their siblings with a
-            // blank line, while keeping simple statements (allow, return) tight.
-            if (separatedByBlankLine(left, right)) {
-                return blankLine()
-            }
+            // Between items keep up to one intentional blank line.
             return lineBreak()
         }
 
-        if (astNode.elementType == FirestoreRulesElementTypes.FILE) {
+        if (parent == FILE) {
             return lineBreak()
         }
 
-        if (left.elementType == FirestoreRulesTokenTypes.SEMICOLON) {
-            return lineBreak()
-        }
-
-        if (right.elementType == FirestoreRulesElementTypes.MATCH_PATH) {
-            return oneSpace()
-        }
-
-        if (right.elementType == FirestoreRulesElementTypes.BLOCK) {
-            return oneSpace()
-        }
-
-        if (left.elementType == FirestoreRulesElementTypes.BLOCK) {
-            return lineBreak()
-        }
-
+        // Comments always sit on their own line within their statement.
         if (left.isComment() || right.isComment()) {
             return lineBreak()
         }
 
-        if (left.inMatchPath() || right.inMatchPath()) {
-            return matchPathSpacing(left, right)
-        }
-
-        if (left.elementType == FirestoreRulesTokenTypes.OPERATOR && left.text == "!") {
-            return noSpace()
-        }
-
-        return tokenSpacing(left.elementType, right.elementType)
+        return tokenSpacing(parent, left.elementType, right.elementType)
     }
 
-    private fun matchPathSpacing(left: ASTNode, right: ASTNode): Spacing {
-        val leftType = left.elementType
-        val rightType = right.elementType
+    private fun tokenSpacing(parent: IElementType, left: IElementType, right: IElementType): Spacing {
+        // One space before an opening braced block: `service ... {`, `match ... {`, `function(...) {`.
+        if (right in BRACED_BLOCKS) {
+            return oneSpace()
+        }
 
-        if (leftType == FirestoreRulesTokenTypes.COMMA) {
-            return oneSpace()
-        }
-        if (rightType == FirestoreRulesTokenTypes.COMMA) {
+        // No space before a call/parameter argument list or a subscript: `f(x)`, `a[0]`.
+        if (right == T.PARAMETER_LIST || right == T.ARGUMENT_LIST || right == T.LBRACKET) {
             return noSpace()
         }
-        return noSpace()
-    }
 
-    private fun tokenSpacing(leftType: IElementType, rightType: IElementType): Spacing {
-        if (leftType == FirestoreRulesTokenTypes.COMMA) {
-            return oneSpace()
+        // Paths and path arguments never carry internal spaces.
+        if (parent in PATH_ELEMENTS) {
+            return noSpace()
         }
-        if (rightType == FirestoreRulesTokenTypes.COMMA ||
-            rightType == FirestoreRulesTokenTypes.SEMICOLON ||
-            rightType == FirestoreRulesTokenTypes.COLON ||
-            rightType == FirestoreRulesElementTypes.PARAMETER_LIST
+
+        // No space immediately inside (), [], or around map/wildcard braces.
+        if (left == T.LPAREN || right == T.RPAREN ||
+            left == T.LBRACKET || right == T.RBRACKET ||
+            left == T.LBRACE || right == T.RBRACE
         ) {
             return noSpace()
         }
-        if (leftType == FirestoreRulesTokenTypes.COLON) {
-            return oneSpace()
-        }
-        // Path expressions embedded in conditions (e.g. exists(/databases/$(db)/...))
-        // are not parsed as match paths, so glue their separators here too.
-        if (leftType == FirestoreRulesTokenTypes.PATH_SEPARATOR ||
-            rightType == FirestoreRulesTokenTypes.PATH_SEPARATOR
-        ) {
+
+        // No space around member-access dots.
+        if (left == T.DOT || right == T.DOT) {
             return noSpace()
         }
-        if (leftType == FirestoreRulesTokenTypes.DOT ||
-            rightType == FirestoreRulesTokenTypes.DOT ||
-            leftType == FirestoreRulesTokenTypes.L_PAREN ||
-            rightType == FirestoreRulesTokenTypes.R_PAREN ||
-            leftType == FirestoreRulesTokenTypes.L_BRACKET ||
-            rightType == FirestoreRulesTokenTypes.R_BRACKET
-        ) {
+
+        // Comma and statement-terminator spacing.
+        if (right == T.COMMA || right == T.SEMICOLON) {
             return noSpace()
         }
-        // Suppress the space before `(` only for a call/subscript paren (one that
-        // follows a callable); a grouping paren after an operator or keyword keeps
-        // its space, e.g. `a || (b && c)`.
-        if (rightType == FirestoreRulesTokenTypes.L_PAREN && isCallable(leftType)) {
+        if (left == T.COMMA) {
+            return oneSpace()
+        }
+
+        // Colon depends on the surrounding construct.
+        if (left == T.COLON || right == T.COLON) {
+            return colonSpacing(parent, right == T.COLON)
+        }
+
+        // Ternary '?' takes a space on both sides.
+        if (left == T.QUESTION || right == T.QUESTION) {
+            return oneSpace()
+        }
+
+        // Unary operators stay attached to their operand: `!x`, `-1`.
+        if (parent == T.NOT_EXPRESSION || parent == T.NEG_EXPRESSION) {
             return noSpace()
         }
-        if (leftType in FirestoreRulesTokenSets.EXPRESSION_OPERATORS ||
-            rightType in FirestoreRulesTokenSets.EXPRESSION_OPERATORS
+
+        // Recursive wildcard `{name=**}` has no internal spaces.
+        if (parent == T.RECURSIVE_WILDCARD) {
+            return noSpace()
+        }
+
+        // Assignment '=' takes a space in `rules_version` and `let`.
+        if (left == T.ASSIGN || right == T.ASSIGN) {
+            return oneSpace()
+        }
+
+        // Binary/relational/logical operators take a space on both sides.
+        if (left in FirestoreRulesTokenSets.BINARY_OPERATORS ||
+            right in FirestoreRulesTokenSets.BINARY_OPERATORS
         ) {
             return oneSpace()
         }
-        if (rightType == FirestoreRulesElementTypes.BLOCK) {
-            return oneSpace()
-        }
+
         return oneSpace()
     }
 
-    private fun isCallable(leftType: IElementType): Boolean =
-        leftType == FirestoreRulesTokenTypes.FUNCTION_CALL ||
-            leftType == FirestoreRulesTokenTypes.BUILTIN ||
-            leftType == FirestoreRulesTokenTypes.IDENTIFIER ||
-            leftType == FirestoreRulesTokenTypes.R_PAREN ||
-            leftType == FirestoreRulesTokenTypes.R_BRACKET ||
-            leftType == FirestoreRulesTokenTypes.DOLLAR
-
-    private fun separatedByBlankLine(left: ASTNode, right: ASTNode): Boolean {
-        // A leading comment stays attached to the member it documents, so any
-        // blank line belongs before the comment, not between it and that member.
-        if (left.isComment()) {
-            return false
+    private fun colonSpacing(parent: IElementType, beforeColon: Boolean): Spacing =
+        when (parent) {
+            T.TERNARY_EXPRESSION -> oneSpace()
+            T.SLICE -> noSpace()
+            else -> if (beforeColon) noSpace() else oneSpace() // allow `: if`, map `key: value`
         }
-        // Look past a leading comment so a documented function/match still gets
-        // separated from the previous member (the blank lands before the comment).
-        val rightTarget = if (right.isComment()) firstNonCommentSibling(right) else right
-        return isBlockMember(left) || (rightTarget != null && isBlockMember(rightTarget))
-    }
-
-    private fun isBlockMember(node: ASTNode): Boolean =
-        node.elementType == FirestoreRulesElementTypes.FUNCTION_DECLARATION ||
-            node.elementType == FirestoreRulesElementTypes.MATCH_BLOCK
-
-    private fun firstNonCommentSibling(node: ASTNode): ASTNode? {
-        var sibling = node.treeNext
-        while (sibling != null &&
-            (sibling.elementType == TokenType.WHITE_SPACE || sibling.isComment())
-        ) {
-            sibling = sibling.treeNext
-        }
-        return sibling
-    }
 
     private fun ASTNode.isBrace(): Boolean =
-        elementType == FirestoreRulesTokenTypes.L_BRACE || elementType == FirestoreRulesTokenTypes.R_BRACE
+        elementType == T.LBRACE || elementType == T.RBRACE
 
     private fun ASTNode.isComment(): Boolean = elementType in FirestoreRulesTokenSets.COMMENTS
-
-    private fun ASTNode.inMatchPath(): Boolean =
-        elementType == FirestoreRulesElementTypes.MATCH_PATH ||
-            treeParent?.elementType == FirestoreRulesElementTypes.MATCH_PATH ||
-            treeParent?.treeParent?.elementType == FirestoreRulesElementTypes.MATCH_PATH
 
     private fun noSpace(): Spacing = Spacing.createSpacing(0, 0, 0, true, 1)
 
@@ -252,10 +175,22 @@ class FirestoreRulesBlock(
 
     private fun lineBreak(): Spacing = Spacing.createSpacing(0, 0, 1, true, 1)
 
-    private fun blankLine(): Spacing = Spacing.createSpacing(0, 0, 2, true, 1)
+    private fun lineBreakNoBlank(): Spacing = Spacing.createSpacing(0, 0, 1, true, 0)
 
     private companion object {
-        private const val INDENT_SIZE = 2
-        val NESTED_INDENT: Indent = Indent.getSpaceIndent(INDENT_SIZE)
+        val NESTED_INDENT: Indent = Indent.getSpaceIndent(2)
+        val FILE: IElementType = dev.lezli.hotrulez.parser.FirestoreRulesParserDefinition.FILE
+
+        val BRACED_BLOCKS = setOf(T.BLOCK, T.FUNCTION_BODY)
+
+        val PATH_ELEMENTS = setOf(
+            T.MATCH_PATH,
+            T.PATH_ARGUMENT,
+            T.PATH_WILDCARD,
+            T.PATH_INTERPOLATION,
+            T.PAREN_PATH_SEGMENT,
+            // RECURSIVE_WILDCARD handled separately so the rule reads explicitly,
+            // but it is also space-free:
+        )
     }
 }

@@ -2,26 +2,43 @@ package dev.lezli.hotrulez.parser
 
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.TokenSet
-import dev.lezli.hotrulez.lexer.FirestoreRulesTokenTypes
+import dev.lezli.hotrulez.psi.FirestoreRulesTypes
 
+/**
+ * Token sets over the generated [FirestoreRulesTypes] tokens, used by the
+ * parser definition and the formatter.
+ */
 object FirestoreRulesTokenSets {
     val WHITE_SPACES: TokenSet = TokenSet.create(TokenType.WHITE_SPACE)
+
     val COMMENTS: TokenSet = TokenSet.create(
-        FirestoreRulesTokenTypes.LINE_COMMENT,
-        FirestoreRulesTokenTypes.BLOCK_COMMENT,
+        FirestoreRulesTypes.LINE_COMMENT,
+        FirestoreRulesTypes.BLOCK_COMMENT,
     )
-    val STRINGS: TokenSet = TokenSet.create(FirestoreRulesTokenTypes.STRING)
+
+    val STRINGS: TokenSet = TokenSet.create(FirestoreRulesTypes.STRING)
+
     val BRACES: TokenSet = TokenSet.create(
-        FirestoreRulesTokenTypes.L_BRACE,
-        FirestoreRulesTokenTypes.R_BRACE,
+        FirestoreRulesTypes.LBRACE,
+        FirestoreRulesTypes.RBRACE,
     )
-    val SEMICOLON_TERMINATED_STATEMENTS: TokenSet = TokenSet.create(
-        FirestoreRulesElementTypes.RULES_VERSION_DECLARATION,
-        FirestoreRulesElementTypes.ALLOW_STATEMENT,
-        FirestoreRulesElementTypes.RETURN_STATEMENT,
-    )
-    val EXPRESSION_OPERATORS: TokenSet = TokenSet.create(
-        FirestoreRulesTokenTypes.EQUALS,
-        FirestoreRulesTokenTypes.OPERATOR,
+
+    /** Binary/relational/logical operator tokens that take a space on each side. */
+    val BINARY_OPERATORS: TokenSet = TokenSet.create(
+        FirestoreRulesTypes.OR_OR,
+        FirestoreRulesTypes.AND_AND,
+        FirestoreRulesTypes.EQEQ,
+        FirestoreRulesTypes.NE,
+        FirestoreRulesTypes.LT,
+        FirestoreRulesTypes.LE,
+        FirestoreRulesTypes.GT,
+        FirestoreRulesTypes.GE,
+        FirestoreRulesTypes.PLUS,
+        FirestoreRulesTypes.MINUS,
+        FirestoreRulesTypes.STAR,
+        FirestoreRulesTypes.SLASH,
+        FirestoreRulesTypes.PERCENT,
+        FirestoreRulesTypes.IN_KEYWORD,
+        FirestoreRulesTypes.IS_KEYWORD,
     )
 }

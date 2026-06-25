@@ -1,0 +1,242 @@
+/*
+ * Grammar-Kit grammar for Firebase Cloud Firestore Security Rules.
+ *
+ * Synthesised from two community tree-sitter grammars:
+ *   - https://github.com/nicbytes/tree-sitter-firebase-security-rules
+ *   - https://github.com/grimsteel/tree-sitter-firestore-rules
+ * and reconciled against the official Firebase docs
+ * (firebase.google.com/docs/firestore/security/rules-structure and rules-conditions).
+ *
+ * Generation (also runs automatically before compileKotlin/compileJava):
+ *   ./gradlew generateParser generateLexer
+ * Lexer source: src/main/grammar/FirestoreRules.flex
+ *
+ * Design notes:
+ *   - The parser is intentionally PERMISSIVE: it accepts a superset of strict
+ *     Firestore syntax so the IDE keeps working while editing and so diagnostics
+ *     (a later milestone) can flag the semantic issues with precise messages.
+ *   - Paths are assembled by the grammar from generic tokens ('/', identifiers,
+ *     '{', '}', '$', '(' id ')') rather than via a context-sensitive lexer, so
+ *     the JFlex lexer stays context-free.
+ *   - Constructs NOT confirmed by official Firestore docs (and therefore left for
+ *     future diagnostics rather than rejected here) are tagged "UNCONFIRMED":
+ *     block comments, hex numbers, list/index/slice subscripts, trailing commas,
+ *     the "(default)" path literal, and let-bindings outside function bodies.
+ */
+
+{
+  parserClass="dev.lezli.hotrulez.parser.FirestoreRulesParser"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="FirestoreRules"
+  psiImplClassSuffix="Impl"
+  psiPackage="dev.lezli.hotrulez.psi"
+  psiImplPackage="dev.lezli.hotrulez.psi.impl"
+
+  elementTypeHolderClass="dev.lezli.hotrulez.psi.FirestoreRulesTypes"
+  elementTypeClass="dev.lezli.hotrulez.parser.FirestoreRulesElementType"
+  tokenTypeClass="dev.lezli.hotrulez.lexer.FirestoreRulesTokenType"
+
+  // Engage Grammar-Kit's operator-precedence engine: every *_expression / *_literal
+  // rule extends the root `expression`, so left-recursive operator rules are parsed
+  // with precedence climbing rather than naive choice. (slice/type_reference are named
+  // to deliberately NOT match this pattern.)
+  extends(".*_(expression|literal)")=expression
+
+  tokens=[
+    // keywords
+    RULES_VERSION_KEYWORD='rules_version'
+    SERVICE_KEYWORD='service'
+    MATCH_KEYWORD='match'
+    ALLOW_KEYWORD='allow'
+    IF_KEYWORD='if'
+    FUNCTION_KEYWORD='function'
+    RETURN_KEYWORD='return'
+    LET_KEYWORD='let'
+    TRUE_KEYWORD='true'
+    FALSE_KEYWORD='false'
+    NULL_KEYWORD='null'
+    IN_KEYWORD='in'
+    IS_KEYWORD='is'
+
+    // operators (multi-char before single-char where it matters in the lexer)
+    OR_OR='||'
+    AND_AND='&&'
+    EQEQ='=='
+    NE='!='
+    LE='<='
+    GE='>='
+    LT='<'
+    GT='>'
+    PLUS='+'
+    MINUS='-'
+    STAR_STAR='**'
+    STAR='*'
+    SLASH='/'
+    PERCENT='%'
+    NOT='!'
+    QUESTION='?'
+    ASSIGN='='
+    DOLLAR='$'
+
+    // punctuation
+    DOT='.'
+    COMMA=','
+    COLON=':'
+    SEMICOLON=';'
+    LPAREN='('
+    RPAREN=')'
+    LBRACE='{'
+    RBRACE='}'
+    LBRACKET='['
+    RBRACKET=']'
+
+    // matched by the JFlex lexer; regexp here is documentation / live-preview only
+    IDENTIFIER='regexp:[a-zA-Z_][a-zA-Z0-9_]*'
+    NUMBER='regexp:0x[0-9a-fA-F]+|([0-9]+(\.[0-9]+)?|\.[0-9]+)([eE][+-]?[0-9]+)?'
+    STRING="regexp:'([^'\\]|\\.)*'|\"([^\"\\]|\\.)*\""
+    LINE_COMMENT='regexp://[^\n]*'
+    BLOCK_COMMENT='regexp:/\*([^*]|\*[^/])*\*/'
+  ]
+}
+
+// ---------------------------------------------------------------------------
+// Top level
+// ---------------------------------------------------------------------------
+
+root ::= top_level_item *
+
+private top_level_item ::= rules_version_statement
+                         | service_declaration
+                         | match_declaration
+                         | function_declaration
+
+rules_version_statement ::= 'rules_version' '=' STRING ';' { pin=1 }
+
+service_declaration ::= 'service' service_name block { pin=1 }
+service_name ::= IDENTIFIER ('.' IDENTIFIER)*
+
+// ---------------------------------------------------------------------------
+// Blocks and statements
+// ---------------------------------------------------------------------------
+
+block ::= '{' block_item * '}' { pin=1 }
+private block_item ::= match_declaration
+                     | allow_statement
+                     | function_declaration
+
+match_declaration ::= 'match' match_path block { pin=1 recoverWhile=statement_recover }
+
+allow_statement ::= 'allow' method_list (':' 'if' expression)? ';' { pin=1 recoverWhile=statement_recover }
+method_list ::= IDENTIFIER (',' IDENTIFIER)*
+
+function_declaration ::= 'function' IDENTIFIER parameter_list function_body { pin=1 recoverWhile=statement_recover }
+parameter_list ::= '(' (IDENTIFIER (',' IDENTIFIER)*)? ')'
+function_body ::= '{' function_body_item * '}' { pin=1 }
+private function_body_item ::= let_statement | return_statement
+// UNCONFIRMED scope: official docs only allow `let` inside function bodies.
+let_statement ::= 'let' IDENTIFIER '=' expression ';' { pin=1 }
+return_statement ::= 'return' expression? ';' { pin=1 }
+
+private statement_recover ::= !('}' | 'match' | 'allow' | 'function' | 'service' | 'rules_version')
+
+// ---------------------------------------------------------------------------
+// Match paths (no interpolation here; that is only valid in get()/exists() args)
+// ---------------------------------------------------------------------------
+
+match_path ::= path_part +
+private path_part ::= '/' path_segment
+private path_segment ::= recursive_wildcard | path_wildcard | paren_path_segment | path_name_segment
+path_wildcard ::= '{' IDENTIFIER '}'
+recursive_wildcard ::= '{' IDENTIFIER '=' '**' '}'
+path_name_segment ::= IDENTIFIER
+
+// ---------------------------------------------------------------------------
+// Expressions (Grammar-Kit operator-precedence form; lowest precedence first)
+// ---------------------------------------------------------------------------
+
+expression ::= ternary_expression
+             | or_expression
+             | and_expression
+             | relational_group
+             | additive_group
+             | multiplicative_group
+             | unary_group
+             | postfix_group
+             | primary_group
+
+ternary_expression ::= expression '?' expression ':' expression { rightAssociative=true }
+
+or_expression ::= expression '||' expression
+and_expression ::= expression '&&' expression
+
+// One precedence tier for equality + relational + membership + type-test, matching
+// CEL (Firestore's semantics) and the grimsteel grammar: all left-associative at the
+// same level, so `a == b < c` parses as `(a == b) < c`.
+private relational_group ::= eq_expression | ne_expression | lt_expression | le_expression | gt_expression | ge_expression | in_expression | is_expression
+eq_expression ::= expression '==' expression
+ne_expression ::= expression '!=' expression
+lt_expression ::= expression '<' expression
+le_expression ::= expression '<=' expression
+gt_expression ::= expression '>' expression
+ge_expression ::= expression '>=' expression
+in_expression ::= expression 'in' expression
+is_expression ::= expression 'is' type_reference
+type_reference ::= IDENTIFIER
+
+private additive_group ::= add_expression | sub_expression
+add_expression ::= expression '+' expression
+sub_expression ::= expression '-' expression
+
+private multiplicative_group ::= mul_expression | div_expression | mod_expression
+mul_expression ::= expression '*' expression
+div_expression ::= expression '/' expression
+mod_expression ::= expression '%' expression
+
+private unary_group ::= not_expression | neg_expression
+not_expression ::= '!' expression
+neg_expression ::= '-' expression
+
+private postfix_group ::= call_expression | member_expression | index_expression
+call_expression ::= expression argument_list
+member_expression ::= expression '.' IDENTIFIER
+// UNCONFIRMED: subscript / slice access is not documented for Firestore rules.
+index_expression ::= expression '[' index_content ']'
+// Order matters: `slice` is tried first and backtracks when a ternary inside the
+// brackets consumes the ':' (so `a[b ? c : d]` parses as an index of a ternary).
+// Do not reorder these two alternatives.
+private index_content ::= slice | expression
+slice ::= expression? ':' expression?
+
+argument_list ::= '(' (argument (',' argument)* ','?)? ')'
+private argument ::= path_argument | expression
+
+private primary_group ::= parenthesized_expression
+                        | list_literal
+                        | map_literal
+                        | reference_expression
+                        | literal_expression { extraRoot=true }
+parenthesized_expression ::= '(' expression ')'
+reference_expression ::= IDENTIFIER
+literal_expression ::= NUMBER | STRING | 'true' | 'false' | 'null'
+list_literal ::= '[' (expression (',' expression)* ','?)? ']'
+map_literal ::= '{' (map_entry (',' map_entry)* ','?)? '}'
+map_entry ::= map_key ':' expression
+private map_key ::= IDENTIFIER | STRING
+
+// ---------------------------------------------------------------------------
+// Path arguments to get()/exists()/getAfter()/existsAfter() and firestore.*
+// ---------------------------------------------------------------------------
+
+path_argument ::= path_arg_part +
+private path_arg_part ::= '/' path_arg_segment
+private path_arg_segment ::= recursive_wildcard
+                           | path_wildcard
+                           | path_interpolation
+                           | paren_path_segment
+                           | path_name_segment
+path_interpolation ::= '$' '(' expression ')'
+// UNCONFIRMED: the "(default)" literal segment is documented only for
+// cross-service firestore.get/exists() calls, not native Firestore get()/exists().
+paren_path_segment ::= '(' IDENTIFIER ')'
