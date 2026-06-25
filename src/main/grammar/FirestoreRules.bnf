@@ -8,7 +8,7 @@
  * (firebase.google.com/docs/firestore/security/rules-structure and rules-conditions).
  *
  * Generation (also runs automatically before compileKotlin/compileJava):
- *   ./gradlew generateParser generateLexer
+ *   ./gradlew generateFirestoreParser generateFirestoreLexer
  * Lexer source: src/main/grammar/FirestoreRules.flex
  *
  * Design notes:

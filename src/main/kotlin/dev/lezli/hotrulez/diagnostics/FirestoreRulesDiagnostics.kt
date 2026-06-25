@@ -1,5 +1,6 @@
 package dev.lezli.hotrulez.diagnostics
 
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
@@ -66,7 +67,7 @@ internal object FirestoreRulesDiagnostics {
         return CachedValuesManager.getCachedValue(file) {
             val statement = PsiTreeUtil.getChildrenOfType(file, FirestoreRulesRulesVersionStatement::class.java)
                 ?.firstOrNull()
-            CachedValueProvider.Result.create(statement?.string?.text?.let(::unquote), file)
+            CachedValueProvider.Result.create(statement?.string?.text?.let(StringUtil::unquoteString), file)
         }
     }
 
@@ -97,18 +98,4 @@ internal object FirestoreRulesDiagnostics {
     private fun FirestoreRulesPathNameSegment.pathText(): String =
         text.filterNot { it.isWhitespace() }
 
-    /**
-     * Removes a single matching pair of surrounding quote characters, leaving any
-     * inner quotes intact. Unlike [String.trim] with quote chars, it does not strip
-     * quote characters that are part of the value itself.
-     */
-    private fun unquote(text: String): String {
-        if (text.length >= 2) {
-            val quote = text.first()
-            if ((quote == '\'' || quote == '"') && text.last() == quote) {
-                return text.substring(1, text.length - 1)
-            }
-        }
-        return text
-    }
 }

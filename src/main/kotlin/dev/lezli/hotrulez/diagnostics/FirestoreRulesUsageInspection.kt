@@ -52,7 +52,11 @@ class FirestoreRulesUsageInspection : LocalInspectionTool() {
             override fun visitRecursiveWildcard(o: FirestoreRulesRecursiveWildcard) {
                 // The version-dependent matching semantics only apply to match paths,
                 // not to recursive wildcards that appear inside a get()/exists() path argument.
-                if (o.parent !is FirestoreRulesMatchPath) return
+                val matchPath = o.parent as? FirestoreRulesMatchPath ?: return
+                // A misplaced wildcard already draws a hard placement error from the
+                // annotator; only nudge about the version on a valid (last-segment)
+                // wildcard so the two diagnostics never stack on the same element.
+                if (FirestoreRulesDiagnostics.pathSegments(matchPath).lastOrNull() != o) return
                 // Only rules_version '2' has the modern recursive-wildcard semantics;
                 // an omitted version uses the v1 behavior.
                 if (FirestoreRulesDiagnostics.rulesVersion(o) != "2") {

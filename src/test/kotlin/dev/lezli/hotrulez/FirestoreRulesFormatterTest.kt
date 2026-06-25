@@ -57,6 +57,14 @@ class FirestoreRulesFormatterTest : BasePlatformTestCase() {
         assertFormats("formatter/path-call.before.rules", "formatter/path-call.after.rules")
     }
 
+    fun testKeepsMultiTokenPathSegmentsTight() {
+        assertFormats("formatter/path-segment-literal.before.rules", "formatter/path-segment-literal.after.rules")
+    }
+
+    fun testIndentsMultilineCallArguments() {
+        assertFormats("formatter/call-arguments.before.rules", "formatter/call-arguments.after.rules")
+    }
+
     fun testHangingIndentsChainedCallContinuation() {
         assertFormats("formatter/chained-call.before.rules", "formatter/chained-call.after.rules")
     }

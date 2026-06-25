@@ -40,12 +40,13 @@ class FirestoreRulesAnnotator : Annotator {
      * A condition-less `allow` (e.g. `allow read;`) is *legal* Firestore syntax —
      * it unconditionally grants the operation — so the missing-condition case is a
      * configurable warning in [FirestoreRulesUsageInspection], not an error here.
-     * An empty operation list never forms an empty [FirestoreRulesMethodList]
-     * because the grammar requires at least one identifier; it surfaces instead as
-     * a null method list, which is what this check looks for.
+     * The current grammar requires at least one identifier in a method list, so an
+     * empty list surfaces as a null node; this check also treats a present-but-empty
+     * list as missing so it stays correct if the grammar is relaxed for recovery.
      */
     private fun checkAllowStructure(statement: FirestoreRulesAllowStatement, holder: AnnotationHolder) {
-        if (statement.methodList == null) {
+        val methodList = statement.methodList
+        if (methodList == null || methodList.identifierLeaves().isEmpty()) {
             error(
                 holder,
                 statement.childToken(T.ALLOW_KEYWORD) ?: statement,
@@ -104,10 +105,9 @@ class FirestoreRulesAnnotator : Annotator {
 
     /**
      * Match-path recursive wildcard rules. A match path may contain at most one
-     * `{name=**}` (both rules versions). Under `rules_version = '1'` it must also
-     * be the last segment; under rules_version '2' — the modern default, and what
-     * rules_version '2' may appear anywhere in the match path. In version '1'
-     * — the default when no version is declared — it must be the last segment.
+     * `{name=**}` in either rules version. Under `rules_version = '2'` the wildcard
+     * may appear anywhere in the path. Under `rules_version = '1'` — which is also
+     * the behavior assumed when no version is declared — it must be the last segment.
      */
     private fun checkRecursiveWildcardPlacement(path: FirestoreRulesMatchPath, holder: AnnotationHolder) {
         val segments = FirestoreRulesDiagnostics.pathSegments(path)
