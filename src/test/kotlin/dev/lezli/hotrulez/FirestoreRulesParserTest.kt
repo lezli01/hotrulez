@@ -341,6 +341,41 @@ class FirestoreRulesParserTest : BasePlatformTestCase() {
         assertEquals(2, file.node.countDescendants(T.ALLOW_STATEMENT))
     }
 
+    fun testRecoversFromJunkBeforeFirstDeclaration() {
+        val file = parse(
+            """
+            oops
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                allow read: if true;
+              }
+            }
+            """.trimIndent(),
+        )
+
+        // A stray leading token must not collapse the rest of the file into one error
+        // region: the declarations after it still parse.
+        assertEquals(1, file.node.countDescendants(T.RULES_VERSION_STATEMENT))
+        assertEquals(1, file.node.countDescendants(T.SERVICE_DECLARATION))
+        assertNotNull(file.node.findDescendant(T.MATCH_DECLARATION))
+    }
+
+    fun testRecoversFromMalformedStatementInsideFunctionBody() {
+        val file = parse(
+            """
+            function f() {
+              let x;
+              return true;
+            }
+            """.trimIndent(),
+        )
+
+        // The malformed `let x;` must not swallow the following return: per-statement
+        // recovery keeps `return true;` as a parsed return statement.
+        assertNotNull(file.node.findDescendant(T.RETURN_STATEMENT))
+    }
+
     private fun parse(text: String): PsiFile =
         myFixture.configureByText(FirestoreRulesFileType, text)
 

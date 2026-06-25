@@ -107,10 +107,16 @@
 
 root ::= top_level_item *
 
-private top_level_item ::= rules_version_statement
+// Top-level recovery: unrecognized leading or inter-declaration tokens are
+// consumed up to the next declaration keyword rather than collapsing the entire
+// rest of the file into a single PsiErrorElement region. The `!<<eof>>` guard and
+// pin make the item recoverable even when it matches nothing (e.g. leading junk).
+private top_level_item ::= !<<eof>> top_level_decl { pin=1 recoverWhile=top_level_recover }
+private top_level_decl ::= rules_version_statement
                          | service_declaration
                          | match_declaration
                          | function_declaration
+private top_level_recover ::= !('rules_version' | 'service' | 'match' | 'function')
 
 rules_version_statement ::= 'rules_version' '=' STRING ';' { pin=1 }
 
@@ -135,9 +141,13 @@ function_declaration ::= 'function' IDENTIFIER parameter_list function_body { pi
 parameter_list ::= '(' (IDENTIFIER (',' IDENTIFIER)*)? ')'
 function_body ::= '{' function_body_item * '}' { pin=1 }
 private function_body_item ::= let_statement | return_statement
+// Per-statement recovery inside a function body (mirrors statement_recover for
+// match/allow/function): a malformed let/return resyncs at the next statement
+// keyword or the body's closing brace instead of degrading the rest of the body.
+private function_body_recover ::= !('}' | 'let' | 'return')
 // UNCONFIRMED scope: official docs only allow `let` inside function bodies.
-let_statement ::= 'let' IDENTIFIER '=' expression ';' { pin=1 }
-return_statement ::= 'return' expression? ';' { pin=1 }
+let_statement ::= 'let' IDENTIFIER '=' expression ';' { pin=1 recoverWhile=function_body_recover }
+return_statement ::= 'return' expression? ';' { pin=1 recoverWhile=function_body_recover }
 
 private statement_recover ::= !('}' | 'match' | 'allow' | 'function' | 'service' | 'rules_version')
 
