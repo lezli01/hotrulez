@@ -1,9 +1,12 @@
 package dev.lezli.hotrulez.diagnostics
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 import dev.lezli.hotrulez.psi.FirestoreRulesFile
 import dev.lezli.hotrulez.psi.FirestoreRulesMatchPath
+import dev.lezli.hotrulez.psi.FirestoreRulesParenPathSegment
 import dev.lezli.hotrulez.psi.FirestoreRulesPathNameSegment
 import dev.lezli.hotrulez.psi.FirestoreRulesPathWildcard
 import dev.lezli.hotrulez.psi.FirestoreRulesRulesVersionStatement
@@ -57,9 +60,14 @@ internal object FirestoreRulesDiagnostics {
      */
     fun rulesVersion(element: PsiElement): String? {
         val file = element.containingFile as? FirestoreRulesFile ?: return null
-        val statement = PsiTreeUtil.getChildrenOfType(file, FirestoreRulesRulesVersionStatement::class.java)
-            ?.firstOrNull() ?: return null
-        return statement.string?.text?.trim('\'', '"')
+        // Memoized per file: the annotator and usage inspection each call this once
+        // per recursive wildcard on every keystroke, and the value only changes when
+        // the file's PSI changes (which invalidates the cache).
+        return CachedValuesManager.getCachedValue(file) {
+            val statement = PsiTreeUtil.getChildrenOfType(file, FirestoreRulesRulesVersionStatement::class.java)
+                ?.firstOrNull()
+            CachedValueProvider.Result.create(statement?.string?.text?.let(::unquote), file)
+        }
     }
 
     /** The path segments of [path] in source order, excluding the `/` separators. */
@@ -69,8 +77,9 @@ internal object FirestoreRulesDiagnostics {
             .map { it.psi }
 
     /**
-     * Whether [path] is the conventional root `/databases/{database}/documents`
-     * (any wildcard name is accepted for the database segment).
+     * Whether [path] is the conventional root `/databases/{database}/documents`.
+     * The database segment may be a wildcard (`{database}`) or the documented
+     * `(default)` literal (parsed as a paren path segment).
      */
     fun isRootDocumentsPath(path: FirestoreRulesMatchPath?): Boolean {
         if (path == null) return false
@@ -79,7 +88,22 @@ internal object FirestoreRulesDiagnostics {
         val first = segments[0] as? FirestoreRulesPathNameSegment ?: return false
         val third = segments[2] as? FirestoreRulesPathNameSegment ?: return false
         return first.identifier.text == "databases" &&
-            segments[1] is FirestoreRulesPathWildcard &&
+            (segments[1] is FirestoreRulesPathWildcard || segments[1] is FirestoreRulesParenPathSegment) &&
             third.identifier.text == "documents"
+    }
+
+    /**
+     * Removes a single matching pair of surrounding quote characters, leaving any
+     * inner quotes intact. Unlike [String.trim] with quote chars, it does not strip
+     * quote characters that are part of the value itself.
+     */
+    private fun unquote(text: String): String {
+        if (text.length >= 2) {
+            val quote = text.first()
+            if ((quote == '\'' || quote == '"') && text.last() == quote) {
+                return text.substring(1, text.length - 1)
+            }
+        }
+        return text
     }
 }

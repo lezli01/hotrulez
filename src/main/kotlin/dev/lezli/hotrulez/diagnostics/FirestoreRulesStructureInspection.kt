@@ -46,10 +46,9 @@ class FirestoreRulesStructureInspection : LocalInspectionTool() {
             problems += problem(manager, anchor, isOnTheFly, "Missing 'rules_version = '2';' declaration at the top of the file.")
         } else if (services.isNotEmpty()) {
             val firstServiceOffset = services.minOf { it.textRange.startOffset }
-            for (version in versions) {
-                if (version.textRange.startOffset > firstServiceOffset) {
-                    problems += problem(manager, version, isOnTheFly, "'rules_version' must be declared before the 'service' block.")
-                }
+            val misplaced = versions.firstOrNull { it.textRange.startOffset > firstServiceOffset }
+            if (misplaced != null) {
+                problems += problem(manager, misplaced, isOnTheFly, "'rules_version' must be declared before the 'service' block.")
             }
         }
 
@@ -84,8 +83,10 @@ class FirestoreRulesStructureInspection : LocalInspectionTool() {
         }
 
         val block = service.block ?: return
-        val hasRootMatch = PsiTreeUtil.findChildrenOfType(block, FirestoreRulesMatchDeclaration::class.java)
-            .any { FirestoreRulesDiagnostics.isRootDocumentsPath(it.matchPath) }
+        // Direct children only: the root documents match must be a top-level match of
+        // the service block, not a coincidental occurrence buried in a nested match.
+        val hasRootMatch = PsiTreeUtil.getChildrenOfType(block, FirestoreRulesMatchDeclaration::class.java)
+            ?.any { FirestoreRulesDiagnostics.isRootDocumentsPath(it.matchPath) } ?: false
         if (!hasRootMatch) {
             problems += problem(
                 manager,

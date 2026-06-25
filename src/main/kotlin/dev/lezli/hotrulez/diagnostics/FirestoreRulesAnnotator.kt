@@ -82,7 +82,12 @@ class FirestoreRulesAnnotator : Annotator {
     /** A function body must end with a `return` statement. */
     private fun checkFunctionReturns(function: FirestoreRulesFunctionDeclaration, holder: AnnotationHolder) {
         val body = function.functionBody ?: return
-        if (body.returnStatementList.isEmpty()) {
+        // The grammar lets a body interleave `let` bindings and `return`s and allows
+        // statements after a `return`, so a body can contain a return yet not *end*
+        // with one. Check the last statement, not merely that some return exists.
+        val lastStatement = body.node.getChildren(null)
+            .lastOrNull { it.elementType == T.RETURN_STATEMENT || it.elementType == T.LET_STATEMENT }
+        if (lastStatement == null || lastStatement.elementType != T.RETURN_STATEMENT) {
             val name = function.identifier?.text
             val anchor = function.identifier ?: function.childToken(T.FUNCTION_KEYWORD) ?: function
             val subject = if (name != null) "Function '$name'" else "Function"
@@ -114,16 +119,18 @@ class FirestoreRulesAnnotator : Annotator {
             error(holder, segment, "A match path may contain at most one recursive wildcard '{name=**}'.")
         }
 
-        // rules_version '1' additionally requires the recursive wildcard to be last.
+        // rules_version '1' additionally requires the (single allowed) recursive
+        // wildcard to be last. Only the first one is placement-checked here; any
+        // extras are already reported above as "at most one", so a stray wildcard
+        // never collects both an "at most one" and a "must be last" error.
         if (FirestoreRulesDiagnostics.rulesVersion(path) == "1") {
-            for ((index, segment) in recursive) {
-                if (index != segments.lastIndex) {
-                    error(
-                        holder,
-                        segment,
-                        "In rules_version '1', a recursive wildcard '{name=**}' must be the last segment of a match path.",
-                    )
-                }
+            val (index, segment) = recursive.first()
+            if (index != segments.lastIndex) {
+                error(
+                    holder,
+                    segment,
+                    "In rules_version '1', a recursive wildcard '{name=**}' must be the last segment of a match path.",
+                )
             }
         }
     }

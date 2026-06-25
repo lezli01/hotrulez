@@ -178,6 +178,34 @@ class FirestoreRulesAnnotatorTest : BasePlatformTestCase() {
         )
     }
 
+    fun testFunctionWithReturnNotLastIsError() {
+        // The grammar permits statements after a return, so a body that contains a
+        // return but does not *end* with one must still be flagged.
+        val errors = errorsFor("function helper(x) { return x; let y = x; }")
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "Function 'helper' must end with a 'return' statement")
+    }
+
+    fun testMultipleRecursiveWildcardsUnderV1DoNotStackErrors() {
+        // Two recursive wildcards under v1: the extra is flagged "at most one" and the
+        // first is flagged "must be last"; no single segment collects both messages.
+        val errors = errorsFor(
+            """
+            rules_version = '1';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /a/{x=**}/{y=**}/b {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(2, errors.size)
+        assertContainsDescription(errors, "at most one recursive wildcard")
+        assertContainsDescription(errors, "must be the last segment of a match path")
+    }
+
     private fun errorsFor(text: String): List<HighlightInfo> {
         myFixture.configureByText(FirestoreRulesFileType, text)
         return myFixture.doHighlighting().filter { it.severity == HighlightSeverity.ERROR }
