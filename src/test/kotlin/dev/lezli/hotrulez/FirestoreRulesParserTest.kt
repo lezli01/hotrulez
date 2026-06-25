@@ -320,8 +320,8 @@ class FirestoreRulesParserTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        assertNotNull(file.findDescendant(FirestoreRulesElementTypes.FUNCTION_DECLARATION))
-        assertEquals(2, file.countDescendants(FirestoreRulesElementTypes.MATCH_BLOCK))
+        assertNotNull(file.node.findDescendant(T.FUNCTION_DECLARATION))
+        assertEquals(2, file.node.countDescendants(T.MATCH_DECLARATION))
     }
 
     fun testRecoversFromStrayClosingBrace() {
@@ -337,8 +337,8 @@ class FirestoreRulesParserTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
 
-        assertNotNull(file.findDescendant(FirestoreRulesElementTypes.SERVICE_DECLARATION))
-        assertNotNull(file.findDescendant(FirestoreRulesElementTypes.MATCH_BLOCK))
+        assertNotNull(file.node.findDescendant(T.SERVICE_DECLARATION))
+        assertNotNull(file.node.findDescendant(T.MATCH_DECLARATION))
     }
 
     fun testRecoversAfterMalformedAllowStatement() {
