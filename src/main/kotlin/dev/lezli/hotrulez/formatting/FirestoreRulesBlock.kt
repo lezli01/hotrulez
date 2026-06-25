@@ -69,7 +69,10 @@ class FirestoreRulesBlock(
             if (left.elementType == T.LBRACE || right.elementType == T.RBRACE) {
                 return lineBreakNoBlank()
             }
-            // Between items keep up to one intentional blank line.
+            // Separate structural block members while keeping simple statements tight.
+            if (separatedByBlankLine(left, right)) {
+                return blankLine()
+            }
             return lineBreak()
         }
 
@@ -155,16 +158,41 @@ class FirestoreRulesBlock(
             else -> if (beforeColon) noSpace() else oneSpace() // allow `: if`, map `key: value`
         }
 
+    private fun separatedByBlankLine(left: ASTNode, right: ASTNode): Boolean {
+        // A leading comment stays attached to the member it documents, so any
+        // blank line belongs before the comment, not between it and that member.
+        if (left.isComment()) {
+            return false
+        }
+        val rightTarget = if (right.isComment()) firstNonCommentSibling(right) else right
+        return left.isBlockMember() || rightTarget?.isBlockMember() == true
+    }
+
+    private fun firstNonCommentSibling(node: ASTNode): ASTNode? {
+        var sibling = node.treeNext
+        while (sibling != null &&
+            (sibling.elementType == TokenType.WHITE_SPACE || sibling.isComment())
+        ) {
+            sibling = sibling.treeNext
+        }
+        return sibling
+    }
+
     private fun ASTNode.isBrace(): Boolean =
         elementType == T.LBRACE || elementType == T.RBRACE
 
     private fun ASTNode.isComment(): Boolean = elementType in FirestoreRulesTokenSets.COMMENTS
+
+    private fun ASTNode.isBlockMember(): Boolean =
+        elementType == T.FUNCTION_DECLARATION || elementType == T.MATCH_DECLARATION
 
     private fun noSpace(): Spacing = Spacing.createSpacing(0, 0, 0, true, 1)
 
     private fun oneSpace(): Spacing = Spacing.createSpacing(1, 1, 0, true, 1)
 
     private fun lineBreak(): Spacing = Spacing.createSpacing(0, 0, 1, true, 1)
+
+    private fun blankLine(): Spacing = Spacing.createSpacing(0, 0, 2, true, 1)
 
     private fun lineBreakNoBlank(): Spacing = Spacing.createSpacing(0, 0, 1, true, 0)
 
