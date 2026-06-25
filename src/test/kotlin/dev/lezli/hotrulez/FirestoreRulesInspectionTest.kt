@@ -217,9 +217,9 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
         )
     }
 
-    fun testRecursiveWildcardWithoutAnyVersionIsNotUsageWarned() {
-        // No rules_version declaration defaults to v2, so the recursive-wildcard usage
-        // nudge must not fire — only the structure inspection's missing-version warning.
+    fun testRecursiveWildcardWithoutAnyVersionIsUsageWarned() {
+        // No rules_version declaration uses v1 behavior, so the recursive-wildcard
+        // usage warning should accompany the structure inspection's missing-version warning.
         val warnings = warningsFor(
             """
             service cloud.firestore {
@@ -231,10 +231,8 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
             }
             """.trimIndent(),
         )
-        assertTrue(
-            "recursive-wildcard usage warning must not fire when no version is declared (defaults to v2)",
-            warnings.none { it.description?.contains("should be used with rules_version") == true },
-        )
+        assertEquals(2, warnings.size)
+        assertContainsDescription(warnings, "should be used with rules_version")
         assertContainsDescription(warnings, "Missing 'rules_version")
     }
 
@@ -273,6 +271,21 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
                 """.trimIndent(),
             ),
         )
+    }
+
+    fun testNonDefaultParenDatabaseRootWarnsMissingRoot() {
+        val warnings = warningsFor(
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/(prod)/documents {
+                allow read: if true;
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(1, warnings.size)
+        assertContainsDescription(warnings, "Missing root 'match /databases/{database}/documents'")
     }
 
     fun testNestedRootMatchStillWarnsMissingRoot() {

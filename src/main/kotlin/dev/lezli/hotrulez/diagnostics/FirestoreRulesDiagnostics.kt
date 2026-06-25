@@ -87,8 +87,10 @@ internal object FirestoreRulesDiagnostics {
         if (segments.size != 3) return false
         val first = segments[0] as? FirestoreRulesPathNameSegment ?: return false
         val third = segments[2] as? FirestoreRulesPathNameSegment ?: return false
+        val database = segments[1]
         return first.identifier.text == "databases" &&
-            (segments[1] is FirestoreRulesPathWildcard || segments[1] is FirestoreRulesParenPathSegment) &&
+            (database is FirestoreRulesPathWildcard ||
+                (database as? FirestoreRulesParenPathSegment)?.identifier?.text == "default") &&
             third.identifier.text == "documents"
     }
 

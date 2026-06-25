@@ -53,11 +53,9 @@ class FirestoreRulesUsageInspection : LocalInspectionTool() {
                 // The version-dependent matching semantics only apply to match paths,
                 // not to recursive wildcards that appear inside a get()/exists() path argument.
                 if (o.parent !is FirestoreRulesMatchPath) return
-                // Only warn under an explicit rules_version '1', whose recursive-wildcard
-                // semantics differ. An omitted version already defaults to '2' (see
-                // FirestoreRulesAnnotator.checkRecursiveWildcardPlacement), so a null
-                // version must not be treated the same as v1.
-                if (FirestoreRulesDiagnostics.rulesVersion(o) == "1") {
+                // Only rules_version '2' has the modern recursive-wildcard semantics;
+                // an omitted version uses the v1 behavior.
+                if (FirestoreRulesDiagnostics.rulesVersion(o) != "2") {
                     holder.registerProblem(
                         o,
                         "Recursive wildcard '{${o.identifier.text}=**}' should be used with rules_version = '2'; " +
