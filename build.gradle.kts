@@ -1,8 +1,11 @@
+import org.jetbrains.grammarkit.tasks.GenerateLexerTask
+import org.jetbrains.grammarkit.tasks.GenerateParserTask
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.intellij.platform")
+    id("org.jetbrains.grammarkit")
 }
 
 group = "dev.lezli"
@@ -10,6 +13,7 @@ version = "0.2.0" // x-release-please-version
 
 repositories {
     mavenCentral()
+    maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
     intellijPlatform {
         defaultRepositories()
     }
@@ -32,6 +36,53 @@ java {
 
 kotlin {
     jvmToolchain(21)
+}
+
+// --- Grammar-Kit + JFlex code generation ---------------------------------
+// Source grammar lives in src/main/grammar; generated parser/PSI/lexer go to
+// build/generated/sources/grammarkit and are added to the main source set.
+// Regenerate explicitly with: ./gradlew generateParser generateLexer
+// (both run automatically before compileKotlin/compileJava).
+val generatedSourcesDir = layout.buildDirectory.dir("generated/sources/grammarkit")
+
+grammarKit {
+    jflexRelease.set("1.9.2")
+    grammarKitRelease.set("2022.3.2")
+}
+
+val generateFirestoreParser by tasks.registering(GenerateParserTask::class) {
+    sourceFile.set(layout.projectDirectory.file("src/main/grammar/FirestoreRules.bnf"))
+    targetRootOutputDir.set(generatedSourcesDir)
+    pathToParser.set("dev/lezli/hotrulez/parser/FirestoreRulesParser.java")
+    pathToPsiRoot.set("dev/lezli/hotrulez/psi")
+    purgeOldFiles.set(true)
+}
+
+val generateFirestoreLexer by tasks.registering(GenerateLexerTask::class) {
+    sourceFile.set(layout.projectDirectory.file("src/main/grammar/FirestoreRules.flex"))
+    targetOutputDir.set(generatedSourcesDir.map { it.dir("dev/lezli/hotrulez/lexer") })
+    purgeOldFiles.set(true)
+    dependsOn(generateFirestoreParser)
+}
+
+sourceSets {
+    main {
+        java.srcDir(generatedSourcesDir)
+    }
+}
+
+tasks.named("compileKotlin") {
+    dependsOn(generateFirestoreParser, generateFirestoreLexer)
+}
+
+tasks.named("compileJava") {
+    dependsOn(generateFirestoreParser, generateFirestoreLexer)
+}
+
+// Tests reference the generated types directly; make the dependency explicit so a
+// test-only compile never races ahead of generation.
+tasks.named("compileTestKotlin") {
+    dependsOn(generateFirestoreParser, generateFirestoreLexer)
 }
 
 intellijPlatform {

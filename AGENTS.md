@@ -95,5 +95,19 @@ or a different implementation stack.
 The project now has a Gradle wrapper. Use the narrowest useful check for the
 work being changed:
 
-- `./gradlew test` for the current lexer, syntax highlighting, file type, and
-  plugin scaffold tests.
+- `./gradlew test` for the current lexer, syntax highlighting, file type,
+  parser, and formatter tests.
+- `./gradlew generateFirestoreParser generateFirestoreLexer` to regenerate the
+  parser/PSI and lexer from the grammar. These run automatically before
+  `compileKotlin`/`compileJava`, so a normal build/test already regenerates.
+
+The Firestore Rules grammar source lives in `src/main/grammar/`:
+
+- `FirestoreRules.bnf` — Grammar-Kit grammar (parser + typed PSI). It uses the
+  operator-precedence engine for expressions.
+- `FirestoreRules.flex` — JFlex lexer used by the generated parser (separate from
+  the coarse highlighting lexer in `lexer/FirestoreRulesLexer.kt`).
+
+Generated sources are written to `build/generated/sources/grammarkit` (not
+committed). The grammar was synthesised from the nicbytes and grimsteel
+tree-sitter Firestore grammars and reconciled against official Firebase docs.
