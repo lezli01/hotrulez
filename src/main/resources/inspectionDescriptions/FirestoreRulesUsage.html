@@ -1,0 +1,13 @@
+<html>
+<body>
+Reports suspicious usage in a Firebase Cloud Firestore Security Rules file: an <code>allow</code>
+rule with no <code>if</code> condition (which unconditionally grants the operation), a recursive
+wildcard <code>{name=**}</code> used in a match path without <code>rules_version = '2';</code>
+(its match semantics differ between rules versions), and a single-path helper
+(<code>get</code>, <code>getAfter</code>, <code>exists</code>, <code>existsAfter</code>) called
+with an argument count other than one.
+<p>
+These checks describe the syntax and structure of the rules file only. They do not evaluate
+whether a rule is secure or whether it authorizes any particular request.
+</body>
+</html>

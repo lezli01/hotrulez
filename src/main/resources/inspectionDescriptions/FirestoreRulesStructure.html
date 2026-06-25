@@ -1,0 +1,12 @@
+<html>
+<body>
+Reports file-level structure issues in a Firebase Cloud Firestore Security Rules file:
+missing <code>rules_version = '2';</code>, a <code>rules_version</code> declared after the
+<code>service</code> block, a missing <code>service cloud.firestore</code> block, a service
+name other than <code>cloud.firestore</code>, and a missing root
+<code>match /databases/{database}/documents</code> block.
+<p>
+These checks describe the structure of the rules file only. They do not evaluate whether a
+rule is secure or whether it authorizes any particular request.
+</body>
+</html>
