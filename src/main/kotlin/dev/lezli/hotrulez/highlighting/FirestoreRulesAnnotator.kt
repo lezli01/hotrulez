@@ -19,7 +19,7 @@ class FirestoreRulesAnnotator : Annotator {
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
         val node = element.node ?: return
         when (node.elementType) {
-            T.SERVICE_DECLARATION ->
+            T.SERVICE_NAME ->
                 highlightServiceName(node, holder)
             T.FUNCTION_DECLARATION ->
                 highlightFunctionName(node, holder)
@@ -30,12 +30,9 @@ class FirestoreRulesAnnotator : Annotator {
     }
 
     private fun highlightServiceName(node: ASTNode, holder: AnnotationHolder) {
-        // Color the identifier segments of the service name (e.g. cloud, firestore),
-        // stopping before the service body block.
+        // Color the identifier segments of the service name (e.g. cloud, firestore);
+        // `node` is the `service_name` rule, whose children are the dotted identifiers.
         for (child in node.getChildren(null)) {
-            if (child.elementType == T.BLOCK) {
-                break
-            }
             if (child.elementType == T.IDENTIFIER) {
                 apply(holder, child.textRange, FirestoreRulesHighlightingColors.SERVICE_NAME)
             }
