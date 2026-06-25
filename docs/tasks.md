@@ -138,26 +138,42 @@ Source: `docs/spec.md`
 
 ## Milestone 4: Diagnostics
 
-- [ ] Decide whether each diagnostic belongs in an annotator or inspection.
-- [ ] Add diagnostic for missing `rules_version = '2';`.
-- [ ] Add diagnostic for `rules_version = '2';` appearing after the service
-  declaration.
-- [ ] Add diagnostic for missing `service cloud.firestore`.
-- [ ] Add diagnostic for unsupported service names in Firestore Rules files.
-- [ ] Add diagnostic for missing root
-  `match /databases/{database}/documents`.
-- [ ] Add diagnostic for invalid allow operation names.
-- [ ] Add diagnostic for empty allow operation lists.
-- [ ] Add diagnostic for missing required `if` conditions.
-- [ ] Add diagnostic for malformed match paths.
-- [ ] Add diagnostic for recursive wildcard usage inconsistent with
-  `rules_version = '2';`.
-- [ ] Add diagnostic for function declarations missing return expressions.
-- [ ] Add diagnostic for duplicate function parameter names.
-- [ ] Add diagnostic for documented helper-call arity errors after confirming
-  arity in official Firebase docs.
-- [ ] Add tests for every diagnostic.
-- [ ] Review diagnostic wording to ensure it does not claim runtime security or
+Decision: severity drives the home. Always-wrong, grammar-inexpressible ERRORS
+live in an always-on `FirestoreRulesAnnotator`; configurable WARNINGS live in two
+`LocalInspectionTool`s — `FirestoreRulesStructureInspection` (file shape, via
+`checkFile`) and `FirestoreRulesUsageInspection` (element-local usage, via the
+generated visitor). All under `dev.lezli.hotrulez.diagnostics`.
+
+- [x] Decide whether each diagnostic belongs in an annotator or inspection.
+- [x] Add diagnostic for missing `rules_version = '2';`. (structure inspection)
+- [x] Add diagnostic for `rules_version = '2';` appearing after the service
+  declaration. (structure inspection)
+- [x] Add diagnostic for missing `service cloud.firestore`. (structure inspection)
+- [x] Add diagnostic for unsupported service names in Firestore Rules files.
+  (structure inspection)
+- [x] Add diagnostic for missing root
+  `match /databases/{database}/documents`. (structure inspection)
+- [x] Add diagnostic for invalid allow operation names. (annotator, ERROR)
+- [x] Add diagnostic for empty allow operation lists. (annotator, ERROR — the
+  pinned grammar requires >=1 identifier, so this surfaces as a null method list)
+- [x] Add diagnostic for missing required `if` conditions. Firebase docs confirm
+  a condition-less `allow` is *legal* (it unconditionally grants the operation),
+  so this is a configurable WARNING in the usage inspection, not an error.
+- [x] Add diagnostic for malformed match paths. (annotator: at most one recursive
+  wildcard per path; under `rules_version = '1'` it must also be the last segment)
+- [x] Add diagnostic for recursive wildcard usage inconsistent with
+  `rules_version = '2';`. (usage inspection; match paths only, not get()/exists()
+  path arguments)
+- [x] Add diagnostic for function declarations missing return expressions.
+  (annotator, ERROR — also flags a bare `return;`)
+- [x] Add diagnostic for duplicate function parameter names. (annotator, ERROR)
+- [x] Add diagnostic for documented helper-call arity errors after confirming
+  arity in official Firebase docs. (usage inspection: `get`/`getAfter`/`exists`/
+  `existsAfter` take exactly one path argument; the two-arg Firestore `Map.get`
+  is deliberately not flagged)
+- [x] Add tests for every diagnostic. (`FirestoreRulesAnnotatorTest`,
+  `FirestoreRulesInspectionTest`, including negative fixtures)
+- [x] Review diagnostic wording to ensure it does not claim runtime security or
   authorization correctness.
 
 ## Milestone 5: IDE Polish and Docs

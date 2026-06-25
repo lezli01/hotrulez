@@ -1,9 +1,16 @@
 package dev.lezli.hotrulez
 
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.lezli.hotrulez.highlighting.FirestoreRulesHighlightingColors
 
+/**
+ * Covers always-on ERROR diagnostics produced by
+ * [dev.lezli.hotrulez.diagnostics.FirestoreRulesAnnotator], plus annotator-driven
+ * semantic highlighting that is not covered by the lexer highlighter tests.
+ */
 class FirestoreRulesAnnotatorTest : BasePlatformTestCase() {
     fun testHighlightsServiceFunctionAndPathVariables() {
         myFixture.configureByText(
@@ -55,4 +62,144 @@ class FirestoreRulesAnnotatorTest : BasePlatformTestCase() {
 
         assertTrue(forcedKeys.contains(FirestoreRulesHighlightingColors.FUNCTION_DECLARATION))
     }
+
+    fun testUnknownAllowOperationIsError() {
+        val errors = errorsFor(
+            inCity("allow read, fetch, write: if true;"),
+        )
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "Unknown Firestore Rules operation 'fetch'")
+    }
+
+    fun testKnownOperationsProduceNoError() {
+        assertEmpty(errorsFor(inCity("allow get, list, read, create, update, delete, write: if true;")))
+    }
+
+    fun testAllowWithoutConditionIsNotError() {
+        // A condition-less `allow` is legal Firestore syntax, so the annotator must
+        // not raise an error for it.
+        assertEmpty(errorsFor(inCity("allow read;")))
+    }
+
+    fun testAllowWithoutOperationsIsError() {
+        assertContainsDescription(errorsFor(inCity("allow : if true;")), "requires at least one operation")
+    }
+
+    fun testDuplicateParameterNameIsError() {
+        val errors = errorsFor("function ownsDoc(uid, doc, uid) { return true; }")
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "Duplicate parameter name 'uid'")
+    }
+
+    fun testWellFormedFunctionProducesNoError() {
+        // Distinct parameters and a body ending in `return <expr>;` must not trip
+        // the duplicate-parameter, missing-return, or empty-return checks.
+        assertEmpty(errorsFor("function ownsDoc(uid, doc) { return uid == doc; }"))
+    }
+
+    fun testFunctionWithoutReturnIsError() {
+        val errors = errorsFor("function helper(x) { let y = x; }")
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "Function 'helper' must end with a 'return' statement")
+    }
+
+    fun testReturnWithoutExpressionIsError() {
+        val errors = errorsFor("function helper(x) { return; }")
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "'return' requires an expression")
+    }
+
+    fun testRecursiveWildcardNonLastUnderV2IsNotError() {
+        // In rules_version '2' a recursive wildcard may appear anywhere in the path.
+        assertEmpty(
+            errorsFor(
+                """
+                rules_version = '2';
+                service cloud.firestore {
+                  match /databases/{database}/documents {
+                    match /{path=**}/songs/{song} {
+                      allow read: if true;
+                    }
+                  }
+                }
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    fun testRecursiveWildcardNonLastUnderV1IsError() {
+        val errors = errorsFor(
+            """
+            rules_version = '1';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /{path=**}/songs {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "must be the last segment of a match path")
+    }
+
+    fun testMultipleRecursiveWildcardsIsError() {
+        val errors = errorsFor(
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /a/{x=**}/b/{y=**} {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(1, errors.size)
+        assertContainsDescription(errors, "at most one recursive wildcard")
+    }
+
+    fun testRecursiveWildcardAsLastSegmentIsNotError() {
+        assertEmpty(
+            errorsFor(
+                """
+                rules_version = '2';
+                service cloud.firestore {
+                  match /databases/{database}/documents {
+                    match /cities/{city}/{document=**} {
+                      allow read: if true;
+                    }
+                  }
+                }
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    private fun errorsFor(text: String): List<HighlightInfo> {
+        myFixture.configureByText(FirestoreRulesFileType, text)
+        return myFixture.doHighlighting().filter { it.severity == HighlightSeverity.ERROR }
+    }
+
+    private fun assertContainsDescription(infos: List<HighlightInfo>, fragment: String) {
+        assertTrue(
+            "expected a diagnostic containing \"$fragment\" but got: ${infos.map { it.description }}",
+            infos.any { it.description?.contains(fragment) == true },
+        )
+    }
+
+    /** Wraps an allow statement in a minimal, otherwise-valid v2 rules file. */
+    private fun inCity(allowStatement: String): String =
+        """
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /cities/{city} {
+              $allowStatement
+            }
+          }
+        }
+        """.trimIndent()
 }
