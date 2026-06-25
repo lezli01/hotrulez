@@ -139,7 +139,7 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
         assertEquals(1, warnings.size)
-        assertContainsDescription(warnings, "'exists()' takes exactly one path argument but found 0")
+        assertContainsDescription(warnings, "'exists()' takes exactly one argument but found 0")
     }
 
     fun testHelperCallCorrectArityHasNoWarning() {
@@ -164,7 +164,7 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
             inCity("allow read: if firestore.exists();"),
         )
         assertEquals(1, warnings.size)
-        assertContainsDescription(warnings, "'exists()' takes exactly one path argument but found 0")
+        assertContainsDescription(warnings, "'exists()' takes exactly one argument but found 0")
     }
 
     fun testMapGetWithDefaultHasNoWarning() {
@@ -215,6 +215,123 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
                 """.trimIndent(),
             ),
         )
+    }
+
+    fun testRecursiveWildcardWithoutAnyVersionIsNotUsageWarned() {
+        // No rules_version declaration defaults to v2, so the recursive-wildcard usage
+        // nudge must not fire — only the structure inspection's missing-version warning.
+        val warnings = warningsFor(
+            """
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /cities/{document=**} {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertTrue(
+            "recursive-wildcard usage warning must not fire when no version is declared (defaults to v2)",
+            warnings.none { it.description?.contains("should be used with rules_version") == true },
+        )
+        assertContainsDescription(warnings, "Missing 'rules_version")
+    }
+
+    fun testBareCallToShadowingUserFunctionIsNotArityWarned() {
+        // A user-defined function named `get` shadows the builtin path helper, so a
+        // two-argument call to it must not be flagged as a path-helper arity error.
+        assertEmpty(
+            warningsFor(
+                """
+                rules_version = '2';
+                service cloud.firestore {
+                  match /databases/{database}/documents {
+                    function get(a, b) { return a == b; }
+                    match /cities/{city} {
+                      allow read: if get(resource.data.x, resource.data.y);
+                    }
+                  }
+                }
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    fun testDefaultDatabaseRootMatchHasNoMissingRootWarning() {
+        // `/databases/(default)/documents` is a valid root documents path, so the
+        // structure inspection must not report a missing root match for it.
+        assertEmpty(
+            warningsFor(
+                """
+                rules_version = '2';
+                service cloud.firestore {
+                  match /databases/(default)/documents {
+                    allow read: if true;
+                  }
+                }
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    fun testNestedRootMatchStillWarnsMissingRoot() {
+        // A `/databases/{database}/documents` match buried inside another match is not
+        // the service block's top-level root, so the missing-root warning must fire.
+        val warnings = warningsFor(
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /stuff/{id} {
+                match /databases/{database}/documents {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertContainsDescription(warnings, "Missing root 'match /databases/{database}/documents'")
+    }
+
+    fun testMultipleRulesVersionAfterServiceWarnsOnce() {
+        // Multiple stray rules_version lines after the service block collapse to a
+        // single ordering warning rather than one warning per line.
+        val warnings = warningsFor(
+            """
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                allow read: if true;
+              }
+            }
+            rules_version = '2';
+            rules_version = '2';
+            """.trimIndent(),
+        )
+        assertEquals(1, warnings.size)
+        assertContainsDescription(warnings, "must be declared before the 'service' block")
+    }
+
+    fun testBareHelperMisuseNotSuppressedByUnrelatedSiblingFunction() {
+        // A `function get` declared in a sibling match block must NOT suppress a genuine
+        // bare-get arity warning in another block: shadow detection is lexically scoped,
+        // not file-wide.
+        val warnings = warningsFor(
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /a/{id} {
+                  function get(x, y) { return x == y; }
+                  allow read: if true;
+                }
+                match /b/{id} {
+                  allow read: if get(/databases/x, /databases/y);
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertContainsDescription(warnings, "'get()' takes exactly one argument but found 2")
     }
 
     private fun warningsFor(text: String): List<HighlightInfo> {
