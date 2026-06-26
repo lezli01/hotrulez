@@ -77,6 +77,36 @@ class FirestoreRulesFormatterTest : BasePlatformTestCase() {
         assertFormats("formatter/type-operators.before.rules", "formatter/type-operators.after.rules")
     }
 
+    fun testNewLineInArgumentListGetsContinuationIndent() {
+        // getChildAttributes must hang a freshly typed line inside an argument list the
+        // same way childIndent/reformat does, so pressing Enter mid-call indents past
+        // the call line rather than aligning with it (regression guard against
+        // getChildAttributes and childIndent drifting apart).
+        myFixture.configureByText(
+            FirestoreRulesFileType,
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                allow read: if hasAny(a,<caret>b);
+              }
+            }
+            """.trimIndent(),
+        )
+
+        myFixture.type('\n')
+
+        val lines = myFixture.editor.document.text.lines()
+        val callLine = lines.first { it.contains("hasAny(") }
+        val continuation = lines[lines.indexOf(callLine) + 1]
+        assertTrue(
+            "expected continuation \"$continuation\" to hang past call line \"$callLine\"",
+            continuation.indentWidth() > callLine.indentWidth(),
+        )
+    }
+
+    private fun String.indentWidth(): Int = takeWhile { it == ' ' }.length
+
     private fun assertFormats(beforePath: String, afterPath: String) {
         val file = myFixture.configureByFile(beforePath)
         WriteCommandAction.runWriteCommandAction(project) {
