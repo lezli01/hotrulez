@@ -3,6 +3,7 @@ package dev.lezli.hotrulez.lexer
 import com.intellij.lexer.LexerBase
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
+import dev.lezli.hotrulez.diagnostics.FirestoreRulesDiagnostics
 
 class FirestoreRulesLexer : LexerBase() {
     private var buffer: CharSequence = ""
@@ -89,6 +90,12 @@ class FirestoreRulesLexer : LexerBase() {
         var escaped = false
         while (index < endOffset) {
             val current = buffer[index]
+            // A string never spans a line break: an unterminated quote becomes a bad
+            // character (matching the JFlex parsing lexer) rather than swallowing the
+            // rest of the file into one string token.
+            if (current == '\n' || current == '\r') {
+                break
+            }
             if (escaped) {
                 escaped = false
             } else if (current == '\\') {
@@ -99,10 +106,24 @@ class FirestoreRulesLexer : LexerBase() {
             }
             index++
         }
-        finish(FirestoreRulesTokenTypes.STRING, endOffset)
+        finish(TokenType.BAD_CHARACTER, tokenStart + 1)
     }
 
     private fun scanNumber() {
+        // Hex literal `0x[0-9a-fA-F]+`, matching the JFlex parsing lexer's NUMBER rule.
+        if (buffer[tokenStart] == '0' && (charAt(tokenStart + 1) == 'x' || charAt(tokenStart + 1) == 'X')) {
+            var hex = tokenStart + 2
+            while (hex < endOffset && buffer[hex].isHexDigit()) {
+                hex++
+            }
+            // Only `0x` followed by at least one hex digit is a hex number; otherwise
+            // fall through and lex the leading `0` as a plain decimal.
+            if (hex > tokenStart + 2) {
+                finish(FirestoreRulesTokenTypes.NUMBER, hex)
+                return
+            }
+        }
+
         var index = tokenStart + 1
         while (index < endOffset && buffer[index].isDigit()) {
             index++
@@ -111,6 +132,21 @@ class FirestoreRulesLexer : LexerBase() {
             index++
             while (index < endOffset && buffer[index].isDigit()) {
                 index++
+            }
+        }
+        // Optional CEL exponent `[eE][+-]?[0-9]+`; leave a bare `e` to the identifier
+        // scanner when no well-formed exponent follows.
+        if (index < endOffset && (buffer[index] == 'e' || buffer[index] == 'E')) {
+            var probe = index + 1
+            if (probe < endOffset && (buffer[probe] == '+' || buffer[probe] == '-')) {
+                probe++
+            }
+            if (probe < endOffset && buffer[probe].isDigit()) {
+                probe++
+                while (probe < endOffset && buffer[probe].isDigit()) {
+                    probe++
+                }
+                index = probe
             }
         }
         finish(FirestoreRulesTokenTypes.NUMBER, index)
@@ -127,7 +163,7 @@ class FirestoreRulesLexer : LexerBase() {
             text in KEYWORDS -> FirestoreRulesTokenTypes.KEYWORD
             text in CONSTANTS -> FirestoreRulesTokenTypes.CONSTANT
             text in BUILTINS && nextNonWhitespace(index) == '(' -> FirestoreRulesTokenTypes.BUILTIN
-            text in OPERATIONS -> FirestoreRulesTokenTypes.OPERATION
+            text in FirestoreRulesDiagnostics.ALLOW_OPERATIONS -> FirestoreRulesTokenTypes.OPERATION
             text in BUILTINS -> FirestoreRulesTokenTypes.BUILTIN
             text in WORD_OPERATORS && inValuePosition(tokenStart) ->
                 FirestoreRulesTokenTypes.OPERATOR
@@ -205,11 +241,12 @@ class FirestoreRulesLexer : LexerBase() {
 
     // A word operator (`in`, `is`) or built-in type/namespace name is only itself
     // when it stands as a value. When it directly follows a member access `.`, a
-    // path separator `/`, or an opening wildcard/brace `{`, it is instead a field,
-    // path segment, or path variable name and must stay an identifier.
+    // path separator `/`, an opening wildcard/brace `{`, or a path-segment hyphen
+    // `-` (e.g. `/user-map/`), it is instead a field, path segment, or path variable
+    // name and must stay an identifier.
     private fun inValuePosition(index: Int): Boolean {
         val previous = previousNonWhitespace(index)
-        return previous != '.' && previous != '/' && previous != '{'
+        return previous != '.' && previous != '/' && previous != '{' && previous != '-'
     }
 
     private fun finish(type: IElementType, end: Int) {
@@ -217,9 +254,17 @@ class FirestoreRulesLexer : LexerBase() {
         tokenEnd = end
     }
 
-    private fun isIdentifierStart(char: Char): Boolean = char == '_' || char.isLetter()
+    private fun charAt(index: Int): Char? = if (index in 0 until endOffset) buffer[index] else null
 
-    private fun isIdentifierPart(char: Char): Boolean = char == '_' || char.isLetterOrDigit()
+    private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
+
+    // Identifiers are ASCII only, matching the Firestore Rules grammar and the JFlex
+    // parsing lexer (`[a-zA-Z_][a-zA-Z0-9_]*`): a non-ASCII letter is a bad character
+    // in both lexers rather than a silently-accepted identifier in one and a parse
+    // error in the other.
+    private fun isIdentifierStart(char: Char): Boolean = char == '_' || char in 'a'..'z' || char in 'A'..'Z'
+
+    private fun isIdentifierPart(char: Char): Boolean = isIdentifierStart(char) || char in '0'..'9'
 
     private companion object {
         val KEYWORDS = setOf(
@@ -247,7 +292,9 @@ class FirestoreRulesLexer : LexerBase() {
             "duration", "constraint", "map_diff", "math", "hashing",
         )
 
-        val OPERATIONS = setOf("get", "list", "read", "create", "update", "delete", "write")
+        // The set of valid `allow` operations is owned by FirestoreRulesDiagnostics
+        // (the single source of truth shared with the annotator); see its use in
+        // scanIdentifier above.
 
         val BUILTINS = setOf("request", "resource", "exists", "existsAfter", "get", "getAfter")
     }
