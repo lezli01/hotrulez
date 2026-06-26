@@ -49,20 +49,27 @@ class FirestoreRulesUsageInspection : LocalInspectionTool() {
                 )
             }
 
-            override fun visitRecursiveWildcard(o: FirestoreRulesRecursiveWildcard) {
-                // The version-dependent matching semantics only apply to match paths,
-                // not to recursive wildcards that appear inside a get()/exists() path argument.
-                val matchPath = o.parent as? FirestoreRulesMatchPath ?: return
-                // A misplaced wildcard already draws a hard placement error from the
-                // annotator; only nudge about the version on a valid (last-segment)
-                // wildcard so the two diagnostics never stack on the same element.
-                if (FirestoreRulesDiagnostics.pathSegments(matchPath).lastOrNull() != o) return
+            override fun visitMatchPath(o: FirestoreRulesMatchPath) {
+                // The version-dependent matching semantics only apply to recursive
+                // wildcards in a match path; a wildcard inside a get()/exists() path
+                // argument is not a match path, so this visitor never sees it.
+                val segments = FirestoreRulesDiagnostics.pathSegments(o)
+                // The annotator raises a hard ERROR on any recursive wildcard that is
+                // misplaced (not the final segment) or redundant (a second `**`). Only
+                // nudge about the version when there is exactly one wildcard and it is
+                // the last segment — the single case the annotator leaves error-free —
+                // so the two diagnostics never stack on the same element.
+                val wildcard = (
+                    segments.singleOrNull { it is FirestoreRulesRecursiveWildcard }
+                        ?.takeIf { it == segments.lastOrNull() }
+                        as? FirestoreRulesRecursiveWildcard
+                    ) ?: return
                 // Only rules_version '2' has the modern recursive-wildcard semantics;
                 // an omitted version uses the v1 behavior.
                 if (FirestoreRulesDiagnostics.rulesVersion(o) != "2") {
                     holder.registerProblem(
-                        o,
-                        "Recursive wildcard '{${o.identifier.text}=**}' should be used with rules_version = '2'; " +
+                        wildcard,
+                        "Recursive wildcard '{${wildcard.identifier.text}=**}' should be used with rules_version = '2'; " +
                             "its match semantics differ between rules versions.",
                     )
                 }

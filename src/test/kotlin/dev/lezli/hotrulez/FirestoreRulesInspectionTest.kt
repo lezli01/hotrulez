@@ -371,6 +371,28 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
         assertContainsDescription(warnings, "missing its rule block")
     }
 
+    fun testMultipleRecursiveWildcardsUnderV1DoNotStackUsageWarning() {
+        // Two recursive wildcards under v1 already draw hard annotator errors, so the
+        // usage inspection must not also warn about the version on the last one — that
+        // would stack a warning on top of the annotator's error on the same element.
+        val warnings = warningsFor(
+            """
+            rules_version = '1';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /a/{x=**}/{y=**} {
+                  allow read: if true;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        assertTrue(
+            "recursive-wildcard usage warning must not stack on the annotator error; got: ${warnings.map { it.description }}",
+            warnings.none { it.description?.contains("should be used with rules_version") == true },
+        )
+    }
+
     fun testNonV2RulesVersionAfterServiceWarnsValueAndPlacement() {
         // A non-'2' rules_version declared after the service has two independent,
         // actionable issues — wrong value and wrong placement — and is intentionally
