@@ -120,7 +120,11 @@ private top_level_recover ::= !('rules_version' | 'service' | 'match' | 'functio
 
 rules_version_statement ::= 'rules_version' '=' STRING ';' { pin=1 }
 
-service_declaration ::= 'service' service_name block { pin=1 }
+// The block is optional so a service that is still being typed (`service
+// cloud.firestore` before the `{`) parses cleanly instead of flashing a parse
+// error; a missing block is reported as a configurable warning by the structure
+// inspection rather than rejected here.
+service_declaration ::= 'service' service_name block? { pin=1 }
 service_name ::= IDENTIFIER ('.' IDENTIFIER)*
 
 // ---------------------------------------------------------------------------
