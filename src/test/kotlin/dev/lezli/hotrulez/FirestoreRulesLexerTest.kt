@@ -35,6 +35,13 @@ class FirestoreRulesLexerTest {
     }
 
     @Test
+    fun tokenizesBacktickAsInvalidCharacter() {
+        // Backtick is not a valid Firestore/CEL string delimiter; the highlighting
+        // lexer must treat it as a bad character, matching the JFlex parsing lexer.
+        assertEquals(listOf(TokenType.BAD_CHARACTER), tokenTypes("`"))
+    }
+
+    @Test
     fun tokenizesGetAsOperationAndHelper() {
         assertEquals(FirestoreRulesTokenTypes.OPERATION, tokenTypes("allow get: if true;")[1])
         assertEquals(FirestoreRulesTokenTypes.BUILTIN, tokenTypes("get(/databases/$(database)/documents/users/user)")[0])
@@ -124,6 +131,47 @@ class FirestoreRulesLexerTest {
     fun tokenizesPathAsCallNotTypeWhenFollowedByParen() {
         // `path('/x')` is a function call; `is path` (no paren) would be a type.
         assertEquals(FirestoreRulesTokenTypes.FUNCTION_CALL, tokenTypes("path('/x')")[0])
+    }
+
+    @Test
+    fun tokenizesHexLiteralAsSingleNumber() {
+        // `0xFF` is one NUMBER token, matching the JFlex parsing lexer rather than
+        // splitting into `0` (NUMBER) followed by `xFF` (IDENTIFIER).
+        assertEquals(listOf(FirestoreRulesTokenTypes.NUMBER), tokenTypes("0xFF"))
+    }
+
+    @Test
+    fun tokenizesScientificLiteralAsSingleNumber() {
+        // Exponent notation is a single NUMBER token, matching the JFlex parsing lexer.
+        assertEquals(listOf(FirestoreRulesTokenTypes.NUMBER), tokenTypes("1e9"))
+        assertEquals(listOf(FirestoreRulesTokenTypes.NUMBER), tokenTypes("1.5e-3"))
+    }
+
+    @Test
+    fun tokenizesNonAsciiLetterAsBadCharacter() {
+        // Identifiers are ASCII only (matching the JFlex parsing lexer and the Firestore
+        // grammar), so a trailing non-ASCII letter is a bad character, not part of the
+        // identifier.
+        assertEquals(
+            listOf(FirestoreRulesTokenTypes.IDENTIFIER, TokenType.BAD_CHARACTER),
+            tokenTypes("café"),
+        )
+    }
+
+    @Test
+    fun unterminatedStringDoesNotSwallowRestOfInput() {
+        // A lone quote is a bad character (matching the JFlex parsing lexer); it must
+        // not turn the rest of the input into a single string token.
+        val tokens = tokenTypes("'oops\nallow read")
+        assertEquals(TokenType.BAD_CHARACTER, tokens.first())
+        assertTrue(tokens.contains(FirestoreRulesTokenTypes.OPERATION))
+    }
+
+    @Test
+    fun keepsTypeNameAsPathSegmentAfterHyphen() {
+        // A built-in type name embedded after a hyphen in a path segment (`/a-map/`)
+        // stays an identifier rather than being miscolored as a type.
+        assertEquals(FirestoreRulesTokenTypes.IDENTIFIER, tokenTypes("match /a-map/{id}")[4])
     }
 
     private fun tokenTypes(text: String): List<IElementType> {

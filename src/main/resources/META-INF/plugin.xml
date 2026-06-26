@@ -35,5 +35,27 @@
         <lang.formatter
             language="FirestoreRules"
             implementationClass="dev.lezli.hotrulez.formatting.FirestoreRulesFormattingModelBuilder"/>
+
+        <annotator
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesAnnotator"/>
+
+        <localInspection
+            language="FirestoreRules"
+            shortName="FirestoreRulesStructure"
+            displayName="Firestore Rules file structure"
+            groupName="Firestore Rules"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesStructureInspection"/>
+
+        <localInspection
+            language="FirestoreRules"
+            shortName="FirestoreRulesUsage"
+            displayName="Firestore Rules suspicious usage"
+            groupName="Firestore Rules"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesUsageInspection"/>
     </extensions>
 </idea-plugin>

@@ -1,0 +1,7 @@
+service cloud.firestore {
+match /databases/{database}/documents {
+match /user-profiles/{userId} {
+allow read: if true;
+}
+}
+}

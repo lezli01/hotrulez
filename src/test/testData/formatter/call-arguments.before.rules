@@ -1,0 +1,10 @@
+service cloud.firestore {
+match /databases/{database}/documents {
+function check() {
+return hasAny(
+resource.data.a,
+resource.data.b
+);
+}
+}
+}

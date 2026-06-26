@@ -95,5 +95,30 @@ or a different implementation stack.
 The project now has a Gradle wrapper. Use the narrowest useful check for the
 work being changed:
 
-- `./gradlew test` for the current lexer, syntax highlighting, file type, and
-  plugin scaffold tests.
+- `./gradlew test` for the current lexer, syntax highlighting, file type,
+  parser, and formatter tests.
+- `./gradlew generateFirestoreParser generateFirestoreLexer` to regenerate the
+  parser/PSI and lexer from the grammar. These run automatically before
+  `compileKotlin`/`compileJava`, so a normal build/test already regenerates.
+
+The Firestore Rules grammar source lives in `src/main/grammar/`:
+
+- `FirestoreRules.bnf` — Grammar-Kit grammar (parser + typed PSI). It uses the
+  operator-precedence engine for expressions.
+- `FirestoreRules.flex` — JFlex lexer used by the generated parser (separate from
+  the coarse highlighting lexer in `lexer/FirestoreRulesLexer.kt`).
+
+Generated sources are written to `build/generated/sources/grammarkit` (not
+committed). The grammar was synthesised from the nicbytes and grimsteel
+tree-sitter Firestore grammars and reconciled against official Firebase docs.
+
+Diagnostics live in `dev.lezli.hotrulez.diagnostics`. Severity decides the home:
+always-wrong, grammar-inexpressible ERRORS go in `FirestoreRulesAnnotator`
+(always on); configurable WARNINGS go in `FirestoreRulesStructureInspection`
+(file shape) and `FirestoreRulesUsageInspection` (element-local usage). Keep
+diagnostic wording structural — describe syntax/structure, never assert that a
+rule is secure or authorizes a request. Confirm Firestore Rules semantics against
+official Firebase docs before adding or changing a check (e.g. a condition-less
+`allow` is legal, and a recursive wildcard may appear anywhere in a v2 match
+path), and add a focused test for each diagnostic in `FirestoreRulesAnnotatorTest`
+or `FirestoreRulesInspectionTest`.
