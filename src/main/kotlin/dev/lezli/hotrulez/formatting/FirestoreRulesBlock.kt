@@ -34,12 +34,19 @@ class FirestoreRulesBlock(
 
     override fun isLeaf(): Boolean = node.firstChildNode == null
 
-    override fun getChildAttributes(newChildIndex: Int): ChildAttributes =
-        if (node.elementType in BRACED_BLOCKS) {
-            ChildAttributes(NESTED_INDENT, null)
+    // Indent for a new line typed inside this block (Enter handling). Mirrors
+    // childIndent so typing a new line agrees with reformatting: a new line inside a
+    // braced block, bracketed literal, grouping paren, or argument list hangs one
+    // level; everything else aligns with the construct.
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        val elementType = node.elementType
+        val indent = if (elementType in BRACED_BLOCKS || elementType in HANGING_CONTAINERS) {
+            NESTED_INDENT
         } else {
-            ChildAttributes(Indent.getNoneIndent(), null)
+            Indent.getNoneIndent()
         }
+        return ChildAttributes(indent, null)
+    }
 
     override fun getSpacing(child1: Block?, child2: Block): Spacing? =
         spacingBetween(
@@ -55,8 +62,7 @@ class FirestoreRulesBlock(
             // Bracketed literals, grouping parens, and call argument lists: hang their
             // contents one level and align the closing delimiter with the line that
             // opened them.
-            T.MAP_LITERAL, T.LIST_LITERAL, T.PARENTHESIZED_EXPRESSION, T.ARGUMENT_LIST ->
-                if (child.isDelimiter()) Indent.getNoneIndent() else NESTED_INDENT
+            in HANGING_CONTAINERS -> if (child.isDelimiter()) Indent.getNoneIndent() else NESTED_INDENT
 
             // A wrapped method-chain segment (`\n  .field`) hangs under the receiver;
             // the receiver itself stays aligned with the statement.
@@ -215,6 +221,13 @@ class FirestoreRulesBlock(
         val FILE: IElementType = dev.lezli.hotrulez.parser.FirestoreRulesParserDefinition.FILE
 
         val BRACED_BLOCKS = setOf(T.BLOCK, T.FUNCTION_BODY)
+
+        // Bracketed literals, grouping parens, and call argument lists whose contents
+        // hang one indent level. Shared by childIndent and getChildAttributes so that
+        // typing a new line inside one of these and reformatting it agree.
+        val HANGING_CONTAINERS = setOf(
+            T.MAP_LITERAL, T.LIST_LITERAL, T.PARENTHESIZED_EXPRESSION, T.ARGUMENT_LIST,
+        )
 
         val DELIMITERS = setOf(
             T.LBRACE, T.RBRACE,
