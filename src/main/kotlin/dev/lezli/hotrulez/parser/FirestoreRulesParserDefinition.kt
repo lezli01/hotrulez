@@ -10,16 +10,17 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
-import dev.lezli.hotrulez.lexer.FirestoreRulesLexer
+import dev.lezli.hotrulez.FirestoreRulesLanguage
+import dev.lezli.hotrulez.lexer.FirestoreRulesParsingLexer
 import dev.lezli.hotrulez.psi.FirestoreRulesFile
-import dev.lezli.hotrulez.psi.FirestoreRulesPsiElement
+import dev.lezli.hotrulez.psi.FirestoreRulesTypes
 
 class FirestoreRulesParserDefinition : ParserDefinition {
-    override fun createLexer(project: Project): Lexer = FirestoreRulesLexer()
+    override fun createLexer(project: Project): Lexer = FirestoreRulesParsingLexer()
 
     override fun createParser(project: Project): PsiParser = FirestoreRulesParser()
 
-    override fun getFileNodeType(): IFileElementType = FirestoreRulesElementTypes.FILE
+    override fun getFileNodeType(): IFileElementType = FILE
 
     override fun getWhitespaceTokens(): TokenSet = FirestoreRulesTokenSets.WHITE_SPACES
 
@@ -27,10 +28,11 @@ class FirestoreRulesParserDefinition : ParserDefinition {
 
     override fun getStringLiteralElements(): TokenSet = FirestoreRulesTokenSets.STRINGS
 
-    override fun createElement(node: ASTNode): PsiElement = FirestoreRulesPsiElement(node)
+    override fun createElement(node: ASTNode): PsiElement = FirestoreRulesTypes.Factory.createElement(node)
 
     override fun createFile(viewProvider: FileViewProvider): PsiFile = FirestoreRulesFile(viewProvider)
 
-    override fun spaceExistenceTypeBetweenTokens(left: ASTNode, right: ASTNode): ParserDefinition.SpaceRequirements =
-        ParserDefinition.SpaceRequirements.MAY
+    companion object {
+        val FILE: IFileElementType = IFileElementType(FirestoreRulesLanguage)
+    }
 }
