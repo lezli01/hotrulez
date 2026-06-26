@@ -363,6 +363,33 @@ class FirestoreRulesInspectionTest : BasePlatformTestCase() {
         assertContainsDescription(warnings, "'get()' takes exactly one argument but found 2")
     }
 
+    fun testMissingServiceBlockIsWarning() {
+        // The grammar accepts a blockless service (so it does not flash a parse error
+        // while typing); the missing block surfaces as a configurable warning instead.
+        val warnings = warningsFor("rules_version = '2';\nservice cloud.firestore")
+        assertEquals(1, warnings.size)
+        assertContainsDescription(warnings, "missing its rule block")
+    }
+
+    fun testNonV2RulesVersionAfterServiceWarnsValueAndPlacement() {
+        // A non-'2' rules_version declared after the service has two independent,
+        // actionable issues — wrong value and wrong placement — and is intentionally
+        // flagged for both.
+        val warnings = warningsFor(
+            """
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                allow read: if true;
+              }
+            }
+            rules_version = '1';
+            """.trimIndent(),
+        )
+        assertEquals(2, warnings.size)
+        assertContainsDescription(warnings, "found version '1'")
+        assertContainsDescription(warnings, "must be declared before the 'service' block")
+    }
+
     private fun warningsFor(text: String): List<HighlightInfo> {
         myFixture.configureByText(FirestoreRulesFileType, text)
         return myFixture.doHighlighting().filter { it.severity == HighlightSeverity.WARNING }

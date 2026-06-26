@@ -414,6 +414,16 @@ class FirestoreRulesParserTest : BasePlatformTestCase() {
         assertNotNull(file.node.findDescendant(T.RETURN_STATEMENT))
     }
 
+    fun testParsesServiceWithoutBlock() {
+        // A service whose block has not been typed yet (`service cloud.firestore`
+        // before the `{`) parses cleanly so the IDE stays usable mid-edit; the missing
+        // block is a configurable warning, not a parse error.
+        val file = parse("service cloud.firestore")
+
+        assertNoErrors(file)
+        assertNotNull(file.node.findDescendant(T.SERVICE_DECLARATION))
+    }
+
     private fun parse(text: String): PsiFile =
         myFixture.configureByText(FirestoreRulesFileType, text)
 

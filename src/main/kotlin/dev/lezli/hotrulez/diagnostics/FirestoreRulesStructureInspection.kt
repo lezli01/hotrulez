@@ -96,7 +96,18 @@ class FirestoreRulesStructureInspection : LocalInspectionTool() {
             return
         }
 
-        val block = service.block ?: return
+        // The grammar accepts a service with no block (so a partial `service
+        // cloud.firestore` does not flash a parse error while typing); surface the
+        // missing block as a configurable warning instead.
+        val block = service.block ?: run {
+            problems += problem(
+                manager,
+                serviceName,
+                isOnTheFly,
+                "'service $name' is missing its rule block '{ ... }'.",
+            )
+            return
+        }
         // Direct children only: the root documents match must be a top-level match of
         // the service block, not a coincidental occurrence buried in a nested match.
         val hasRootMatch = PsiTreeUtil.getChildrenOfType(block, FirestoreRulesMatchDeclaration::class.java)
