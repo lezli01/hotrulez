@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/lezli01/hotrulez/compare/v0.3.0...v0.4.0) (2026-06-27)
+
+
+### Features
+
+* **ide:** add file icon, brace/quote/comment handling, and docs ([a36617b](https://github.com/lezli01/hotrulez/commit/a36617be704a4fb0bc075a98caebe3cb0a412433))
+* Milestone 5 — IDE polish (file icon, brace/quote/comment) and docs ([9e0a327](https://github.com/lezli01/hotrulez/commit/9e0a327e6660f95310dc3119da1fe824da4714b6))
+
+
+### Bug Fixes
+
+* **editor:** don't auto-insert a closing brace before word-like tokens ([dbd1da2](https://github.com/lezli01/hotrulez/commit/dbd1da252a926d4ddd9f8f780e3c712677603456))
+
 ## [0.3.0](https://github.com/lezli01/hotrulez/compare/v0.2.0...v0.3.0) (2026-06-26)
 
 
