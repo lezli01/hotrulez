@@ -159,11 +159,11 @@ class FirestoreRulesLexerTest {
     }
 
     @Test
-    fun unterminatedStringDoesNotSwallowRestOfInput() {
-        // A lone quote is a bad character (matching the JFlex parsing lexer); it must
-        // not turn the rest of the input into a single string token.
+    fun unterminatedStringHighlightsToEndOfLineOnly() {
+        // An unterminated quote highlights as a string up to the end of its line (so the
+        // quote handler can auto-close it) but must not swallow the following lines.
         val tokens = tokenTypes("'oops\nallow read")
-        assertEquals(TokenType.BAD_CHARACTER, tokens.first())
+        assertEquals(FirestoreRulesTokenTypes.STRING, tokens.first())
         assertTrue(tokens.contains(FirestoreRulesTokenTypes.OPERATION))
     }
 

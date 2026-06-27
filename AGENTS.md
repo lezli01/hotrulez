@@ -42,7 +42,8 @@ This project should follow normal IntelliJ Platform plugin conventions:
 - Register language support through IntelliJ extension points rather than custom
   startup code where an extension point exists.
 - Keep lexer, parser, PSI, syntax highlighter, formatter, annotator, inspection,
-  and file type code separated by responsibility.
+  editor support (brace matcher, quote handler, commenter), and file type code
+  separated by responsibility.
 
 ## Firestore Rules Language Notes
 
@@ -111,6 +112,14 @@ The Firestore Rules grammar source lives in `src/main/grammar/`:
 Generated sources are written to `build/generated/sources/grammarkit` (not
 committed). The grammar was synthesised from the nicbytes and grimsteel
 tree-sitter Firestore grammars and reconciled against official Firebase docs.
+
+Editor conveniences live in `dev.lezli.hotrulez.editor`: `FirestoreRulesBraceMatcher`
+(a `PairedBraceMatcher` for `{}`/`()`/`[]`), `FirestoreRulesQuoteHandler` (a
+`SimpleTokenSetQuoteHandler` over the `STRING` token), and `FirestoreRulesCommenter`
+(`//` line and `/* */` block comments). They key off the highlighting lexer's
+`FirestoreRulesTokenTypes`, not the generated PSI tokens, because they run against
+the editor highlighter. The `.rules` file icon is an SVG in
+`src/main/resources/icons`, loaded through `FirestoreRulesIcons`.
 
 Diagnostics live in `dev.lezli.hotrulez.diagnostics`. Severity decides the home:
 always-wrong, grammar-inexpressible ERRORS go in `FirestoreRulesAnnotator`

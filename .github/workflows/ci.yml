@@ -33,6 +33,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+          # Do not cache the IntelliJ Platform's extracted IDE distribution. Gradle
+          # stores it as an immutable workspace under caches/<version>/transforms, and
+          # restoring it from the Actions cache intermittently trips Gradle's integrity
+          # check ("immutable workspace ... has been modified"). Re-extracting it each
+          # run (from the still-cached download) is cheap and reliable.
+          gradle-home-cache-excludes: |
+            caches/*/transforms
 
       - name: Run tests
         run: ./gradlew test --no-daemon
