@@ -1,214 +1,165 @@
-# hotrulez Tasks
+# hotrulez Tasks — v2 (Symbol Intelligence)
 
 Status: draft
-Last updated: 2026-06-23
+Last updated: 2026-06-27
 Source: `docs/spec.md`
+Predecessor: `docs/v1/tasks.md` (archived; covers the road to 0.4.0).
+
+This list covers the v2 / 0.5 milestone only. Later milestones are sketched in
+the roadmap section and in `docs/spec.md`; they are not v2 scope and are not
+broken into checkable items here.
 
 ## Ground Rules
 
-- [x] Re-check official JetBrains or Firebase docs through Context7 before
-  changing IntelliJ Platform APIs, Gradle setup, generated parser tooling, or
-  Firebase Rules semantics.
-- [x] Keep implementation scoped to a JetBrains plugin for Cloud Firestore
-  Security Rules.
-- [x] Do not add Firebase credentials, project IDs, emulator state, web app
-  frameworks, or runtime authorization evaluation.
-- [x] Add focused tests with each lexer, parser, formatter, or diagnostics
+- [ ] Re-check current IntelliJ Platform SDK docs before changing or registering
+  IntelliJ APIs / extension points, generated parser tooling, or before
+  encoding Firebase Rules semantics. (Firebase scoping + `request`/`resource`
+  semantics were verified 2026-06-27; see spec Documentation Sources.)
+- [ ] Hold every v1 non-goal: no authorization evaluation, no Firebase/emulator/
+  rules-test-SDK connection, no Storage rules in v2, no project IDs, structural
+  not JavaScript.
+- [ ] No type inference: `request.`/`resource.` member completion comes from a
+  static, doc-sourced table, never from evaluating expression types.
+- [ ] Add focused tests with each resolve, navigation, rename, or completion
   change.
-- [x] Update `AGENTS.md` with concrete commands only after those Gradle tasks or
-  scripts exist.
+- [ ] Tag any construct or member not confirmed by official docs `UNCONFIRMED`
+  (matching the existing `.bnf` convention) with a TODO tied to the source.
+- [ ] Update `README.md` and `AGENTS.md` with the new symbol-intelligence
+  features once they ship.
 
-## Milestone 0: Project Scaffold
+## Milestone v2 / 0.5: Symbol Intelligence
 
-- [x] Create `settings.gradle.kts`.
-- [x] Create `build.gradle.kts` using Gradle Kotlin DSL.
-- [x] Configure the IntelliJ Platform Gradle Plugin 2.x.
-- [x] Configure Kotlin or Java source compatibility for the selected IDE target.
-- [x] Add IntelliJ Platform test framework dependencies.
-- [x] Create `src/main/kotlin/dev/lezli/hotrulez`.
-- [x] Create `src/main/resources/META-INF/plugin.xml`.
-- [x] Create `src/test/kotlin/dev/lezli/hotrulez`.
-- [x] Create `src/test/testData`.
-- [x] Verify the scaffold with the narrowest available Gradle check once the
-  wrapper or Gradle invocation exists.
-- [x] Add a GitHub Actions CI workflow that builds and tests the plugin.
-  (`.github/workflows/ci.yml`)
-- [x] Add a Release Please workflow for automated versioning and releases.
-  (`.github/workflows/release-please.yml`)
+### Reference / resolve infrastructure
 
-## Milestone 1: File Recognition and Highlighting
+- [ ] Add `dev.lezli.hotrulez.references` package.
+- [ ] Make `function` declarations implement `PsiNamedElement` with a name
+  identifier (via Grammar-Kit `implements`/`mixin` or a `*PsiImplUtil`).
+- [ ] Make function parameters named elements.
+- [ ] Make `let` bindings named elements.
+- [ ] Make path / wildcard variables (`{city}`, `{document=**}`) named elements.
+- [ ] If a PSI accessor is missing, make the narrowest possible `.bnf` change to
+  expose a named-element interface; keep generated and handwritten code
+  separated and re-run the generate tasks.
+- [ ] Implement `PsiReference` (poly-variant where a name is ambiguous) on
+  function-call names.
+- [ ] Implement references on identifier uses that can denote a parameter,
+  `let` binding, or path variable.
+- [ ] Implement function resolution as scope-based, not declaration-order-based:
+  resolve calls to a function visible in the current or an enclosing
+  service/match scope, including forward references.
+- [ ] Implement `let` visibility: function-local, only after its declaration.
+- [ ] Implement path-variable scope: visible within the binding `match` subtree
+  and nested scopes, with a nested redeclaration shadowing the outer name.
+- [ ] Recognize built-in variables (`request`, `resource`) and helper calls
+  (`exists`/`existsAfter`/`get`/`getAfter`) in the resolver so they are not
+  treated as undefined; mark them non-navigable.
+- [ ] Register a `com.intellij.psi.referenceContributor` if references are
+  attached by pattern rather than directly on PSI.
 
-- [x] Add `FirestoreRulesLanguage`.
-- [x] Add `FirestoreRulesFileType`.
-- [x] Register `.rules` files through the `com.intellij.fileType` extension
-  point.
-- [x] Add a lexer for initial highlighting.
-- [x] Tokenize whitespace, comments, keywords, identifiers, strings, numbers,
-  path punctuation, structural punctuation, operators, and invalid characters.
-- [x] Recognize Firestore Rules keywords:
-  `rules_version`, `service`, `match`, `allow`, `if`, `function`, `return`,
-  `true`, `false`, and `null`.
-- [x] Recognize operations:
-  `get`, `list`, `read`, `create`, `update`, `delete`, and `write`.
-- [x] Recognize Firestore built-ins and helpers:
-  `request`, `resource`, `exists`, `existsAfter`, `get`, and `getAfter`.
-- [x] Add syntax highlighter classes under a highlighting package.
-- [x] Register the syntax highlighter through
-  `com.intellij.lang.syntaxHighlighterFactory`.
-- [x] Add highlighting coverage for a minimal valid Firestore Rules v2 file.
-- [x] Add highlighting coverage for a nested `service` and `match` example.
-- [x] Add highlighting coverage for invalid tokens.
+### Go to definition
 
-## Milestone 2: Parser and PSI
+- [ ] Confirm "Go to Declaration" resolves a function call to its declaration
+  (including a forward reference and an enclosing-scope call).
+- [ ] Resolve a path-variable use to its binding wildcard.
+- [ ] Resolve a parameter or `let` use to its binding.
+- [ ] Built-ins and helpers are a no-op on Ctrl+click (documented behavior).
+- [ ] Add a `GotoDeclarationHandler` only if a case is not expressible as a
+  `PsiReference`.
 
-- [x] Choose and document parser tooling, with Grammar-Kit plus JFlex as the
-  preferred default unless current docs indicate otherwise.
-- [x] Identify the PSI and token boundaries the formatter needs before starting
-  formatter implementation.
-- [x] Add grammar source for Firestore Rules files.
-  (`src/main/grammar/FirestoreRules.bnf` + `FirestoreRules.flex`, synthesised from
-  the nicbytes and grimsteel tree-sitter grammars and reconciled with Firebase docs.)
-- [x] Tag grammar constructs not confirmed by official Firebase docs as
-  `UNCONFIRMED` in the `.bnf` so they parse permissively now and seed future
-  diagnostics.
-- [x] Add or generate PSI nodes for rules files, version declarations, service
-  blocks, match blocks, match paths, path segments, wildcards, recursive
-  wildcards, allow statements, operation lists, functions, parameters, return
-  statements, expressions, calls, and member access.
-  (Generated by Grammar-Kit into `build/generated/sources/grammarkit`; the
-  operator-precedence engine produces a flat, precedence-correct expression tree.)
-- [x] Ensure PSI exposes braced block boundaries for `service`, `match`, and
-  `function` constructs.
-- [x] Ensure PSI exposes semicolon-terminated statements, including
-  `rules_version`, `allow`, and `return`.
-- [x] Ensure PSI exposes comments so the formatter can preserve and indent them
-  without moving them across code.
-- [x] Register parser support through `com.intellij.lang.parserDefinition`.
-- [x] Ensure malformed statements recover without preventing the rest of the file
-  from parsing.
-- [x] Add parser tests for a minimal valid file.
-- [x] Add parser tests for nested match blocks.
-- [x] Add parser tests for every supported allow operation.
-- [x] Add parser tests for function declarations and helper calls.
-- [x] Add parser tests for recursive wildcard paths.
-- [x] Add parser tests for representative malformed input.
+### Find usages
 
-## Milestone 3: Formatter
+- [ ] Add a `com.intellij.lang.findUsagesProvider`.
+- [ ] Add a `DefaultWordsScanner` over the lexer.
+- [ ] Find Usages works for functions, parameters, `let` bindings, and path
+  variables, stopping at a path-variable shadowing boundary.
 
-- [x] Re-check current JetBrains formatter docs through Context7 before changing
-  formatter APIs or `plugin.xml` registration.
-- [x] Add `dev.lezli.hotrulez.formatting` package.
-- [x] Add `FirestoreRulesFormattingModelBuilder`.
-- [x] Add a recursive `FirestoreRulesBlock` implementation backed by PSI/AST
-  nodes.
-- [x] Add formatter token sets for braces, semicolon-terminated statements,
-  comma-separated lists, path punctuation, expression operators, comments, and
-  whitespace-sensitive error recovery.
-- [x] Add spacing rules for `rules_version = '2';`.
-- [x] Add spacing rules for `service cloud.firestore {`.
-- [x] Add spacing rules for `match /path/{wildcard} {`, including no spaces
-  around path separators or inside path wildcards.
-- [x] Add spacing rules for recursive wildcards such as `{document=**}`.
-- [x] Add spacing rules for `allow read, write: if condition;`.
-- [x] Add spacing rules for function declarations, calls, and comma-separated
-  parameter or argument lists.
-- [x] Add spacing rules for member access such as `request.auth.uid` without
-  spaces around dots.
-- [x] Add expression operator spacing for parsed binary, logical, equality,
-  relational, and membership operators.
-- [x] Keep unary operators attached to their operands.
-- [x] Indent nested `service`, `match`, and `function` blocks by one level.
-- [x] Indent `allow` and `return` statements relative to their containing block.
-- [x] Align closing braces with their opening declaration.
-- [x] Implement child attributes so pressing Enter inside braced blocks chooses
-  the expected indentation.
-- [x] Preserve semicolon-terminated statements.
-- [x] Keep short `allow read, write: if condition;` statements on one line when
-  appropriate.
-- [x] Preserve user-intended multiline conditions.
-- [x] Preserve line and block comments and indent them with their containing
-  block.
-- [x] Preserve intentional blank lines subject to normal IDE code style settings.
-- [x] Avoid reordering operations or rewriting expressions.
-- [x] Avoid changing the quote style of existing string literals during reformat.
-- [x] Avoid formatting across unrecoverable syntax errors; leave unknown text
-  unchanged while still formatting known surrounding blocks.
-- [x] Register formatter support through `com.intellij.lang.formatter`.
-- [x] Defer a custom code-style settings provider until the fixed default style is
-  implemented and test-covered; ship only the fixed style (no
-  `CodeStyleSettingsProvider` registered).
-- [x] Add formatter test infrastructure using `CodeStyleManager.reformatText`.
-- [x] Add formatter fixtures under `src/test/testData/formatter`.
-- [x] Add formatter tests for compact input to expected formatted output.
-- [x] Add formatter tests for nested blocks.
-- [x] Add formatter tests for multiline conditions.
-- [x] Add formatter tests for comments inside and between blocks.
-- [x] Add formatter tests for recursive wildcards and path variables.
-- [x] Add formatter recovery tests for malformed but partially parseable input.
-- [x] Run `./gradlew test` after formatter implementation.
+### Rename refactoring
 
-## Milestone 4: Diagnostics
+- [ ] Add a `com.intellij.lang.namesValidator` (legal identifier; reserved
+  keywords rejected).
+- [ ] Implement `setName()` on named elements (add an `ElementManipulator` if
+  needed).
+- [ ] Add a `com.intellij.refactoring.renamePsiElementProcessor` for
+  path-variable scoping/shadowing.
+- [ ] Function rename updates the declaration and every call site.
+- [ ] Parameter / `let` rename updates the binding and its in-body uses.
+- [ ] Path-variable rename updates only the correct match subtree and leaves a
+  shadowed same-name binding untouched.
 
-Decision: severity drives the home. Always-wrong, grammar-inexpressible ERRORS
-live in an always-on `FirestoreRulesAnnotator`; configurable WARNINGS live in two
-`LocalInspectionTool`s — `FirestoreRulesStructureInspection` (file shape, via
-`checkFile`) and `FirestoreRulesUsageInspection` (element-local usage, via the
-generated visitor). All under `dev.lezli.hotrulez.diagnostics`.
+### Code completion
 
-- [x] Decide whether each diagnostic belongs in an annotator or inspection.
-- [x] Add diagnostic for missing `rules_version = '2';`. (structure inspection)
-- [x] Add diagnostic for `rules_version = '2';` appearing after the service
-  declaration. (structure inspection)
-- [x] Add diagnostic for missing `service cloud.firestore`. (structure inspection)
-- [x] Add diagnostic for unsupported service names in Firestore Rules files.
-  (structure inspection)
-- [x] Add diagnostic for missing root
-  `match /databases/{database}/documents`. (structure inspection)
-- [x] Add diagnostic for invalid allow operation names. (annotator, ERROR)
-- [x] Add diagnostic for empty allow operation lists. (annotator, ERROR — the
-  pinned grammar requires >=1 identifier, so this surfaces as a null method list)
-- [x] Add diagnostic for missing required `if` conditions. Firebase docs confirm
-  a condition-less `allow` is *legal* (it unconditionally grants the operation),
-  so this is a configurable WARNING in the usage inspection, not an error.
-- [x] Add diagnostic for malformed match paths. (annotator: at most one recursive
-  wildcard per path; under `rules_version = '1'` it must also be the last segment)
-- [x] Add diagnostic for recursive wildcard usage inconsistent with
-  `rules_version = '2';`. (usage inspection; match paths only, not get()/exists()
-  path arguments)
-- [x] Add diagnostic for function declarations missing return expressions.
-  (annotator, ERROR — also flags a bare `return;`)
-- [x] Add diagnostic for duplicate function parameter names. (annotator, ERROR)
-- [x] Add diagnostic for documented helper-call arity errors after confirming
-  arity in official Firebase docs. (usage inspection: `get`/`getAfter`/`exists`/
-  `existsAfter` take exactly one path argument; the two-arg Firestore `Map.get`
-  is deliberately not flagged)
-- [x] Add tests for every diagnostic. (`FirestoreRulesAnnotatorTest`,
-  `FirestoreRulesInspectionTest`, including negative fixtures)
-- [x] Review diagnostic wording to ensure it does not claim runtime security or
-  authorization correctness.
+- [ ] Add a `com.intellij.completion.contributor` with `PlatformPatterns`-keyed
+  providers.
+- [ ] Operation completion after `allow `:
+  `get, list, read, create, update, delete, write`.
+- [ ] Keyword completion in statement / structural position
+  (`match`, `allow`, `function`, `return`, `let`, `if`), with `rules_version`
+  and `service` at file top level.
+- [ ] `cloud.firestore` completion after `service `.
+- [ ] Expression-position completion: in-scope user symbols (functions,
+  parameters, `let`, path variables visible at the caret), built-ins
+  (`request`, `resource`), helpers, and literals (`true`, `false`, `null`).
+- [ ] Shallow member completion after `request.`, `request.auth.`,
+  `request.resource.`, and `resource.` from the static table (one to two levels;
+  no type inference; custom claims not invented).
+- [ ] Build the static member / keyword / operation table from the official
+  Firebase reference docs; tag uncertain entries `UNCONFIRMED`.
+- [ ] Completion respects scoping: parameters only inside their function, path
+  variables only within their subtree, `let` only after its declaration.
 
-## Milestone 5: IDE Polish and Docs
+### Tests
 
-- [x] Add a file icon if it improves IDE polish. (SVG under
-  `src/main/resources/icons`, loaded via `FirestoreRulesIcons`)
-- [x] Add a color settings page if the highlighter exposes meaningful categories.
-- [x] Check brace, quote, and comment handling against JetBrains conventions.
-  (`dev.lezli.hotrulez.editor`: `FirestoreRulesBraceMatcher` for `{}`/`()`/`[]`,
-  `FirestoreRulesQuoteHandler` for `'`/`"`, `FirestoreRulesCommenter` for
-  `//` and `/* */`)
-- [x] Replace the repeated-title `README.md` with a concise project README.
-- [x] Document implemented features and current limitations in `README.md`.
-- [x] Update `AGENTS.md` with real build and test commands once they exist.
+- [ ] Resolve: call → declaration, including a forward reference and a call to a
+  function declared in an enclosing scope.
+- [ ] Resolve: parameter, `let`, and path-variable uses → their bindings.
+- [ ] Scoping negatives: a service-scope function does not resolve a match-local
+  path variable; a `let` is not visible before its declaration.
+- [ ] Shadowing: nested `match` reusing a name resolves each use to the nearest
+  binding; find-usages and rename respect the boundary.
+- [ ] Find usages: counts and locations for each symbol kind.
+- [ ] Rename: function updates all call sites; path variable updates only the
+  correct subtree and leaves a shadowed binding untouched; rename to a reserved
+  keyword is rejected.
+- [ ] Completion: operations after `allow`; in-scope symbols in expression
+  position; scoping respected; shallow members after `request.`/`resource.`/
+  `request.auth.`; built-ins and helpers present but non-navigable.
+- [ ] Recovery: completion and resolve degrade gracefully in a partially
+  malformed file (no exceptions; unrelated blocks still work).
+- [ ] Run `./gradlew test` after the milestone.
 
-## Release-Quality Acceptance
+### Registration
 
-- [x] `.rules` file recognition works.
-- [x] Syntax highlighting is stable and useful.
-- [x] Parser errors surface in the editor.
-- [x] Automatic formatting handles common Firestore Rules structure through
-  IntelliJ formatter APIs.
-- [x] Formatting preserves comments, multiline conditions, path wildcard syntax,
-  and Firestore Rules semantics.
-- [x] Diagnostics catch documented invalid constructs.
-- [x] Tests cover lexer, parser, formatter, and diagnostics fixtures.
-- [x] Implementation choices follow current official JetBrains and Firebase docs.
+- [ ] Register all new extension points in `plugin.xml`.
+- [ ] Verify the exact EP tag names and signatures against current SDK docs
+  before implementation.
+
+## Release-Quality Acceptance (v2 / 0.5)
+
+- [ ] Go-to-definition, find-usages, and rename work for functions, parameters,
+  `let` bindings, and path variables, with correct Firestore scoping and
+  path-variable shadowing.
+- [ ] Built-ins are recognized (not flagged undefined) but non-navigable.
+- [ ] Completion offers scope-aware symbols, keywords, operations, helpers, and
+  shallow `request.`/`resource.` members from a static doc-sourced table, with
+  no type inference.
+- [ ] All v1 non-goals still hold; nothing connects to Firebase or evaluates
+  authorization.
+- [ ] Tests cover resolve, scoping negatives, shadowing, find-usages, rename,
+  and completion.
+- [ ] Implementation choices follow current official JetBrains SDK and Firebase
+  docs.
+
+## Future Milestones (roadmap — not v2 scope)
+
+Sequenced, one milestone per release. See `docs/spec.md` for detail.
+
+- **0.6 — Actionable diagnostics:** quick-fixes/intentions for existing
+  diagnostics + resolver-enabled semantic checks (unused functions, undefined
+  references).
+- **Cloud Storage Rules:** `firebase.storage` as a sibling service shape.
+- **Authoring polish:** structure view, folding, quick-docs, parameter info.
+- **Toward semantics:** type/dataflow-aware expression analysis (no runtime
+  evaluation).
+
+Explicitly **not planned:** emulator / rules-test-SDK integration and any in-IDE
+authorization evaluation.
