@@ -31,6 +31,10 @@ Source: `docs/spec.md`
 - [x] Create `src/test/testData`.
 - [x] Verify the scaffold with the narrowest available Gradle check once the
   wrapper or Gradle invocation exists.
+- [x] Add a GitHub Actions CI workflow that builds and tests the plugin.
+  (`.github/workflows/ci.yml`)
+- [x] Add a Release Please workflow for automated versioning and releases.
+  (`.github/workflows/release-please.yml`)
 
 ## Milestone 1: File Recognition and Highlighting
 
@@ -64,6 +68,9 @@ Source: `docs/spec.md`
 - [x] Add grammar source for Firestore Rules files.
   (`src/main/grammar/FirestoreRules.bnf` + `FirestoreRules.flex`, synthesised from
   the nicbytes and grimsteel tree-sitter grammars and reconciled with Firebase docs.)
+- [x] Tag grammar constructs not confirmed by official Firebase docs as
+  `UNCONFIRMED` in the `.bnf` so they parse permissively now and seed future
+  diagnostics.
 - [x] Add or generate PSI nodes for rules files, version declarations, service
   blocks, match blocks, match paths, path segments, wildcards, recursive
   wildcards, allow statements, operation lists, functions, parameters, return
@@ -123,9 +130,13 @@ Source: `docs/spec.md`
   block.
 - [x] Preserve intentional blank lines subject to normal IDE code style settings.
 - [x] Avoid reordering operations or rewriting expressions.
+- [x] Avoid changing the quote style of existing string literals during reformat.
 - [x] Avoid formatting across unrecoverable syntax errors; leave unknown text
   unchanged while still formatting known surrounding blocks.
 - [x] Register formatter support through `com.intellij.lang.formatter`.
+- [x] Defer a custom code-style settings provider until the fixed default style is
+  implemented and test-covered; ship only the fixed style (no
+  `CodeStyleSettingsProvider` registered).
 - [x] Add formatter test infrastructure using `CodeStyleManager.reformatText`.
 - [x] Add formatter fixtures under `src/test/testData/formatter`.
 - [x] Add formatter tests for compact input to expected formatted output.
