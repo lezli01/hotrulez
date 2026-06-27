@@ -178,22 +178,26 @@ generated visitor). All under `dev.lezli.hotrulez.diagnostics`.
 
 ## Milestone 5: IDE Polish and Docs
 
-- [ ] Add a file icon if it improves IDE polish.
+- [x] Add a file icon if it improves IDE polish. (SVG under
+  `src/main/resources/icons`, loaded via `FirestoreRulesIcons`)
 - [x] Add a color settings page if the highlighter exposes meaningful categories.
-- [ ] Check brace, quote, and comment handling against JetBrains conventions.
-- [ ] Replace the repeated-title `README.md` with a concise project README.
-- [ ] Document implemented features and current limitations in `README.md`.
+- [x] Check brace, quote, and comment handling against JetBrains conventions.
+  (`dev.lezli.hotrulez.editor`: `FirestoreRulesBraceMatcher` for `{}`/`()`/`[]`,
+  `FirestoreRulesQuoteHandler` for `'`/`"`, `FirestoreRulesCommenter` for
+  `//` and `/* */`)
+- [x] Replace the repeated-title `README.md` with a concise project README.
+- [x] Document implemented features and current limitations in `README.md`.
 - [x] Update `AGENTS.md` with real build and test commands once they exist.
 
 ## Release-Quality Acceptance
 
-- [ ] `.rules` file recognition works.
-- [ ] Syntax highlighting is stable and useful.
-- [ ] Parser errors surface in the editor.
-- [ ] Automatic formatting handles common Firestore Rules structure through
+- [x] `.rules` file recognition works.
+- [x] Syntax highlighting is stable and useful.
+- [x] Parser errors surface in the editor.
+- [x] Automatic formatting handles common Firestore Rules structure through
   IntelliJ formatter APIs.
-- [ ] Formatting preserves comments, multiline conditions, path wildcard syntax,
+- [x] Formatting preserves comments, multiline conditions, path wildcard syntax,
   and Firestore Rules semantics.
-- [ ] Diagnostics catch documented invalid constructs.
-- [ ] Tests cover lexer, parser, formatter, and diagnostics fixtures.
-- [ ] Implementation choices follow current official JetBrains and Firebase docs.
+- [x] Diagnostics catch documented invalid constructs.
+- [x] Tests cover lexer, parser, formatter, and diagnostics fixtures.
+- [x] Implementation choices follow current official JetBrains and Firebase docs.
