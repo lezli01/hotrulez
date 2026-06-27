@@ -10,5 +10,5 @@ object FirestoreRulesFileType : LanguageFileType(FirestoreRulesLanguage) {
 
     override fun getDefaultExtension(): String = "rules"
 
-    override fun getIcon(): Icon? = null
+    override fun getIcon(): Icon = FirestoreRulesIcons.FILE
 }

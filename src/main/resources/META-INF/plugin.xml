@@ -36,6 +36,18 @@
             language="FirestoreRules"
             implementationClass="dev.lezli.hotrulez.formatting.FirestoreRulesFormattingModelBuilder"/>
 
+        <lang.braceMatcher
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesBraceMatcher"/>
+
+        <lang.quoteHandler
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesQuoteHandler"/>
+
+        <lang.commenter
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesCommenter"/>
+
         <annotator
             language="FirestoreRules"
             implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesAnnotator"/>
