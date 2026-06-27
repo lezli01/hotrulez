@@ -21,6 +21,22 @@ class FirestoreRulesEditorBehaviorTest : BasePlatformTestCase() {
         assertEquals("allow read: if x in roles[]", myFixture.editor.document.text)
     }
 
+    fun testTypingParenBeforeIdentifierDoesNotAutoClose() {
+        // The closer must NOT be auto-inserted when the caret sits directly before an
+        // identifier, otherwise typing '(' to wrap an existing call strands a spurious ')'.
+        myFixture.configureByText(FirestoreRulesFileType, "allow read: if <caret>isOwner(uid);")
+        myFixture.type("(")
+        assertEquals("allow read: if (isOwner(uid);", myFixture.editor.document.text)
+    }
+
+    fun testTypingParenBeforeSeparatorStillAutoCloses() {
+        // When a separator/closer (not word-like content) follows the caret, auto-close
+        // is still desirable and must keep working.
+        myFixture.configureByText(FirestoreRulesFileType, "allow read: if x == <caret>;")
+        myFixture.type("(")
+        assertEquals("allow read: if x == ();", myFixture.editor.document.text)
+    }
+
     fun testTypingSingleQuoteInsertsPair() {
         myFixture.configureByText(FirestoreRulesFileType, "rules_version = <caret>")
         myFixture.type("'")

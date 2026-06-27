@@ -4,6 +4,7 @@ import com.intellij.lang.BracePair
 import com.intellij.lang.PairedBraceMatcher
 import com.intellij.psi.PsiFile
 import com.intellij.psi.tree.IElementType
+import com.intellij.psi.tree.TokenSet
 import dev.lezli.hotrulez.lexer.FirestoreRulesTokenTypes
 
 /**
@@ -18,13 +19,33 @@ import dev.lezli.hotrulez.lexer.FirestoreRulesTokenTypes
 class FirestoreRulesBraceMatcher : PairedBraceMatcher {
     override fun getPairs(): Array<BracePair> = PAIRS
 
-    // Allow the IDE to auto-insert a closing brace regardless of what follows the
-    // caret; Firestore Rules has no context where that is undesirable.
-    override fun isPairedBracesAllowedBeforeType(lbraceType: IElementType, contextType: IElementType?): Boolean = true
+    // Auto-insert the matching closer unless the caret sits directly before word-like
+    // content (an identifier, keyword, operation, builtin, type, constant, string,
+    // number, or path-interpolation '$'). Closing before such a token would strand a
+    // spurious closer when the user types an opener to wrap existing code. Before
+    // whitespace, comments, closers, separators, operators, or end of file the closer
+    // is still inserted.
+    override fun isPairedBracesAllowedBeforeType(lbraceType: IElementType, contextType: IElementType?): Boolean =
+        contextType == null || !WORD_LIKE.contains(contextType)
 
     override fun getCodeConstructStart(file: PsiFile?, openingBraceOffset: Int): Int = openingBraceOffset
 
     private companion object {
+        // Tokens that begin a value or a name; auto-inserting a closer before one of
+        // these would wrap the wrong text.
+        val WORD_LIKE = TokenSet.create(
+            FirestoreRulesTokenTypes.IDENTIFIER,
+            FirestoreRulesTokenTypes.KEYWORD,
+            FirestoreRulesTokenTypes.OPERATION,
+            FirestoreRulesTokenTypes.BUILTIN,
+            FirestoreRulesTokenTypes.TYPE,
+            FirestoreRulesTokenTypes.FUNCTION_CALL,
+            FirestoreRulesTokenTypes.CONSTANT,
+            FirestoreRulesTokenTypes.STRING,
+            FirestoreRulesTokenTypes.NUMBER,
+            FirestoreRulesTokenTypes.DOLLAR,
+        )
+
         val PAIRS = arrayOf(
             // Curly braces are structural: they drive block matching and the
             // "show matched brace" gutter for service/match/function blocks.
