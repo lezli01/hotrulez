@@ -6,28 +6,54 @@ instead of treating them as JavaScript, JSON, or plain text.
 
 Created by `lezli01` at [lezli01.is-a.dev](https://lezli01.is-a.dev).
 
-## What It Does
+## Features
 
-Current support includes:
-
-- `.rules` file type recognition.
-- Syntax highlighting for Firestore Rules keywords, allow operations, booleans
-  and `null`, built-ins and helpers, service names, function declarations and
-  calls, path variables, recursive wildcards, paths, comments, strings, numbers,
-  operators, and invalid tokens.
-- A color settings page (Settings | Editor | Color Scheme | Firestore Rules)
+- **File recognition.** `.rules` files are recognized as Firestore Rules and
+  shown with a dedicated file icon.
+- **Syntax highlighting** for keywords, allow operations, booleans and `null`,
+  built-ins and helpers, type and namespace names, service names, function
+  declarations and calls, path variables, recursive wildcards, path separators,
+  comments, strings, numbers, operators, punctuation, and invalid tokens.
+- **Color settings page** (Settings | Editor | Color Scheme | Firestore Rules)
   exposing every highlight category with a live preview.
-- Structural parser/PSI support for common Firestore Rules files.
-- Automatic formatting for common `rules_version`, `service`, `match`, `allow`,
-  `function`, and `return` structure.
-- Formatter handling for path wildcards, recursive wildcards, comments, blank
-  lines, multiline conditions, and malformed-but-recoverable input. Block-level
-  members are separated by a blank line (around function declarations and between
-  sibling match blocks) following the Firebase documentation's layout.
+- **Parser and PSI.** A Grammar-Kit/JFlex grammar provides a recoverable
+  structural parse: a malformed statement does not stop the rest of the file
+  from parsing.
+- **Automatic formatting** for `rules_version`, `service`, `match`, `allow`,
+  `function`, and `return` structure, including path wildcards, recursive
+  wildcards, comments, blank lines, multiline conditions, and
+  malformed-but-recoverable input.
+- **Diagnostics.** Always-wrong constructs are flagged as errors by an
+  annotator (invalid or empty allow operations, malformed match paths, a
+  function missing its `return`, duplicate parameter names). Configurable
+  inspections warn about file-shape issues (missing or misordered
+  `rules_version`, missing or unsupported `service cloud.firestore`, missing
+  root `match`) and suspicious usage (condition-less `allow`, recursive
+  wildcard usage inconsistent with the rules version, helper-call arity).
+- **Editor conveniences.** Brace matching for `{}`, `()`, and `[]`; quote
+  auto-closing and type-over for `'` and `"`; and line (`//`) and block
+  (`/* */`) comment toggling.
 
-Planned support includes fuller grammar coverage, typed PSI expansion, syntax
-error reporting, annotators or inspections, and user-facing diagnostics for
-invalid Firestore Rules constructs.
+## Current Limitations
+
+- **No authorization evaluation.** The plugin never decides whether a request is
+  allowed or denied. All diagnostics are structural and syntactic; their wording
+  deliberately avoids claiming a rule is secure or correct.
+- **No Firebase integration.** It does not connect to Firebase projects,
+  emulators, credentials, or live Firestore data, and it hard-codes no project
+  IDs. Keep using Firebase's official tooling for deployment and authorization
+  testing.
+- **Firestore Rules only.** Cloud Storage rules are out of scope, and the
+  supported service is `cloud.firestore`.
+- **Conservative diagnostics.** The grammar is intentionally permissive so the
+  IDE keeps working while you edit. Constructs not confirmed by official Firebase
+  docs are parsed without being flagged.
+- **Highlighting is approximate.** Highlighting uses a fast, context-sensitive
+  lexer that is separate from the parser. For example, `/` is always highlighted
+  as a path separator (it shares the operator color), and an unterminated string
+  is highlighted to the end of its line; the parser remains the source of truth
+  for precise errors.
+- **One fixed formatting style.** There is no custom code-style settings UI yet.
 
 ## How It Is Built
 
@@ -39,14 +65,19 @@ Important parts of the repository:
 ```text
 build.gradle.kts
 settings.gradle.kts
+src/main/grammar/                  # FirestoreRules.bnf + FirestoreRules.flex
 src/main/kotlin/dev/lezli/hotrulez/
   FirestoreRulesLanguage.kt
   FirestoreRulesFileType.kt
+  FirestoreRulesIcons.kt
   lexer/
   highlighting/
   parser/
   psi/
   formatting/
+  diagnostics/
+  editor/
+src/main/resources/icons/
 src/main/resources/META-INF/plugin.xml
 src/test/kotlin/dev/lezli/hotrulez/
 src/test/testData/formatter/
@@ -56,13 +87,18 @@ docs/tasks.md
 
 The implementation is split by responsibility:
 
-- `lexer/` tokenizes Firestore Rules syntax.
-- `highlighting/` maps tokens to IDE text attributes.
-- `parser/` provides a recoverable structural parser for formatter-grade PSI.
+- `lexer/` tokenizes Firestore Rules syntax for highlighting.
+- `highlighting/` maps tokens to IDE text attributes and exposes the color page.
+- `parser/` wires the generated parser/PSI into a recoverable `ParserDefinition`.
 - `psi/` defines the Firestore Rules PSI file and wrapper elements.
 - `formatting/` provides IntelliJ formatter blocks and spacing rules.
-- `plugin.xml` registers the file type, syntax highlighter, parser definition,
-  and formatter extension points.
+- `diagnostics/` provides the annotator and inspections.
+- `editor/` provides the brace matcher, quote handler, and commenter.
+- `plugin.xml` registers every extension point above.
+
+The parser, typed PSI, and parsing lexer are generated by Grammar-Kit and JFlex
+from `src/main/grammar/` into `build/generated/sources/grammarkit` (not
+committed); generation runs automatically before compilation.
 
 ## Requirements
 
@@ -142,9 +178,9 @@ service cloud.firestore {
 
 ## Project Status
 
-`hotrulez` is under active development. The current implementation focuses on
-file recognition, highlighting, structural parsing, and automatic formatting.
-Diagnostics and deeper semantic validation are still planned.
+`hotrulez` covers file recognition, highlighting, structural parsing, automatic
+formatting, diagnostics, and editor conveniences (brace, quote, and comment
+handling). It performs no runtime authorization evaluation by design.
 
 See [docs/spec.md](docs/spec.md) for the product and implementation spec, and
 [docs/tasks.md](docs/tasks.md) for the task checklist.

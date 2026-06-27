@@ -90,9 +90,8 @@ class FirestoreRulesLexer : LexerBase() {
         var escaped = false
         while (index < endOffset) {
             val current = buffer[index]
-            // A string never spans a line break: an unterminated quote becomes a bad
-            // character (matching the JFlex parsing lexer) rather than swallowing the
-            // rest of the file into one string token.
+            // A string never spans a line break: it ends at the newline (or end of
+            // file) so an unterminated quote does not swallow the rest of the file.
             if (current == '\n' || current == '\r') {
                 break
             }
@@ -106,7 +105,11 @@ class FirestoreRulesLexer : LexerBase() {
             }
             index++
         }
-        finish(TokenType.BAD_CHARACTER, tokenStart + 1)
+        // No closing quote before the end of the line: highlight the open string up to
+        // that point (matching how IDEs colour an in-progress literal and letting the
+        // quote handler auto-close it) instead of flagging the lone quote as a bad
+        // character. The precise "unterminated string" error stays the parser's job.
+        finish(FirestoreRulesTokenTypes.STRING, index)
     }
 
     private fun scanNumber() {
