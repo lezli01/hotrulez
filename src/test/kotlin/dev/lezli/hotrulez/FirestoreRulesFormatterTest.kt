@@ -29,6 +29,12 @@ class FirestoreRulesFormatterTest : BasePlatformTestCase() {
         assertFormats("formatter/recursive-wildcard.before.rules", "formatter/recursive-wildcard.after.rules")
     }
 
+    fun testFormatsMultiParameterFunction() {
+        // Guards comma spacing inside a parameter list now that parameters are wrapped
+        // in PARAMETER nodes rather than bare IDENTIFIER leaves.
+        assertFormats("formatter/parameter-list.before.rules", "formatter/parameter-list.after.rules")
+    }
+
     fun testKeepsUnaryOperatorAttached() {
         assertFormats("formatter/unary.before.rules", "formatter/unary.after.rules")
     }

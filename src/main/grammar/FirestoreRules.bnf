@@ -22,6 +22,10 @@
  *     future diagnostics rather than rejected here) are tagged "UNCONFIRMED":
  *     block comments, hex numbers, list/index/slice subscripts, trailing commas,
  *     the "(default)" path literal, and let-bindings outside function bodies.
+ *     TODO(UNCONFIRMED): re-confirm each against the official conditions / rules-
+ *     language docs before relying on them in diagnostics —
+ *     https://firebase.google.com/docs/firestore/security/rules-conditions and
+ *     https://firebase.google.com/docs/rules/rules-language
  */
 
 {
@@ -143,8 +147,21 @@ match_declaration ::= 'match' match_path block { pin=1 recoverWhile=statement_re
 allow_statement ::= 'allow' method_list (':' 'if' expression)? ';' { pin=1 recoverWhile=statement_recover }
 method_list ::= IDENTIFIER (',' IDENTIFIER)*
 
-function_declaration ::= 'function' IDENTIFIER parameter_list function_body { pin=1 recoverWhile=statement_recover }
-parameter_list ::= '(' (IDENTIFIER (',' IDENTIFIER)*)? ')'
+// The function name is a named element (PsiNameIdentifierOwner) so go-to-definition,
+// find-usages, and rename can key off it; the resolver links calls to it across
+// service/match scope (see dev.lezli.hotrulez.references).
+function_declaration ::= 'function' IDENTIFIER parameter_list function_body {
+  pin=1 recoverWhile=statement_recover
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
+parameter_list ::= '(' (parameter (',' parameter)*)? ')'
+// Each parameter is its own named element so it can be resolved and renamed; the
+// bare-IDENTIFIER form gave the list no per-parameter PSI node to hang a name on.
+parameter ::= IDENTIFIER {
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
 function_body ::= '{' function_body_item * '}' { pin=1 }
 private function_body_item ::= let_statement | return_statement
 // Per-statement recovery inside a function body (mirrors statement_recover for
@@ -152,7 +169,13 @@ private function_body_item ::= let_statement | return_statement
 // keyword or the body's closing brace instead of degrading the rest of the body.
 private function_body_recover ::= !('}' | 'let' | 'return')
 // UNCONFIRMED scope: official docs only allow `let` inside function bodies.
-let_statement ::= 'let' IDENTIFIER '=' expression ';' { pin=1 recoverWhile=function_body_recover }
+// TODO(UNCONFIRMED): confirm whether `let` is permitted outside function bodies —
+//   https://firebase.google.com/docs/rules/rules-language
+let_statement ::= 'let' IDENTIFIER '=' expression ';' {
+  pin=1 recoverWhile=function_body_recover
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
 return_statement ::= 'return' expression? ';' { pin=1 recoverWhile=function_body_recover }
 
 private statement_recover ::= !('}' | 'match' | 'allow' | 'function' | 'service' | 'rules_version')
@@ -164,8 +187,16 @@ private statement_recover ::= !('}' | 'match' | 'allow' | 'function' | 'service'
 match_path ::= path_part +
 private path_part ::= '/' path_segment
 private path_segment ::= recursive_wildcard | path_wildcard | paren_path_segment | path_name_segment
-path_wildcard ::= '{' IDENTIFIER '}'
-recursive_wildcard ::= '{' IDENTIFIER '=' '**' '}'
+// Path/wildcard variables bind a name visible within the match subtree (with
+// inner-match shadowing); making them named elements drives their resolve/rename.
+path_wildcard ::= '{' IDENTIFIER '}' {
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
+recursive_wildcard ::= '{' IDENTIFIER '=' '**' '}' {
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
 path_name_segment ::= path_literal_token +
 private path_literal_token ::= IDENTIFIER
                              | NUMBER
@@ -235,6 +266,8 @@ private postfix_group ::= call_expression | member_expression | index_expression
 call_expression ::= expression argument_list
 member_expression ::= expression '.' IDENTIFIER
 // UNCONFIRMED: subscript / slice access is not documented for Firestore rules.
+// TODO(UNCONFIRMED): confirm list/map index & slice subscript support —
+//   https://firebase.google.com/docs/firestore/security/rules-conditions
 index_expression ::= expression '[' index_content ']'
 // Order matters: `slice` is tried first and backtracks when a ternary inside the
 // brackets consumes the ':' (so `a[b ? c : d]` parses as an index of a ternary).
@@ -251,7 +284,12 @@ private primary_group ::= parenthesized_expression
                         | reference_expression
                         | literal_expression { extraRoot=true }
 parenthesized_expression ::= '(' expression ')'
-reference_expression ::= IDENTIFIER
+// An identifier use. Its reference resolves to a function / parameter / let /
+// path variable (or to nothing, for built-ins and helpers); the mixin attaches
+// the reference directly on the PSI (see the references package).
+reference_expression ::= IDENTIFIER {
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesReferenceExpressionMixin"
+}
 literal_expression ::= NUMBER | STRING | 'true' | 'false' | 'null'
 list_literal ::= '[' (expression (',' expression)* ','?)? ']'
 map_literal ::= '{' (map_entry (',' map_entry)* ','?)? '}'
@@ -272,4 +310,6 @@ private path_arg_segment ::= recursive_wildcard
 path_interpolation ::= '$' '(' expression ')'
 // UNCONFIRMED: the "(default)" literal segment is documented only for
 // cross-service firestore.get/exists() calls, not native Firestore get()/exists().
+// TODO(UNCONFIRMED): confirm the "(default)" path literal for native get()/exists() —
+//   https://firebase.google.com/docs/firestore/security/rules-conditions
 paren_path_segment ::= '(' IDENTIFIER ')'

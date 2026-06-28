@@ -91,11 +91,27 @@ tasks.named("compileTestKotlin") {
 // exporters write open-telemetry-metrics.*.csv / -meters.*.json / -plotter.html into
 // {ideHome}/system/log, mutating the immutable workspace and tripping Gradle's
 // integrity check ("the contents of the immutable workspace ... have been modified")
-// during :intellijPlatformTestClasspath resolution. Disabling the exporters (empty
-// path) keeps the workspace pristine. Property names per JetBrains KB SUPPORT-A-714.
+// during :intellijPlatformTestClasspath resolution.
+//
+// Pointing the exporter file properties at "" did NOT stop the writes: the platform
+// treats the empty/relative value as a name resolved against the IDE log dir, which
+// is {ideHome}/system/log -- still inside the immutable workspace. Instead we move
+// the booted IDE's whole log dir to a writable build directory via idea.log.path
+// (honoured by PathManager.getLogPath()), and also give the exporters absolute paths
+// there. Either redirect alone keeps the transform workspace pristine; both are set
+// for safety. Property names per JetBrains KB SUPPORT-A-714.
 tasks.withType<Test>().configureEach {
-    systemProperty("idea.diagnostic.opentelemetry.metrics.file", "")
-    systemProperty("idea.diagnostic.opentelemetry.meters.file.json", "")
+    val ideLogDir = layout.buildDirectory.dir("test-ide-log").get().asFile
+    doFirst { ideLogDir.mkdirs() }
+    systemProperty("idea.log.path", ideLogDir.absolutePath)
+    systemProperty(
+        "idea.diagnostic.opentelemetry.metrics.file",
+        ideLogDir.resolve("open-telemetry-metrics.csv").absolutePath,
+    )
+    systemProperty(
+        "idea.diagnostic.opentelemetry.meters.file.json",
+        ideLogDir.resolve("open-telemetry-meters.json").absolutePath,
+    )
 }
 
 intellijPlatform {
