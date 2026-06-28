@@ -75,6 +75,38 @@ class FirestoreRulesRenameTest : BasePlatformTestCase() {
         )
     }
 
+    fun testRenameLetUpdatesBindingAndInBodyUses() {
+        myFixture.configureByText(
+            FirestoreRulesFileType,
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                function isSignedIn() {
+                  let signe<caret>dIn = request.auth != null;
+                  return signedIn;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        myFixture.renameElementAtCaret("loggedIn")
+        // The binding and its later in-body use both change.
+        myFixture.checkResult(
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                function isSignedIn() {
+                  let loggedIn = request.auth != null;
+                  return loggedIn;
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+    }
+
     fun testRenamePathVariableRespectsShadowBoundary() {
         myFixture.configureByText(
             FirestoreRulesFileType,
