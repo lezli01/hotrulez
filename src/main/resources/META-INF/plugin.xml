@@ -4,7 +4,31 @@
     <vendor>Lezli</vendor>
 
     <description><![CDATA[
-        JetBrains IDE language support for Firebase Cloud Firestore Security Rules.
+        <p>
+            Language support for <b>Firebase Cloud Firestore Security Rules</b>
+            (<code>.rules</code> files) in JetBrains IDEs.
+        </p>
+        <p>Features:</p>
+        <ul>
+            <li>Syntax highlighting with a configurable color scheme</li>
+            <li>Structural validation and inspections (file-structure and
+                suspicious-usage warnings)</li>
+            <li>Code formatting, brace matching, quote handling, and line/block
+                commenting</li>
+            <li><b>Symbol intelligence</b> &mdash; go to definition, find usages,
+                and rename for functions, parameters, <code>let</code> bindings,
+                and path variables, with Firestore-aware scoping and
+                path-variable shadowing</li>
+            <li><b>Scope-aware code completion</b> for keywords,
+                <code>allow</code> operations, in-scope symbols, built-ins
+                (<code>request</code>, <code>resource</code>), helper functions,
+                and shallow <code>request.</code>/<code>resource.</code>
+                members</li>
+        </ul>
+        <p>
+            hotrulez is purely structural: it never connects to Firebase, runs
+            the emulator, or evaluates whether a rule authorizes a request.
+        </p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -71,8 +95,9 @@
             implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesUsageInspection"/>
 
         <!-- Symbol intelligence (v2): resolve/go-to-definition, find usages, rename, completion.
-             References are attached directly on the PSI (see FirestoreRulesPsiImplUtil),
-             so no psi.referenceContributor is registered. -->
+             References are attached directly on the PSI (see
+             FirestoreRulesReferenceExpressionMixin.getReference()), so no
+             psi.referenceContributor is registered. -->
         <lang.elementManipulator
             forClass="dev.lezli.hotrulez.psi.impl.FirestoreRulesReferenceExpressionImpl"
             implementationClass="dev.lezli.hotrulez.references.FirestoreRulesReferenceManipulator"/>
