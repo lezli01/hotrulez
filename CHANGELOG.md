@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/lezli01/hotrulez/compare/v0.4.0...v0.5.0) (2026-06-28)
+
+
+### Features
+
+* add Firestore Rules symbol intelligence (v2) ([fe04f41](https://github.com/lezli01/hotrulez/commit/fe04f41f2afd7ef26aca14f6e814c5937b403299))
+* Firestore Rules symbol intelligence (v2 / 0.5) ([cd872f4](https://github.com/lezli01/hotrulez/commit/cd872f4d48ba315e74dec835c21f078c25b4ccd1))
+
 ## [0.4.0](https://github.com/lezli01/hotrulez/compare/v0.3.0...v0.4.0) (2026-06-27)
 
 
