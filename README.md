@@ -1,18 +1,51 @@
-# hotrulez
+<p align="center">
+  <img src="src/main/resources/icons/firestoreRules.svg" alt="hotrulez logo" width="96">
+</p>
 
-[![CI](https://github.com/lezli01/hotrulez/actions/workflows/ci.yml/badge.svg)](https://github.com/lezli01/hotrulez/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/lezli01/hotrulez?sort=semver)](https://github.com/lezli01/hotrulez/releases)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-ffdd00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/lezli01)
+<h1 align="center">hotrulez</h1>
 
-`hotrulez` is a JetBrains IDE plugin for Firebase Cloud Firestore Security
-Rules. It makes `.rules` files behave like a dedicated language in the IDE
-instead of treating them as JavaScript, JSON, or plain text.
+<p align="center">
+  <strong>First-class Cloud Firestore Security Rules support for JetBrains IDEs.</strong>
+</p>
 
-It is free and open source under the [MIT License](LICENSE). Contributions are
-welcome — see [Contributing](#contributing).
+<p align="center">
+  Syntax highlighting, formatting, diagnostics, and symbol intelligence for <code>.rules</code> files —<br>
+  so the IDE treats them as their own language instead of JavaScript, JSON, or plain text.
+</p>
 
-Created by `lezli01` at [lezli01.is-a.dev](https://lezli01.is-a.dev).
+<p align="center">
+  <a href="https://github.com/lezli01/hotrulez/actions/workflows/ci.yml"><img src="https://github.com/lezli01/hotrulez/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://github.com/lezli01/hotrulez/releases"><img src="https://img.shields.io/github/v/release/lezli01/hotrulez?sort=semver" alt="Latest release"></a>
+  <a href="https://www.buymeacoffee.com/lezli01"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-ffdd00?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
+</p>
+
+<p align="center">
+  <a href="#why-hotrulez">Why</a> &bull;
+  <a href="#what-it-does">What It Does</a> &bull;
+  <a href="#how-to-use">Install</a> &bull;
+  <a href="#contributing">Contributing</a> &bull;
+  <a href="docs/spec.md">Spec</a>
+</p>
+
+---
+
+## Why hotrulez?
+
+Cloud Firestore Security Rules are a real language — their own grammar, scoping,
+and built-ins — but no JetBrains IDE knows that. Open a `.rules` file and it is
+treated as JavaScript, JSON, or plain text: no highlighting that understands
+`match` and `allow`, no rules-aware formatting, no go-to-definition for your
+helper functions, and no warning when a rule can never parse.
+
+**There is currently no freely available solution that fills this gap.** hotrulez
+exists to fill that hole: a free, open-source plugin that makes Firestore Rules a
+first-class language in the IDE — entirely structural and static, never evaluating
+authorization or connecting to Firebase.
+
+It is released under the [MIT License](LICENSE) and created by `lezli01` at
+[lezli01.is-a.dev](https://lezli01.is-a.dev). Contributions are welcome — see
+[Contributing](#contributing).
 
 ## What It Does
 
