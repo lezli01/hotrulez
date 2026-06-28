@@ -89,7 +89,12 @@ Additionally, v2-specific non-goals:
 
 Firebase Rules semantics below were re-checked against official docs on
 2026-06-27, per the standing ground rule that Firebase docs are authoritative
-for language semantics:
+for language semantics. The load-bearing facts (the `cloud.firestore` service
+name, the `get/list/read/create/update/delete/write` operations, the
+`request`/`resource` built-ins and `request.auth.uid`/`resource.data`, the
+`get/exists/getAfter` helpers, `{city}`/`{name=**}` path wildcards, and `let`
+being valid only inside function bodies) were re-confirmed against the live docs
+on 2026-06-28:
 
 - Firestore Rules structure and path/wildcard variables:
   `https://firebase.google.com/docs/firestore/security/rules-structure`

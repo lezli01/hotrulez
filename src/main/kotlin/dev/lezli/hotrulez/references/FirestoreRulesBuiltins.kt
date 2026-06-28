@@ -4,8 +4,12 @@ package dev.lezli.hotrulez.references
  * Static, doc-sourced Firestore Rules vocabulary used by completion and by the
  * resolver to recognise built-ins.
  *
- * Built from the official Firebase reference docs (re-checked 2026-06-27): the
- * `request`/`resource` member tables, helper calls, operations, and keywords.
+ * Built from the official Firebase reference docs (re-checked 2026-06-27; the
+ * `service` name, the `get/list/read/create/update/delete/write` operations, the
+ * `request`/`resource` built-ins, and the `get/exists/getAfter` helpers were
+ * re-confirmed against the live conditions/structure/rules-language docs on
+ * 2026-06-28): the `request`/`resource` member tables, helper calls, operations,
+ * and keywords.
  * This is deliberately **not** type inference — members are a fixed list, custom
  * `request.auth.token` claims are not invented, and entries the guide pages do
  * not directly confirm are marked UNCONFIRMED.
@@ -49,6 +53,10 @@ object FirestoreRulesBuiltins {
      * not shown on a write example on the consulted guide pages (UNCONFIRMED);
      * `data` is confirmed. `__path__` is intentionally absent — `__name__` is the
      * documented path member.
+     *
+     * TODO(UNCONFIRMED): confirm `request.resource.{id,__name__}` against the
+     * Resource reference before relying on them in diagnostics —
+     * https://firebase.google.com/docs/reference/rules/rules.firestore.Resource
      */
     val MEMBERS: Map<String, List<String>> = mapOf(
         // `query` is a Request member used for `list` operations (confirmed via the

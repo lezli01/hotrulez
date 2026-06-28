@@ -9,24 +9,25 @@ This list covers the v2 / 0.5 milestone only. Later milestones are sketched in
 the roadmap section and in `docs/spec.md`; they are not v2 scope and are not
 broken into checkable items here.
 
-Coverage status (audited 2026-06-28 against branch `feat/v2-symbol-intelligence`,
-commit `fe04f41`): the v2 implementation is essentially complete — go-to-
-definition, find-usages, rename, and scope-aware completion all ship with tests
-(all green in the last `./gradlew test` run; see `build/test-results/`). A few
-items remain open and are flagged inline below with a _(Partial: …)_ note — the
-`UNCONFIRMED`-tag `TODO` markers under Ground Rules, the `let`-rename test under
-Rename refactoring, the multi-pattern completion routing under Code completion,
-and the two "follows current docs" editorial checks (under Ground Rules and
-Release-Quality Acceptance).
+Coverage status (audited 2026-06-28 against branch `feat/v2-symbol-intelligence`):
+the v2 milestone is complete — go-to-definition, find-usages, rename, and
+scope-aware completion all ship with tests (all green in the last `./gradlew test`
+run; see `build/test-results/`). The items the initial audit left partial have
+since been closed: `TODO(UNCONFIRMED)` source markers, a `let`-rename test, the
+`PlatformPatterns`-keyed completion providers, and a 2026-06-28 re-confirmation of
+the load-bearing Firebase semantics against the live docs.
 
 ## Ground Rules
 
-- [ ] Re-check current IntelliJ Platform SDK docs before changing or registering
+- [x] Re-check current IntelliJ Platform SDK docs before changing or registering
   IntelliJ APIs / extension points, generated parser tooling, or before
   encoding Firebase Rules semantics. (Firebase scoping + `request`/`resource`
-  semantics were verified 2026-06-27; see spec Documentation Sources.)
-  _(Standing process rule, not a discrete deliverable; the doc-check workflow is
-  recorded in `AGENTS.md` and `docs/spec.md`.)_
+  semantics were verified 2026-06-27; the load-bearing operations, built-ins,
+  helpers, path wildcards, and `let` scoping were re-confirmed against the live
+  docs 2026-06-28 — see spec Documentation Sources.)
+  _(Standing process rule, re-run for this milestone's Firebase semantics; the
+  registered EPs are standard current-platform forms and unchanged this
+  milestone.)_
 - [x] Hold every v1 non-goal: no authorization evaluation, no Firebase/emulator/
   rules-test-SDK connection, no Storage rules in v2, no project IDs, structural
   not JavaScript.
@@ -34,11 +35,10 @@ Release-Quality Acceptance).
   static, doc-sourced table, never from evaluating expression types.
 - [x] Add focused tests with each resolve, navigation, rename, or completion
   change.
-- [ ] Tag any construct or member not confirmed by official docs `UNCONFIRMED`
+- [x] Tag any construct or member not confirmed by official docs `UNCONFIRMED`
   (matching the existing `.bnf` convention) with a TODO tied to the source.
-  _(Partial: `UNCONFIRMED` tags are present in `.bnf` and
-  `FirestoreRulesBuiltins.kt`, but no literal `TODO` markers tied to the source
-  exist — `grep TODO src/main` finds none.)_
+  _(`TODO(UNCONFIRMED)` markers with the official doc URLs now sit beside every
+  `UNCONFIRMED` tag in `FirestoreRules.bnf` and `FirestoreRulesBuiltins.kt`.)_
 - [x] Update `README.md` and `AGENTS.md` with the new symbol-intelligence
   features once they ship.
 
@@ -102,21 +102,20 @@ Release-Quality Acceptance).
 - [x] Add a `com.intellij.refactoring.renamePsiElementProcessor` for
   path-variable scoping/shadowing.
 - [x] Function rename updates the declaration and every call site.
-- [ ] Parameter / `let` rename updates the binding and its in-body uses.
-  _(Partial: parameter rename is implemented and tested
-  (`testRenameParameterUpdatesUsesButNotSameNamedMember`); `let` rename uses the
-  same named-element / manipulator path but has no test, so its behavior is
-  unverified.)_
+- [x] Parameter / `let` rename updates the binding and its in-body uses.
+  _(Covered by `testRenameParameterUpdatesUsesButNotSameNamedMember` and
+  `testRenameLetUpdatesBindingAndInBodyUses`.)_
 - [x] Path-variable rename updates only the correct match subtree and leaves a
   shadowed same-name binding untouched.
 
 ### Code completion
 
-- [ ] Add a `com.intellij.completion.contributor` with `PlatformPatterns`-keyed
+- [x] Add a `com.intellij.completion.contributor` with `PlatformPatterns`-keyed
   providers.
-  _(Partial: one `completion.contributor` is registered, but it uses a single
-  universal `PlatformPatterns.psiElement()` pattern with internal `when`-based
-  routing rather than multiple pattern-keyed providers.)_
+  _(Three pattern-keyed providers: `afterLeaf(".")` → members, `afterLeaf("service")`
+  → service literal, and a contextual provider keyed by
+  `andNot(afterLeaf(".", "service"))` for the position-sensitive
+  operation/keyword/expression cases.)_
 - [x] Operation completion after `allow `:
   `get, list, read, create, update, delete, write`.
 - [x] Keyword completion in statement / structural position
@@ -131,9 +130,8 @@ Release-Quality Acceptance).
   no type inference; custom claims not invented).
 - [x] Build the static member / keyword / operation table from the official
   Firebase reference docs; tag uncertain entries `UNCONFIRMED`.
-  _(Table built and `UNCONFIRMED`-tagged in `FirestoreRulesBuiltins.kt`; live
-  doc-fidelity is an editorial check — see the doc re-check rule under Ground
-  Rules and the "follows current docs" item under Release-Quality Acceptance.)_
+  _(Table built and `UNCONFIRMED`-tagged in `FirestoreRulesBuiltins.kt`; core
+  entries re-confirmed against the live docs 2026-06-28, see Ground Rules.)_
 - [x] Completion respects scoping: parameters only inside their function, path
   variables only within their subtree, `let` only after its declaration.
 
@@ -178,11 +176,11 @@ Release-Quality Acceptance).
   authorization.
 - [x] Tests cover resolve, scoping negatives, shadowing, find-usages, rename,
   and completion.
-- [ ] Implementation choices follow current official JetBrains SDK and Firebase
+- [x] Implementation choices follow current official JetBrains SDK and Firebase
   docs.
-  _(Verifiable parts hold — current EPs registered, IntelliJ Platform 2025.2,
-  provenance comments dated 2026-06-27; live doc-currency is an editorial check
-  not verifiable from the repo.)_
+  _(EPs are current-platform forms (IntelliJ Platform 2025.2); the load-bearing
+  Firebase semantics — operations, `request`/`resource` built-ins, helpers, path
+  wildcards, `let` scoping — were re-confirmed against the live docs 2026-06-28.)_
 
 ## Future Milestones (roadmap — not v2 scope)
 

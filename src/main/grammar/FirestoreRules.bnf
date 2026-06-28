@@ -22,6 +22,10 @@
  *     future diagnostics rather than rejected here) are tagged "UNCONFIRMED":
  *     block comments, hex numbers, list/index/slice subscripts, trailing commas,
  *     the "(default)" path literal, and let-bindings outside function bodies.
+ *     TODO(UNCONFIRMED): re-confirm each against the official conditions / rules-
+ *     language docs before relying on them in diagnostics —
+ *     https://firebase.google.com/docs/firestore/security/rules-conditions and
+ *     https://firebase.google.com/docs/rules/rules-language
  */
 
 {
@@ -165,6 +169,8 @@ private function_body_item ::= let_statement | return_statement
 // keyword or the body's closing brace instead of degrading the rest of the body.
 private function_body_recover ::= !('}' | 'let' | 'return')
 // UNCONFIRMED scope: official docs only allow `let` inside function bodies.
+// TODO(UNCONFIRMED): confirm whether `let` is permitted outside function bodies —
+//   https://firebase.google.com/docs/rules/rules-language
 let_statement ::= 'let' IDENTIFIER '=' expression ';' {
   pin=1 recoverWhile=function_body_recover
   implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
@@ -260,6 +266,8 @@ private postfix_group ::= call_expression | member_expression | index_expression
 call_expression ::= expression argument_list
 member_expression ::= expression '.' IDENTIFIER
 // UNCONFIRMED: subscript / slice access is not documented for Firestore rules.
+// TODO(UNCONFIRMED): confirm list/map index & slice subscript support —
+//   https://firebase.google.com/docs/firestore/security/rules-conditions
 index_expression ::= expression '[' index_content ']'
 // Order matters: `slice` is tried first and backtracks when a ternary inside the
 // brackets consumes the ':' (so `a[b ? c : d]` parses as an index of a ternary).
@@ -302,4 +310,6 @@ private path_arg_segment ::= recursive_wildcard
 path_interpolation ::= '$' '(' expression ')'
 // UNCONFIRMED: the "(default)" literal segment is documented only for
 // cross-service firestore.get/exists() calls, not native Firestore get()/exists().
+// TODO(UNCONFIRMED): confirm the "(default)" path literal for native get()/exists() —
+//   https://firebase.google.com/docs/firestore/security/rules-conditions
 paren_path_segment ::= '(' IDENTIFIER ')'
