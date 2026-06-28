@@ -143,8 +143,21 @@ match_declaration ::= 'match' match_path block { pin=1 recoverWhile=statement_re
 allow_statement ::= 'allow' method_list (':' 'if' expression)? ';' { pin=1 recoverWhile=statement_recover }
 method_list ::= IDENTIFIER (',' IDENTIFIER)*
 
-function_declaration ::= 'function' IDENTIFIER parameter_list function_body { pin=1 recoverWhile=statement_recover }
-parameter_list ::= '(' (IDENTIFIER (',' IDENTIFIER)*)? ')'
+// The function name is a named element (PsiNameIdentifierOwner) so go-to-definition,
+// find-usages, and rename can key off it; the resolver links calls to it across
+// service/match scope (see dev.lezli.hotrulez.references).
+function_declaration ::= 'function' IDENTIFIER parameter_list function_body {
+  pin=1 recoverWhile=statement_recover
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
+parameter_list ::= '(' (parameter (',' parameter)*)? ')'
+// Each parameter is its own named element so it can be resolved and renamed; the
+// bare-IDENTIFIER form gave the list no per-parameter PSI node to hang a name on.
+parameter ::= IDENTIFIER {
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
 function_body ::= '{' function_body_item * '}' { pin=1 }
 private function_body_item ::= let_statement | return_statement
 // Per-statement recovery inside a function body (mirrors statement_recover for
@@ -152,7 +165,11 @@ private function_body_item ::= let_statement | return_statement
 // keyword or the body's closing brace instead of degrading the rest of the body.
 private function_body_recover ::= !('}' | 'let' | 'return')
 // UNCONFIRMED scope: official docs only allow `let` inside function bodies.
-let_statement ::= 'let' IDENTIFIER '=' expression ';' { pin=1 recoverWhile=function_body_recover }
+let_statement ::= 'let' IDENTIFIER '=' expression ';' {
+  pin=1 recoverWhile=function_body_recover
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
 return_statement ::= 'return' expression? ';' { pin=1 recoverWhile=function_body_recover }
 
 private statement_recover ::= !('}' | 'match' | 'allow' | 'function' | 'service' | 'rules_version')
@@ -164,8 +181,16 @@ private statement_recover ::= !('}' | 'match' | 'allow' | 'function' | 'service'
 match_path ::= path_part +
 private path_part ::= '/' path_segment
 private path_segment ::= recursive_wildcard | path_wildcard | paren_path_segment | path_name_segment
-path_wildcard ::= '{' IDENTIFIER '}'
-recursive_wildcard ::= '{' IDENTIFIER '=' '**' '}'
+// Path/wildcard variables bind a name visible within the match subtree (with
+// inner-match shadowing); making them named elements drives their resolve/rename.
+path_wildcard ::= '{' IDENTIFIER '}' {
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
+recursive_wildcard ::= '{' IDENTIFIER '=' '**' '}' {
+  implements="dev.lezli.hotrulez.references.FirestoreRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesNamedElementBase"
+}
 path_name_segment ::= path_literal_token +
 private path_literal_token ::= IDENTIFIER
                              | NUMBER
@@ -251,7 +276,12 @@ private primary_group ::= parenthesized_expression
                         | reference_expression
                         | literal_expression { extraRoot=true }
 parenthesized_expression ::= '(' expression ')'
-reference_expression ::= IDENTIFIER
+// An identifier use. Its reference resolves to a function / parameter / let /
+// path variable (or to nothing, for built-ins and helpers); the mixin attaches
+// the reference directly on the PSI (see the references package).
+reference_expression ::= IDENTIFIER {
+  mixin="dev.lezli.hotrulez.references.FirestoreRulesReferenceExpressionMixin"
+}
 literal_expression ::= NUMBER | STRING | 'true' | 'false' | 'null'
 list_literal ::= '[' (expression (',' expression)* ','?)? ']'
 map_literal ::= '{' (map_entry (',' map_entry)* ','?)? '}'

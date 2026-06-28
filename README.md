@@ -23,6 +23,10 @@ language:
 - **Diagnostics** — 17 checks flag always-wrong constructs as errors and
   surface suspicious-but-legal structure as configurable warnings, with wording
   that stays structural (it never claims a rule is "secure").
+- **Symbol intelligence** — go to declaration, find usages, rename refactoring,
+  and scope-aware code completion for functions, parameters, `let` bindings, and
+  path variables, all built on a PSI resolve layer that honors Firestore scoping
+  and path-variable shadowing.
 - **Editor conveniences** — brace matching, quote auto-closing, and line/block
   comment toggling.
 
@@ -190,6 +194,49 @@ match /cities/{city} {
 - **Recursive wildcard without v2** — `Recursive wildcard '{document=**}' should be used with rules_version = '2'; its match semantics differ between rules versions.`
 - **Helper-call arity** — `exists()` → `'exists()' takes exactly one argument but found 0.` Applies to `get`, `getAfter`, `exists`, and `existsAfter`.
 
+## Symbol Intelligence
+
+`.rules` files get the symbol features you expect from a first-class language,
+all built on a PSI reference/resolve layer that links a *use* of a name to its
+*declaration* using Firestore's real scoping rules — never by evaluating
+authorization or connecting to Firebase.
+
+Covered symbols: **functions**, **function parameters**, **`let` bindings**, and
+**path / wildcard variables** (`{city}`, `{document=**}`).
+
+- **Go to declaration** — Ctrl+click (or *Go to Declaration*) on a function call
+  jumps to its `function`, on a path-variable use to its binding wildcard, and on
+  a parameter or `let` use to its binding. Calls resolve across service / match
+  scope, including forward references and a call to a function declared in an
+  enclosing scope.
+- **Find usages** — from any function, parameter, `let`, or path variable, with
+  scoping respected: a path variable's usages stop at a nested `match` that
+  re-declares the same name.
+- **Rename** — renaming a function updates its declaration and every call site;
+  renaming a parameter or `let` updates its in-body uses; renaming a path
+  variable updates only the correct match subtree and leaves a shadowing inner
+  binding (and its uses) untouched. New names are validated as legal identifiers,
+  and reserved keywords are rejected.
+- **Code completion** — context aware:
+  - operation names after `allow ` (`get`, `list`, `read`, `create`, `update`,
+    `delete`, `write`);
+  - structural keywords (`match`, `allow`, `function`, `return`, `let`, `if`),
+    with `rules_version` and `service` at the top level;
+  - `cloud.firestore` after `service `;
+  - in expression position, the symbols visible at the caret — scope-aware, so
+    parameters are offered only inside their function, path variables only within
+    their subtree, and a `let` only after its declaration — plus the built-ins
+    `request` and `resource`, the helpers `exists` / `get` / `getAfter` /
+    `existsAfter`, and the literals `true` / `false` / `null`;
+  - shallow members after `request.`, `request.auth.`, `request.resource.`, and
+    `resource.`, drawn from a fixed table built from the official Firebase docs.
+
+Built-in variables and helpers are **recognized** (so they are never mistaken for
+undefined names) but **non-navigable** — there is no declaration to jump to.
+Member completion is a fixed, documented list, **not type inference**: the plugin
+never infers the type of an expression or invents custom `request.auth.token`
+claims.
+
 ## Editor Conveniences
 
 - **Brace matching** for `{}`, `()`, and `[]`. Curly braces are structural, so
@@ -207,6 +254,10 @@ match /cities/{city} {
 - **No Firebase integration.** It does not connect to Firebase projects,
   emulators, credentials, or live Firestore data, and it hard-codes no project
   IDs.
+- **No type inference.** Member completion after `request.`/`resource.` is a
+  fixed, documented list, not the result of evaluating an expression's type. The
+  resolver links names to declarations; it never asserts that a rule is correct
+  or secure.
 - **Firestore Rules only.** Cloud Storage rules are out of scope, and the
   supported service is `cloud.firestore`.
 - **Conservative diagnostics.** The grammar is intentionally permissive so the
@@ -271,6 +322,10 @@ src/main/kotlin/dev/lezli/hotrulez/
   formatting/
   diagnostics/
   editor/
+  references/                       # PSI named elements, resolver, reference
+  findusages/                       # FindUsagesProvider + word scanner
+  refactoring/                      # names validator + rename processor
+  completion/                       # CompletionContributor
 src/main/resources/icons/
 src/main/resources/META-INF/plugin.xml
 src/test/kotlin/dev/lezli/hotrulez/
@@ -288,6 +343,12 @@ The implementation is split by responsibility:
 - `formatting/` provides IntelliJ formatter blocks and spacing rules.
 - `diagnostics/` provides the annotator and inspections.
 - `editor/` provides the brace matcher, quote handler, and commenter.
+- `references/` makes declarations named elements and resolves a name use to its
+  declaration with Firestore scoping (the layer go-to-definition, find-usages,
+  and rename all ride on).
+- `findusages/` exposes declarations to Find Usages via a word scanner.
+- `refactoring/` validates rename input and scopes path-variable rename.
+- `completion/` provides scope-aware, doc-sourced code completion.
 - `plugin.xml` registers every extension point above.
 
 The parser, typed PSI, and parsing lexer are generated by Grammar-Kit and JFlex
@@ -360,7 +421,8 @@ After installation:
 ## Project Status
 
 `hotrulez` covers file recognition, highlighting, structural parsing, automatic
-formatting, diagnostics, and editor conveniences (brace, quote, and comment
+formatting, diagnostics, symbol intelligence (go-to-definition, find usages,
+rename, and code completion), and editor conveniences (brace, quote, and comment
 handling). It performs no runtime authorization evaluation by design.
 
 See [docs/spec.md](docs/spec.md) for the product and implementation spec, and
