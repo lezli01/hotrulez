@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a new capability or improvement for hotrulez
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Note that hotrulez is intentionally **static and
+        structural** — it never connects to Firebase, runs the emulator, or
+        evaluates whether a rule authorizes a request. Requests that stay within
+        that scope (highlighting, formatting, structural diagnostics, symbol
+        intelligence, completion) are the best fit.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the pain point or workflow gap you are hitting.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like hotrulez to do? A small `.rules` example of the before/after helps.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you use today, or other approaches you thought about.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have searched existing issues and discussions for this idea.
+          required: true
+        - label: This stays within hotrulez's static, structural scope (no Firebase connection or authorization evaluation).
+          required: false

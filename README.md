@@ -1,8 +1,15 @@
 # hotrulez
 
+[![CI](https://github.com/lezli01/hotrulez/actions/workflows/ci.yml/badge.svg)](https://github.com/lezli01/hotrulez/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/lezli01/hotrulez?sort=semver)](https://github.com/lezli01/hotrulez/releases)
+
 `hotrulez` is a JetBrains IDE plugin for Firebase Cloud Firestore Security
 Rules. It makes `.rules` files behave like a dedicated language in the IDE
 instead of treating them as JavaScript, JSON, or plain text.
+
+It is free and open source under the [MIT License](LICENSE). Contributions are
+welcome — see [Contributing](#contributing).
 
 Created by `lezli01` at [lezli01.is-a.dev](https://lezli01.is-a.dev).
 
@@ -397,6 +404,12 @@ For CI-style runs, this repository uses:
 
 ## How To Use
 
+> hotrulez is not yet published to the JetBrains Marketplace. You can install it
+> today in one of two ways: download the prebuilt plugin ZIP attached to a
+> [GitHub release](https://github.com/lezli01/hotrulez/releases), or build it
+> from source as shown below. Either way, install it with **Install Plugin from
+> Disk** (steps below).
+
 Build the plugin ZIP:
 
 ```bash
@@ -427,3 +440,34 @@ handling). It performs no runtime authorization evaluation by design.
 
 See [docs/spec.md](docs/spec.md) for the product and implementation spec, and
 [docs/tasks.md](docs/tasks.md) for the task checklist.
+
+## Contributing
+
+Contributions of every size are welcome — bug reports, docs, new diagnostics,
+test cases, and features. Start here:
+
+- Read the [Contributing guide](CONTRIBUTING.md) for development setup, build
+  and test commands, and the commit-message convention.
+- Be a good neighbor: this project follows a
+  [Code of Conduct](CODE_OF_CONDUCT.md).
+- Have a question or an idea? Open a
+  [Discussion](https://github.com/lezli01/hotrulez/discussions).
+- Found a bug or want a feature? Open an
+  [issue](https://github.com/lezli01/hotrulez/issues/new/choose).
+
+Releases are automated with
+[release-please](https://github.com/googleapis/release-please), so pull requests
+use [Conventional Commits](https://www.conventionalcommits.org/) titles and are
+squash-merged. Details are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+hotrulez is purely structural and never connects to Firebase, so its attack
+surface is small — but security reports are taken seriously. Please report
+vulnerabilities privately via GitHub's
+[security advisories](https://github.com/lezli01/hotrulez/security/advisories/new)
+rather than a public issue. See [SECURITY.md](SECURITY.md) for details.
+
+## License
+
+`hotrulez` is released under the [MIT License](LICENSE). © 2026 lezli01.
