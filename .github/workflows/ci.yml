@@ -38,8 +38,14 @@ jobs:
           # restoring it from the Actions cache intermittently trips Gradle's integrity
           # check ("immutable workspace ... has been modified"). Re-extracting it each
           # run (from the still-cached download) is cheap and reliable.
+          #
+          # The excludes use GitHub glob patterns where "*" does NOT cross "/", so a
+          # bare "caches/*/transforms" matches only the directory entry and still lets
+          # its CONTENTS be cached. The "/**" line is what actually keeps the extracted
+          # IDE out of the cache.
           gradle-home-cache-excludes: |
             caches/*/transforms
+            caches/*/transforms/**
 
       - name: Run tests
         run: ./gradlew test --no-daemon
