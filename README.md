@@ -3,6 +3,7 @@
 [![CI](https://github.com/lezli01/hotrulez/actions/workflows/ci.yml/badge.svg)](https://github.com/lezli01/hotrulez/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/lezli01/hotrulez?sort=semver)](https://github.com/lezli01/hotrulez/releases)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-ffdd00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/lezli01)
 
 `hotrulez` is a JetBrains IDE plugin for Firebase Cloud Firestore Security
 Rules. It makes `.rules` files behave like a dedicated language in the IDE
