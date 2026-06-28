@@ -85,6 +85,19 @@ tasks.named("compileTestKotlin") {
     dependsOn(generateFirestoreParser, generateFirestoreLexer)
 }
 
+// The platform test framework boots a real IDE whose home is the distribution the
+// IntelliJ Platform Gradle plugin extracts into a Gradle artifact-transform output.
+// That output is an *immutable* workspace. By default the IDE's OpenTelemetry
+// exporters write open-telemetry-metrics.*.csv / -meters.*.json / -plotter.html into
+// {ideHome}/system/log, mutating the immutable workspace and tripping Gradle's
+// integrity check ("the contents of the immutable workspace ... have been modified")
+// during :intellijPlatformTestClasspath resolution. Disabling the exporters (empty
+// path) keeps the workspace pristine. Property names per JetBrains KB SUPPORT-A-714.
+tasks.withType<Test>().configureEach {
+    systemProperty("idea.diagnostic.opentelemetry.metrics.file", "")
+    systemProperty("idea.diagnostic.opentelemetry.meters.file.json", "")
+}
+
 intellijPlatform {
     // This plugin ships no UI forms and relies on no @NotNull bytecode
     // instrumentation, so code instrumentation is disabled. It also avoids a
