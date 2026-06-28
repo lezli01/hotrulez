@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>dev.lezli.hotrulez</id>
     <name>hotrulez</name>
-    <vendor>Lezli</vendor>
+    <vendor url="https://lezli01.is-a.dev">lezli01</vendor>
 
     <description><![CDATA[
         <p>

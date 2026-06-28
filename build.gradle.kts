@@ -114,6 +114,67 @@ tasks.withType<Test>().configureEach {
     )
 }
 
+// --- Plugin "What's New" derived from the release-please CHANGELOG -----------
+// release-please owns CHANGELOG.md. Rather than hand-maintain changeNotes (which
+// previously shipped a stale "Initial development build." into every release ZIP),
+// render the latest CHANGELOG section into the small HTML subset the plugin
+// descriptor accepts.
+//
+// The read goes through the file-contents provider (so CHANGELOG.md is tracked as
+// a build input), but it is resolved and rendered EAGERLY to a plain String here
+// at configuration time. A lazy Provider whose transform lambda closes over this
+// build script cannot be serialized by Gradle's configuration cache once it is
+// wired into patchPluginXml; a plain String can.
+
+// Renders the most recent version section of a release-please CHANGELOG.md into
+// the simple HTML accepted by plugin.xml <change-notes>. Strips the trailing
+// "([sha](url))" commit links release-please appends to each entry, and maps
+// "### Features"/"### Bug Fixes" headings and "*" bullets to <b>/<ul><li>.
+fun renderLatestChangeNotes(changelog: String): String {
+    val lines = changelog.lines()
+    val start = lines.indexOfFirst { it.startsWith("## ") }
+    if (start < 0) return ""
+    val body = lines.drop(start + 1).takeWhile { !it.startsWith("## ") }
+
+    fun escape(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    fun inline(s: String) =
+        escape(s.replace(Regex("""\s*\(\[[0-9a-f]{6,}]\([^)]*\)\)\s*$"""), ""))
+            .replace(Regex("""\*\*(.+?)\*\*"""), "<b>$1</b>")
+            .replace(Regex("""`([^`]+)`"""), "<code>$1</code>")
+            .replace(Regex("""\[(.+?)]\((https?://[^)]+)\)"""), """<a href="$2">$1</a>""")
+
+    val html = StringBuilder()
+    var inList = false
+    fun closeList() { if (inList) { html.append("</ul>"); inList = false } }
+    for (raw in body) {
+        val line = raw.trim()
+        when {
+            line.isEmpty() -> {}
+            line.startsWith("### ") -> {
+                closeList()
+                html.append("<p><b>").append(escape(line.removePrefix("### "))).append("</b></p>")
+            }
+            line.startsWith("* ") || line.startsWith("- ") -> {
+                if (!inList) { html.append("<ul>"); inList = true }
+                html.append("<li>").append(inline(line.drop(2))).append("</li>")
+            }
+            else -> {
+                closeList()
+                html.append("<p>").append(inline(line)).append("</p>")
+            }
+        }
+    }
+    closeList()
+    return html.toString()
+}
+
+val changeNotesHtml: String =
+    renderLatestChangeNotes(
+        providers.fileContents(layout.projectDirectory.file("CHANGELOG.md")).asText.orNull.orEmpty(),
+    ).ifBlank {
+        "See the <a href=\"https://github.com/lezli01/hotrulez/blob/master/CHANGELOG.md\">CHANGELOG</a> for release notes."
+    }
+
 intellijPlatform {
     // This plugin ships no UI forms and relies on no @NotNull bytecode
     // instrumentation, so code instrumentation is disabled. It also avoids a
@@ -126,8 +187,6 @@ intellijPlatform {
             sinceBuild = "252"
         }
 
-        changeNotes = """
-            Initial development build.
-        """.trimIndent()
+        changeNotes = changeNotesHtml
     }
 }

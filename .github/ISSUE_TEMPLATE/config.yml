@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & ideas
+    url: https://github.com/lezli01/hotrulez/discussions
+    about: Ask a question, share an idea, or discuss usage in GitHub Discussions.
+  - name: Report a security vulnerability
+    url: https://github.com/lezli01/hotrulez/security/advisories/new
+    about: Privately report a security issue (do not open a public issue).
+  - name: Firebase Firestore Rules documentation
+    url: https://firebase.google.com/docs/firestore/security/get-started
+    about: Official Firebase docs for writing and deploying Firestore Security Rules.

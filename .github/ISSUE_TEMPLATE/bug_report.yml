@@ -1,0 +1,80 @@
+name: Bug report
+description: Report something that hotrulez does wrong in the IDE
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! A minimal `.rules` snippet
+        that reproduces the problem is the single most helpful thing you can
+        include.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug — what the plugin did versus what you expected.
+      placeholder: When I reformat this file, the multiline condition gets collapsed onto one line.
+    validations:
+      required: true
+  - type: textarea
+    id: rules-snippet
+    attributes:
+      label: Minimal .rules snippet
+      description: The smallest Firestore Rules file that reproduces the issue. This will be rendered as code.
+      render: text
+      placeholder: |
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /cities/{city} {
+              allow read: if true;
+            }
+          }
+        }
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: hotrulez version
+      placeholder: "0.5.0"
+    validations:
+      required: true
+  - type: input
+    id: ide-version
+    attributes:
+      label: IDE and version
+      description: e.g. IntelliJ IDEA 2025.2.6, build 252.x
+      placeholder: "IntelliJ IDEA 2025.2.6 (252.x)"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 15 / Windows 11 / Ubuntu 24.04"
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: IDE logs (Help | Show Log) or screenshots, if any.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I am using the latest released version of hotrulez.
+          required: false
