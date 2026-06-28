@@ -45,15 +45,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
-          # This workflow shares a Gradle cache key with ci.yml (the key is derived
-          # from the Gradle build files, not the workflow). Exclude the IntelliJ
-          # Platform's extracted IDE distribution here too, so a release run never
-          # writes a "transforms" workspace into the shared cache that a later PR's
-          # CI would restore and trip Gradle's immutable-workspace integrity check.
-          # The "/**" line excludes the directory CONTENTS (glob "*" does not cross "/").
-          gradle-home-cache-excludes: |
-            caches/*/transforms
-            caches/*/transforms/**
+
+      # See ci.yml: gradle/actions shares a cache key across workflows, and the
+      # IntelliJ Platform IDE transform restored from that cache intermittently fails
+      # Gradle's immutable-workspace integrity check. Delete it after restore so Gradle
+      # re-extracts it fresh; this also keeps a release run from caching a transform
+      # that a later PR's CI would restore.
+      - name: Purge cached IntelliJ Platform IDE transform
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: rm -rf ~/.gradle/caches/*/transforms ~/.gradle/caches/transforms-*
 
       - name: Build plugin distribution
         if: ${{ steps.release.outputs.release_created == 'true' }}
