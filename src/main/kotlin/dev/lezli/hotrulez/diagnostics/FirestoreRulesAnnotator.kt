@@ -73,7 +73,10 @@ class FirestoreRulesAnnotator : Annotator {
     /** Function parameters must have distinct names. */
     private fun checkDuplicateParameters(parameterList: FirestoreRulesParameterList, holder: AnnotationHolder) {
         val seen = HashSet<String>()
-        for (identifier in parameterList.identifierLeaves()) {
+        // Each parameter is now its own PSI node (a named element); anchor the error
+        // on the duplicate's name identifier.
+        for (parameter in parameterList.parameterList) {
+            val identifier = parameter.identifier
             if (!seen.add(identifier.text)) {
                 error(holder, identifier, "Duplicate parameter name '${identifier.text}'.")
             }

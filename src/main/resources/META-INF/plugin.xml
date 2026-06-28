@@ -69,5 +69,27 @@
             enabledByDefault="true"
             level="WARNING"
             implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesUsageInspection"/>
+
+        <!-- Symbol intelligence (v2): resolve/go-to-definition, find usages, rename, completion.
+             References are attached directly on the PSI (see FirestoreRulesPsiImplUtil),
+             so no psi.referenceContributor is registered. -->
+        <lang.elementManipulator
+            forClass="dev.lezli.hotrulez.psi.impl.FirestoreRulesReferenceExpressionImpl"
+            implementationClass="dev.lezli.hotrulez.references.FirestoreRulesReferenceManipulator"/>
+
+        <lang.findUsagesProvider
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.findusages.FirestoreRulesFindUsagesProvider"/>
+
+        <lang.namesValidator
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.refactoring.FirestoreRulesNamesValidator"/>
+
+        <completion.contributor
+            language="FirestoreRules"
+            implementationClass="dev.lezli.hotrulez.completion.FirestoreRulesCompletionContributor"/>
+
+        <renamePsiElementProcessor
+            implementation="dev.lezli.hotrulez.refactoring.FirestoreRulesPathVariableRenameProcessor"/>
     </extensions>
 </idea-plugin>

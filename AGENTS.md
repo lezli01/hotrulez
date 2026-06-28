@@ -9,6 +9,9 @@ The plugin should provide:
 - Syntax highlighting for Firestore Rules files.
 - Formatting for Firestore Rules syntax.
 - Validation and IDE diagnostics for Firestore Rules structure and expressions.
+- Symbol intelligence: go-to-definition, find usages, rename refactoring, and
+  scope-aware code completion for functions, parameters, `let` bindings, and path
+  variables (shipped in v2 / 0.5).
 
 ## Documentation Workflow
 
@@ -131,3 +134,34 @@ official Firebase docs before adding or changing a check (e.g. a condition-less
 `allow` is legal, and a recursive wildcard may appear anywhere in a v2 match
 path), and add a focused test for each diagnostic in `FirestoreRulesAnnotatorTest`
 or `FirestoreRulesInspectionTest`.
+
+Symbol intelligence (v2 / 0.5) lives in four packages and rides on a single PSI
+resolve layer:
+
+- `references/` is the core. Function declarations, parameters, `let` bindings,
+  and path/wildcard variables are `PsiNameIdentifierOwner`s
+  (`FirestoreRulesNamedElement`), wired onto the generated PSI through the
+  `implements`/`mixin` attributes in `FirestoreRules.bnf`, with shared behavior in
+  `FirestoreRulesNamedElementBase`. `FirestoreRulesReferenceExpressionMixin`
+  attaches a poly-variant, soft `FirestoreRulesReference` directly on each
+  `reference_expression` — an `ASTWrapperPsiElement` does not consult a
+  `psi.referenceContributor`, so the reference is hung on the PSI via `mixin`
+  rather than a contributor. `FirestoreRulesScopes` implements Firestore's actual
+  visibility rules: scope-based function resolution with forward references,
+  function-local parameters and post-declaration `let`s, and match-subtree path
+  variables with nested shadowing. `FirestoreRulesBuiltins` holds the static,
+  doc-sourced member/keyword/operation tables (no type inference; custom claims
+  not invented).
+- `findusages/` registers a `FindUsagesProvider` with a `DefaultWordsScanner` over
+  the parsing lexer.
+- `refactoring/` registers a `NamesValidator` (reserved keywords rejected) and a
+  `RenamePsiElementProcessor` that scopes path-variable rename to the binding's
+  match subtree so shadowing holds.
+- `completion/` registers a position-aware `CompletionContributor`.
+
+When a grammar change is needed to expose a PSI accessor or a named-element
+interface, make the narrowest `.bnf` change, re-run
+`./gradlew generateFirestoreParser generateFirestoreLexer` (a normal build already
+does), and keep generated and handwritten code separated. Add focused tests in the
+matching `FirestoreRulesResolveTest` / `FirestoreRulesFindUsagesTest` /
+`FirestoreRulesRenameTest` / `FirestoreRulesCompletionTest`.
