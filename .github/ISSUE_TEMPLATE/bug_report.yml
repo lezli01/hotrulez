@@ -20,7 +20,7 @@ body:
     id: rules-snippet
     attributes:
       label: Minimal .rules snippet
-      description: The smallest Firestore Rules file that reproduces the issue. This will be rendered as code.
+      description: The smallest Firebase Rules file (Cloud Firestore or Cloud Storage) that reproduces the issue. This will be rendered as code.
       render: text
       placeholder: |
         rules_version = '2';
