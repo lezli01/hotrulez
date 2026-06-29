@@ -19,6 +19,12 @@ jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    # Exposed at job level so the publish step's `if` can read it. While the
+    # PUBLISH_TOKEN secret is absent (the manual-first phase, before the first
+    # upload is approved) this is an empty string and the publish step is skipped,
+    # so releases keep working without touching the Marketplace.
+    env:
+      PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
 
     steps:
       - name: Run Release Please
@@ -28,6 +34,14 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # verifyPlugin (below) downloads full IDE builds; free up runner disk first.
+      - name: Free disk space
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
 
       - name: Checkout
         if: ${{ steps.release.outputs.release_created == 'true' }}
@@ -59,8 +73,21 @@ jobs:
         if: ${{ steps.release.outputs.release_created == 'true' }}
         run: ./gradlew buildPlugin --no-daemon
 
+      # Gate the release on the JetBrains Plugin Verifier before anything is published.
+      - name: Verify plugin
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        run: ./gradlew verifyPlugin --no-daemon
+
       - name: Upload plugin distribution to release
         if: ${{ steps.release.outputs.release_created == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ steps.release.outputs.tag_name }}" build/distributions/*.zip --clobber
+
+      # Publish to the JetBrains Marketplace. Dormant until the PUBLISH_TOKEN secret
+      # exists (added after the manual first upload clears moderation), so releases
+      # keep working during the manual-first phase. publishPlugin reads PUBLISH_TOKEN
+      # from the environment (see build.gradle.kts intellijPlatform.publishing).
+      - name: Publish to JetBrains Marketplace
+        if: ${{ steps.release.outputs.release_created == 'true' && env.PUBLISH_TOKEN != '' }}
+        run: ./gradlew publishPlugin --no-daemon
