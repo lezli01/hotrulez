@@ -185,8 +185,36 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "252"
+            // Open-ended forward compatibility: omit the until-build bound so the
+            // plugin installs on 2025.2 and every future IDE without shipping a
+            // release just to raise the cap. Safe here because only stable language
+            // extension points are used, and the Marketplace re-verifies the plugin
+            // against new IDEs server-side. `provider { null }` is the documented way
+            // to unset until-build (a plain null re-applies the MAJOR.* default).
+            untilBuild = provider { null }
         }
 
         changeNotes = changeNotesHtml
+    }
+
+    // JetBrains Plugin Verifier (./gradlew verifyPlugin). `recommended()` selects the
+    // IDEs that match the platform we build against -- the right set for an
+    // open-ended, forward-compatible plugin. CI runs this on every PR and push, and
+    // the release workflow gates publishing on it.
+    pluginVerification {
+        ides {
+            recommended()
+        }
+    }
+
+    // Marketplace publishing (./gradlew publishPlugin). `token` already defaults to
+    // the PUBLISH_TOKEN environment variable; it is set explicitly for clarity and
+    // read through the providers API so it stays configuration-cache safe. "default"
+    // is the public/stable Marketplace channel. NOTE: the first version of a brand-new
+    // plugin must be uploaded manually via the Marketplace web UI -- this task only
+    // updates a plugin that already exists there.
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        channels = listOf("default")
     }
 }

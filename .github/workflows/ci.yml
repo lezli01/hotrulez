@@ -47,3 +47,39 @@ jobs:
 
       - name: Run tests
         run: ./gradlew test --no-daemon
+
+  verify:
+    name: Plugin Verifier
+    runs-on: ubuntu-latest
+
+    steps:
+      # verifyPlugin downloads full IDE builds via the JetBrains Plugin Verifier;
+      # free up the runner disk first so the downloads and Gradle caches both fit.
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      # See the test job: the restored IntelliJ Platform IDE transform intermittently
+      # fails Gradle's immutable-workspace integrity check, so delete it after restore
+      # and let Gradle re-extract it fresh from the still-cached download.
+      - name: Purge cached IntelliJ Platform IDE transform
+        run: rm -rf ~/.gradle/caches/*/transforms ~/.gradle/caches/transforms-*
+
+      - name: Verify plugin
+        run: ./gradlew verifyPlugin --no-daemon

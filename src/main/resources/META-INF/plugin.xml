@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>dev.lezli.hotrulez</id>
-    <name>hotrulez</name>
-    <vendor url="https://lezli01.is-a.dev">lezli01</vendor>
+    <name>Firebase Rules (hotrulez)</name>
+    <vendor email="lezli01@gmail.com" url="https://lezli01.is-a.dev">lezli01</vendor>
 
     <description><![CDATA[
         <p>
@@ -32,6 +32,12 @@
         <p>
             hotrulez is purely structural: it never connects to Firebase, runs
             the emulator, or evaluates whether a rule authorizes a request.
+        </p>
+        <p>
+            <em>This is an unofficial, community-maintained open-source plugin.
+            Firebase, Cloud Firestore, and Cloud Storage for Firebase are
+            trademarks of Google LLC; hotrulez is not affiliated with, endorsed
+            by, or sponsored by Google.</em>
         </p>
         <p>
             hotrulez is free and open source &mdash; if it saves you time, you can
