@@ -36,85 +36,85 @@
     <extensions defaultExtensionNs="com.intellij">
         <fileType
             name="Firestore Rules"
-            implementationClass="dev.lezli.hotrulez.FirestoreRulesFileType"
+            implementationClass="dev.lezli.hotrulez.FirebaseRulesFileType"
             fieldName="INSTANCE"
-            language="FirestoreRules"
+            language="FirebaseRules"
             extensions="rules"/>
 
         <lang.syntaxHighlighterFactory
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesSyntaxHighlighterFactory"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.highlighting.FirebaseRulesSyntaxHighlighterFactory"/>
 
         <annotator
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesAnnotator"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.highlighting.FirebaseRulesAnnotator"/>
 
         <colorSettingsPage
-            implementation="dev.lezli.hotrulez.highlighting.FirestoreRulesColorSettingsPage"/>
+            implementation="dev.lezli.hotrulez.highlighting.FirebaseRulesColorSettingsPage"/>
 
         <lang.parserDefinition
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.parser.FirestoreRulesParserDefinition"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.parser.FirebaseRulesParserDefinition"/>
 
         <lang.formatter
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.formatting.FirestoreRulesFormattingModelBuilder"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.formatting.FirebaseRulesFormattingModelBuilder"/>
 
         <lang.braceMatcher
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesBraceMatcher"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirebaseRulesBraceMatcher"/>
 
         <lang.quoteHandler
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesQuoteHandler"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirebaseRulesQuoteHandler"/>
 
         <lang.commenter
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesCommenter"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirebaseRulesCommenter"/>
 
         <annotator
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesAnnotator"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesAnnotator"/>
 
         <localInspection
-            language="FirestoreRules"
-            shortName="FirestoreRulesStructure"
+            language="FirebaseRules"
+            shortName="FirebaseRulesStructure"
             displayName="Firestore Rules file structure"
             groupName="Firestore Rules"
             enabledByDefault="true"
             level="WARNING"
-            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesStructureInspection"/>
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesStructureInspection"/>
 
         <localInspection
-            language="FirestoreRules"
-            shortName="FirestoreRulesUsage"
+            language="FirebaseRules"
+            shortName="FirebaseRulesUsage"
             displayName="Firestore Rules suspicious usage"
             groupName="Firestore Rules"
             enabledByDefault="true"
             level="WARNING"
-            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesUsageInspection"/>
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesUsageInspection"/>
 
         <!-- Symbol intelligence (v2): resolve/go-to-definition, find usages, rename, completion.
              References are attached directly on the PSI (see
-             FirestoreRulesReferenceExpressionMixin.getReference()), so no
+             FirebaseRulesReferenceExpressionMixin.getReference()), so no
              psi.referenceContributor is registered. -->
         <lang.elementManipulator
-            forClass="dev.lezli.hotrulez.psi.impl.FirestoreRulesReferenceExpressionImpl"
-            implementationClass="dev.lezli.hotrulez.references.FirestoreRulesReferenceManipulator"/>
+            forClass="dev.lezli.hotrulez.psi.impl.FirebaseRulesReferenceExpressionImpl"
+            implementationClass="dev.lezli.hotrulez.references.FirebaseRulesReferenceManipulator"/>
 
         <lang.findUsagesProvider
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.findusages.FirestoreRulesFindUsagesProvider"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.findusages.FirebaseRulesFindUsagesProvider"/>
 
         <lang.namesValidator
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.refactoring.FirestoreRulesNamesValidator"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.refactoring.FirebaseRulesNamesValidator"/>
 
         <completion.contributor
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.completion.FirestoreRulesCompletionContributor"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.completion.FirebaseRulesCompletionContributor"/>
 
         <renamePsiElementProcessor
-            implementation="dev.lezli.hotrulez.refactoring.FirestoreRulesPathVariableRenameProcessor"/>
+            implementation="dev.lezli.hotrulez.refactoring.FirebaseRulesPathVariableRenameProcessor"/>
     </extensions>
 </idea-plugin>

@@ -1,0 +1,147 @@
+package dev.lezli.hotrulez.diagnostics
+
+import com.intellij.codeInspection.InspectionManager
+import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
+import dev.lezli.hotrulez.diagnostics.FirebaseRulesDiagnostics.SERVICE_FIRESTORE
+import dev.lezli.hotrulez.psi.FirebaseRulesFile
+import dev.lezli.hotrulez.psi.FirebaseRulesFunctionDeclaration
+import dev.lezli.hotrulez.psi.FirebaseRulesMatchDeclaration
+import dev.lezli.hotrulez.psi.FirebaseRulesRulesVersionStatement
+import dev.lezli.hotrulez.psi.FirebaseRulesServiceDeclaration
+
+/**
+ * File-level structure warnings for Firestore Rules: the checks that need the
+ * whole file in view rather than a single element. They are warnings (not
+ * errors) and configurable because a partial or snippet `.rules` file is a
+ * legitimate intermediate state while editing.
+ *
+ * Wording is purely structural — these checks never assert that a rule is
+ * secure or that it authorizes a request correctly.
+ */
+class FirebaseRulesStructureInspection : LocalInspectionTool() {
+    override fun checkFile(
+        file: PsiFile,
+        manager: InspectionManager,
+        isOnTheFly: Boolean,
+    ): Array<ProblemDescriptor>? {
+        if (file !is FirebaseRulesFile) return null
+
+        val versions = PsiTreeUtil.getChildrenOfType(file, FirebaseRulesRulesVersionStatement::class.java)
+            ?.toList().orEmpty()
+        val services = PsiTreeUtil.getChildrenOfType(file, FirebaseRulesServiceDeclaration::class.java)
+            ?.toList().orEmpty()
+
+        // Nothing declared yet (empty or comment-only file): no expectations to enforce.
+        val anchor = firstDeclaration(file) ?: return null
+
+        val problems = mutableListOf<ProblemDescriptor>()
+
+        if (versions.isEmpty()) {
+            problems += problem(manager, anchor, isOnTheFly, "Missing 'rules_version = '2';' declaration at the top of the file.")
+        } else {
+            val firstVersion = versions.first()
+            val version = FirebaseRulesDiagnostics.rulesVersion(firstVersion)
+            if (version != "2") {
+                val found = if (version == null) "no version value" else "version '$version'"
+                problems += problem(
+                    manager,
+                    firstVersion,
+                    isOnTheFly,
+                    "Expected 'rules_version = '2';' declaration at the top of the file; found $found.",
+                )
+            }
+
+            if (services.isNotEmpty()) {
+                val firstServiceOffset = services.minOf { it.textRange.startOffset }
+                val misplaced = versions.firstOrNull { it.textRange.startOffset > firstServiceOffset }
+                if (misplaced != null) {
+                    problems += problem(manager, misplaced, isOnTheFly, "'rules_version' must be declared before the 'service' block.")
+                }
+            }
+        }
+
+        if (services.isEmpty()) {
+            problems += problem(manager, anchor, isOnTheFly, "Missing 'service cloud.firestore { ... }' block.")
+        } else {
+            for (service in services) {
+                checkService(service, manager, isOnTheFly, problems)
+            }
+        }
+
+        return if (problems.isEmpty()) null else problems.toTypedArray()
+    }
+
+    private fun checkService(
+        service: FirebaseRulesServiceDeclaration,
+        manager: InspectionManager,
+        isOnTheFly: Boolean,
+        problems: MutableList<ProblemDescriptor>,
+    ) {
+        val serviceName = service.serviceName ?: return
+        val name = serviceName.text.filterNot { it.isWhitespace() }
+
+        if (name != SERVICE_FIRESTORE) {
+            problems += problem(
+                manager,
+                serviceName,
+                isOnTheFly,
+                "Firestore Rules files target 'service cloud.firestore'; found 'service $name'.",
+            )
+            return
+        }
+
+        // The grammar accepts a service with no block (so a partial `service
+        // cloud.firestore` does not flash a parse error while typing); surface the
+        // missing block as a configurable warning instead.
+        val block = service.block ?: run {
+            problems += problem(
+                manager,
+                serviceName,
+                isOnTheFly,
+                "'service $name' is missing its rule block '{ ... }'.",
+            )
+            return
+        }
+        // Direct children only: the root documents match must be a top-level match of
+        // the service block, not a coincidental occurrence buried in a nested match.
+        val hasRootMatch = PsiTreeUtil.getChildrenOfType(block, FirebaseRulesMatchDeclaration::class.java)
+            ?.any { FirebaseRulesDiagnostics.isRootDocumentsPath(it.matchPath) } ?: false
+        if (!hasRootMatch) {
+            problems += problem(
+                manager,
+                serviceName,
+                isOnTheFly,
+                "Missing root 'match /databases/{database}/documents' block inside 'service cloud.firestore'.",
+            )
+        }
+    }
+
+    /** The first top-level declaration, used as the anchor for file-wide problems. */
+    private fun firstDeclaration(file: FirebaseRulesFile): PsiElement? =
+        file.children.firstOrNull {
+            it is FirebaseRulesRulesVersionStatement ||
+                it is FirebaseRulesServiceDeclaration ||
+                it is FirebaseRulesMatchDeclaration ||
+                it is FirebaseRulesFunctionDeclaration
+        }
+
+    private fun problem(
+        manager: InspectionManager,
+        element: PsiElement,
+        isOnTheFly: Boolean,
+        message: String,
+    ): ProblemDescriptor =
+        manager.createProblemDescriptor(
+            element,
+            message,
+            isOnTheFly,
+            LocalQuickFix.EMPTY_ARRAY,
+            ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+        )
+}
