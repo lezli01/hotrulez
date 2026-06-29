@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="src/main/resources/icons/firestoreRules.svg" alt="hotrulez logo" width="96">
+  <img src="src/main/resources/icons/firebaseRules.svg" alt="hotrulez logo" width="96">
 </p>
 
 <h1 align="center">hotrulez</h1>
 
 <p align="center">
-  <strong>First-class Cloud Firestore Security Rules support for JetBrains IDEs.</strong>
+  <strong>First-class Firebase Security Rules support for JetBrains IDEs — Cloud Firestore and Cloud Storage.</strong>
 </p>
 
 <p align="center">
@@ -32,14 +32,15 @@
 
 ## Why hotrulez?
 
-Cloud Firestore Security Rules are a real language — their own grammar, scoping,
-and built-ins — but no JetBrains IDE knows that. Open a `.rules` file and it is
+Firebase Security Rules — for both Cloud Firestore and Cloud Storage — are a real
+language with their own grammar, scoping, and built-ins, but no JetBrains IDE
+knows that. Open a `.rules` file and it is
 treated as JavaScript, JSON, or plain text: no highlighting that understands
 `match` and `allow`, no rules-aware formatting, no go-to-definition for your
 helper functions, and no warning when a rule can never parse.
 
 **There is currently no freely available solution that fills this gap.** hotrulez
-exists to fill that hole: a free, open-source plugin that makes Firestore Rules a
+exists to fill that hole: a free, open-source plugin that makes Firebase Rules a
 first-class language in the IDE — entirely structural and static, never evaluating
 authorization or connecting to Firebase.
 
@@ -49,10 +50,10 @@ It is released under the [MIT License](LICENSE) and created by `lezli01` at
 
 ## What It Does
 
-Open any `.rules` file and the IDE treats it as a first-class Firestore Rules
+Open any `.rules` file and the IDE treats it as a first-class Firebase Rules
 language:
 
-- **File recognition** — every `*.rules` file is recognized as Firestore Rules
+- **File recognition** — every `*.rules` file is recognized as Firebase Rules
   (by extension) and shown with a dedicated file icon.
 - **Syntax highlighting** — keywords, allow operations, built-ins, helpers,
   types, service names, function declarations and calls, path variables,
@@ -61,13 +62,13 @@ language:
 - **Formatting** — one reformat turns compact or messy rules into clean,
   consistently indented output while preserving your comments, blank lines, and
   multiline conditions.
-- **Diagnostics** — 17 checks flag always-wrong constructs as errors and
+- **Diagnostics** — 18 checks flag always-wrong constructs as errors and
   surface suspicious-but-legal structure as configurable warnings, with wording
   that stays structural (it never claims a rule is "secure").
 - **Symbol intelligence** — go to declaration, find usages, rename refactoring,
   and scope-aware code completion for functions, parameters, `let` bindings, and
-  path variables, all built on a PSI resolve layer that honors Firestore scoping
-  and path-variable shadowing.
+  path variables, all built on a PSI resolve layer that honors Firebase Rules
+  scoping and path-variable shadowing.
 - **Editor conveniences** — brace matching, quote auto-closing, and line/block
   comment toggling.
 
@@ -81,7 +82,7 @@ The highlighter exposes 24 categories, including semantic ones — service name,
 function declaration, and path variable — that a fast lexer alone cannot
 distinguish and that are resolved by a lightweight annotator. Every category is
 customizable with a live preview under **Settings | Editor | Color Scheme |
-Firestore Rules**.
+Firebase Rules**.
 
 ```
 rules_version = '2';
@@ -198,13 +199,13 @@ block rather than left untouched.
 Severity decides the home. Always-wrong, grammar-inexpressible mistakes are
 reported as **errors** by an always-on annotator. Configurable **warnings** for
 file shape and suspicious usage live in two inspections you can tune under
-**Settings | Editor | Inspections | Firestore Rules**. None of the wording
+**Settings | Editor | Inspections | Firebase Rules**. None of the wording
 asserts that a rule is secure or that a request would be authorized.
 
 ### Errors (always reported)
 
 - **Empty operation list** — `'allow' requires at least one operation, for example 'allow read'.`
-- **Unknown operation** — `allow read, fetch: …` → `Unknown Firestore Rules operation 'fetch'. Expected one of: get, list, read, create, update, delete, write.`
+- **Unknown operation** — `allow read, fetch: …` → `Unknown Firebase Rules operation 'fetch'. Expected one of: get, list, read, create, update, delete, write.`
 - **Duplicate parameter name** — `function f(uid, uid)` → `Duplicate parameter name 'uid'.`
 - **Function missing its return** — `Function 'helper' must end with a 'return' statement.`
 - **Bare return** — `return;` → `'return' requires an expression.`
@@ -215,7 +216,7 @@ For example, the unknown operation here is reported on the `fetch` token:
 
 ```
 match /cities/{city} {
-  allow read, fetch: if true;   // error: Unknown Firestore Rules operation 'fetch'.
+  allow read, fetch: if true;   // error: Unknown Firebase Rules operation 'fetch'.
 }
 ```
 
@@ -224,10 +225,11 @@ match /cities/{city} {
 - **Missing rules version** — `Missing 'rules_version = '2';' declaration at the top of the file.`
 - **Non-v2 rules version** — `rules_version = '1';` → `Expected 'rules_version = '2';' declaration at the top of the file; found version '1'.`
 - **Version after service** — `'rules_version' must be declared before the 'service' block.`
-- **Missing service** — `Missing 'service cloud.firestore { ... }' block.`
-- **Unsupported service name** — `service firebase.storage { … }` → `Firestore Rules files target 'service cloud.firestore'; found 'service firebase.storage'.`
+- **Missing service** — `Missing 'service cloud.firestore { ... }' or 'service firebase.storage { ... }' block.`
+- **Unknown service name** — both `cloud.firestore` and `firebase.storage` are recognized; an unrecognized service such as `service firebase.database { … }` is a soft warning (`Expected 'service cloud.firestore' or 'service firebase.storage'; found 'service firebase.database'.`) and the service-specific checks below are skipped.
 - **Service missing its block** — `'service cloud.firestore' is missing its rule block '{ ... }'.`
-- **Missing root match** — `Missing root 'match /databases/{database}/documents' block inside 'service cloud.firestore'.`
+- **Missing root match** — the conventional root for the *detected* service: `Missing root 'match /databases/{database}/documents' block inside 'service cloud.firestore'.` (Firestore) or `Missing root 'match /b/{bucket}/o' block inside 'service firebase.storage'.` (Cloud Storage).
+- **Multiple services** — `A rules file may declare only one 'service'; Firebase rejects multiple 'service' blocks per file.` (Firestore and Cloud Storage rules belong in separate files.)
 
 ### Usage warnings
 
@@ -263,14 +265,19 @@ Covered symbols: **functions**, **function parameters**, **`let` bindings**, and
     `delete`, `write`);
   - structural keywords (`match`, `allow`, `function`, `return`, `let`, `if`),
     with `rules_version` and `service` at the top level;
-  - `cloud.firestore` after `service `;
+  - `cloud.firestore` and `firebase.storage` after `service `;
   - in expression position, the symbols visible at the caret — scope-aware, so
     parameters are offered only inside their function, path variables only within
     their subtree, and a `let` only after its declaration — plus the built-ins
-    `request` and `resource`, the helpers `exists` / `get` / `getAfter` /
-    `existsAfter`, and the literals `true` / `false` / `null`;
+    `request` and `resource`, the literals `true` / `false` / `null`, and the
+    detected service's path helpers (Cloud Firestore's `get` / `exists` /
+    `getAfter` / `existsAfter`, or Cloud Storage's cross-service `firestore.get` /
+    `firestore.exists`);
   - shallow members after `request.`, `request.auth.`, `request.resource.`, and
-    `resource.`, drawn from a fixed table built from the official Firebase docs.
+    `resource.`, drawn from a fixed, **service-aware** table built from the
+    official Firebase docs — Firestore offers `resource.data` / `id` / `__name__`,
+    while Cloud Storage offers the object metadata (`resource.size`,
+    `resource.contentType`, `resource.metadata`, …).
 
 Built-in variables and helpers are **recognized** (so they are never mistaken for
 undefined names) but **non-navigable** — there is no declaration to jump to.
@@ -299,8 +306,11 @@ claims.
   fixed, documented list, not the result of evaluating an expression's type. The
   resolver links names to declarations; it never asserts that a rule is correct
   or secure.
-- **Firestore Rules only.** Cloud Storage rules are out of scope, and the
-  supported service is `cloud.firestore`.
+- **Firestore and Cloud Storage.** Both `service cloud.firestore` and
+  `service firebase.storage` are supported; the dialect (service name, root-match
+  shape, and `request`/`resource` members) is detected from the file's `service`
+  declaration. Other services (e.g. `firebase.database`, whose rules are JSON) are
+  not modeled.
 - **Conservative diagnostics.** The grammar is intentionally permissive so the
   IDE keeps working while you edit. Constructs not confirmed by official Firebase
   docs are parsed without being flagged.
@@ -312,7 +322,7 @@ claims.
 - **One fixed formatting style.** There is no custom code-style settings UI, and
   the formatter applies no column alignment.
 
-## Example Firestore Rules File
+## Example Cloud Firestore Rules File
 
 A complete file that exercises most of what the plugin understands:
 
@@ -341,6 +351,32 @@ service cloud.firestore {
 }
 ```
 
+## Example Cloud Storage Rules File
+
+The same features work on a `service firebase.storage` file — the dialect is
+detected from the `service` declaration — with the Cloud Storage root match
+(`/b/{bucket}/o`) and object-metadata members (`request.resource.size`,
+`request.resource.contentType`):
+
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
+```
+
 ## How It Is Built
 
 The project is a Kotlin-based IntelliJ Platform plugin built with Gradle Kotlin
@@ -351,11 +387,11 @@ Important parts of the repository:
 ```text
 build.gradle.kts
 settings.gradle.kts
-src/main/grammar/                  # FirestoreRules.bnf + FirestoreRules.flex
+src/main/grammar/                  # FirebaseRules.bnf + FirebaseRules.flex
 src/main/kotlin/dev/lezli/hotrulez/
-  FirestoreRulesLanguage.kt
-  FirestoreRulesFileType.kt
-  FirestoreRulesIcons.kt
+  FirebaseRulesLanguage.kt
+  FirebaseRulesFileType.kt
+  FirebaseRulesIcons.kt
   lexer/
   highlighting/
   parser/
@@ -377,10 +413,10 @@ docs/tasks.md
 
 The implementation is split by responsibility:
 
-- `lexer/` tokenizes Firestore Rules syntax for highlighting.
+- `lexer/` tokenizes Firebase Rules syntax for highlighting.
 - `highlighting/` maps tokens to IDE text attributes and exposes the color page.
 - `parser/` wires the generated parser/PSI into a recoverable `ParserDefinition`.
-- `psi/` defines the Firestore Rules PSI file and wrapper elements.
+- `psi/` defines the Firebase Rules PSI file and wrapper elements.
 - `formatting/` provides IntelliJ formatter blocks and spacing rules.
 - `diagnostics/` provides the annotator and inspections.
 - `editor/` provides the brace matcher, quote handler, and commenter.
@@ -397,7 +433,7 @@ from `src/main/grammar/` into `build/generated/sources/grammarkit` (not
 committed); generation runs automatically before compilation. The grammar is
 deliberately permissive and recovery-oriented, so a malformed statement is
 isolated to its own declaration instead of breaking the rest of the file. A
-second, hand-written lexer (`lexer/FirestoreRulesLexer.kt`) is used only for
+second, hand-written lexer (`lexer/FirebaseRulesLexer.kt`) is used only for
 highlighting.
 
 ## Requirements
@@ -460,8 +496,8 @@ Install it in a JetBrains IDE:
 
 After installation:
 
-- Open a `.rules` file to get Firestore Rules file recognition and highlighting.
-- Use the IDE's normal reformat action to format Firestore Rules files.
+- Open a `.rules` file to get Firebase Rules file recognition and highlighting.
+- Use the IDE's normal reformat action to format Firebase Rules files.
 - Keep using Firebase's official tooling for deployment and authorization
   behavior checks.
 

@@ -5,8 +5,12 @@
 
     <description><![CDATA[
         <p>
-            Language support for <b>Firebase Cloud Firestore Security Rules</b>
-            (<code>.rules</code> files) in JetBrains IDEs.
+            Language support for <b>Firebase Security Rules</b> &mdash; both
+            <b>Cloud Firestore</b> and <b>Cloud Storage</b> &mdash; in
+            <code>.rules</code> files in JetBrains IDEs. The dialect (service name,
+            root match shape, and <code>request</code>/<code>resource</code>
+            members) is detected from the <code>service</code> declaration in each
+            file.
         </p>
         <p>Features:</p>
         <ul>
@@ -17,7 +21,7 @@
                 commenting</li>
             <li><b>Symbol intelligence</b> &mdash; go to definition, find usages,
                 and rename for functions, parameters, <code>let</code> bindings,
-                and path variables, with Firestore-aware scoping and
+                and path variables, with Firebase-aware scoping and
                 path-variable shadowing</li>
             <li><b>Scope-aware code completion</b> for keywords,
                 <code>allow</code> operations, in-scope symbols, built-ins
@@ -29,92 +33,101 @@
             hotrulez is purely structural: it never connects to Firebase, runs
             the emulator, or evaluates whether a rule authorizes a request.
         </p>
+        <p>
+            hotrulez is free and open source &mdash; if it saves you time, you can
+            <a href="https://www.buymeacoffee.com/lezli01">buy me a coffee</a>. Thank you!
+        </p>
+        <p>
+            <a href="https://www.buymeacoffee.com/lezli01"><img
+                src="https://img.shields.io/badge/Buy_Me_a_Coffee-ffdd00?logo=buymeacoffee&amp;logoColor=black"
+                alt="Buy Me a Coffee"></a>
+        </p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <fileType
-            name="Firestore Rules"
-            implementationClass="dev.lezli.hotrulez.FirestoreRulesFileType"
+            name="Firebase Rules"
+            implementationClass="dev.lezli.hotrulez.FirebaseRulesFileType"
             fieldName="INSTANCE"
-            language="FirestoreRules"
+            language="FirebaseRules"
             extensions="rules"/>
 
         <lang.syntaxHighlighterFactory
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesSyntaxHighlighterFactory"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.highlighting.FirebaseRulesSyntaxHighlighterFactory"/>
 
         <annotator
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.highlighting.FirestoreRulesAnnotator"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.highlighting.FirebaseRulesAnnotator"/>
 
         <colorSettingsPage
-            implementation="dev.lezli.hotrulez.highlighting.FirestoreRulesColorSettingsPage"/>
+            implementation="dev.lezli.hotrulez.highlighting.FirebaseRulesColorSettingsPage"/>
 
         <lang.parserDefinition
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.parser.FirestoreRulesParserDefinition"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.parser.FirebaseRulesParserDefinition"/>
 
         <lang.formatter
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.formatting.FirestoreRulesFormattingModelBuilder"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.formatting.FirebaseRulesFormattingModelBuilder"/>
 
         <lang.braceMatcher
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesBraceMatcher"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirebaseRulesBraceMatcher"/>
 
         <lang.quoteHandler
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesQuoteHandler"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirebaseRulesQuoteHandler"/>
 
         <lang.commenter
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.editor.FirestoreRulesCommenter"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.editor.FirebaseRulesCommenter"/>
 
         <annotator
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesAnnotator"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesAnnotator"/>
 
         <localInspection
-            language="FirestoreRules"
-            shortName="FirestoreRulesStructure"
-            displayName="Firestore Rules file structure"
-            groupName="Firestore Rules"
+            language="FirebaseRules"
+            shortName="FirebaseRulesStructure"
+            displayName="Firebase Rules file structure"
+            groupName="Firebase Rules"
             enabledByDefault="true"
             level="WARNING"
-            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesStructureInspection"/>
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesStructureInspection"/>
 
         <localInspection
-            language="FirestoreRules"
-            shortName="FirestoreRulesUsage"
-            displayName="Firestore Rules suspicious usage"
-            groupName="Firestore Rules"
+            language="FirebaseRules"
+            shortName="FirebaseRulesUsage"
+            displayName="Firebase Rules suspicious usage"
+            groupName="Firebase Rules"
             enabledByDefault="true"
             level="WARNING"
-            implementationClass="dev.lezli.hotrulez.diagnostics.FirestoreRulesUsageInspection"/>
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesUsageInspection"/>
 
         <!-- Symbol intelligence (v2): resolve/go-to-definition, find usages, rename, completion.
              References are attached directly on the PSI (see
-             FirestoreRulesReferenceExpressionMixin.getReference()), so no
+             FirebaseRulesReferenceExpressionMixin.getReference()), so no
              psi.referenceContributor is registered. -->
         <lang.elementManipulator
-            forClass="dev.lezli.hotrulez.psi.impl.FirestoreRulesReferenceExpressionImpl"
-            implementationClass="dev.lezli.hotrulez.references.FirestoreRulesReferenceManipulator"/>
+            forClass="dev.lezli.hotrulez.psi.impl.FirebaseRulesReferenceExpressionImpl"
+            implementationClass="dev.lezli.hotrulez.references.FirebaseRulesReferenceManipulator"/>
 
         <lang.findUsagesProvider
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.findusages.FirestoreRulesFindUsagesProvider"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.findusages.FirebaseRulesFindUsagesProvider"/>
 
         <lang.namesValidator
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.refactoring.FirestoreRulesNamesValidator"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.refactoring.FirebaseRulesNamesValidator"/>
 
         <completion.contributor
-            language="FirestoreRules"
-            implementationClass="dev.lezli.hotrulez.completion.FirestoreRulesCompletionContributor"/>
+            language="FirebaseRules"
+            implementationClass="dev.lezli.hotrulez.completion.FirebaseRulesCompletionContributor"/>
 
         <renamePsiElementProcessor
-            implementation="dev.lezli.hotrulez.refactoring.FirestoreRulesPathVariableRenameProcessor"/>
+            implementation="dev.lezli.hotrulez.refactoring.FirebaseRulesPathVariableRenameProcessor"/>
     </extensions>
 </idea-plugin>

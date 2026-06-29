@@ -2,15 +2,15 @@
 
 ## Scope
 
-`hotrulez` is a static, structural JetBrains IDE plugin for Firebase Cloud
-Firestore Security Rules. By design it **never connects to Firebase, runs the
+`hotrulez` is a static, structural JetBrains IDE plugin for Firebase Security
+Rules (Cloud Firestore and Cloud Storage). By design it **never connects to Firebase, runs the
 emulator, reads credentials, or evaluates whether a rule authorizes a
 request** — it only parses, highlights, formats, and analyzes the structure of
 `.rules` files locally in the IDE. Its attack surface is therefore small, but
 we still take security reports seriously.
 
 > [!IMPORTANT]
-> hotrulez does not assess whether your Firestore Rules are *secure*. It makes
+> hotrulez does not assess whether your Firebase Security Rules are *secure*. It makes
 > no authorization decisions. Continue to use Firebase's official tooling to
 > test and deploy your rules. A diagnostic from this plugin is never a security
 > guarantee.

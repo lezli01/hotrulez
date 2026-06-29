@@ -6,6 +6,9 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/lezli01/hotrulez/security/advisories/new
     about: Privately report a security issue (do not open a public issue).
-  - name: Firebase Firestore Rules documentation
+  - name: Cloud Firestore Security Rules documentation
     url: https://firebase.google.com/docs/firestore/security/get-started
-    about: Official Firebase docs for writing and deploying Firestore Security Rules.
+    about: Official Firebase docs for writing and deploying Cloud Firestore Security Rules.
+  - name: Cloud Storage Security Rules documentation
+    url: https://firebase.google.com/docs/storage/security
+    about: Official Firebase docs for writing and deploying Cloud Storage Security Rules.

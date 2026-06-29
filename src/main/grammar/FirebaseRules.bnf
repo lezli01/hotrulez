@@ -1,0 +1,315 @@
+/*
+ * Grammar-Kit grammar for Firebase Cloud Firestore Security Rules.
+ *
+ * Synthesised from two community tree-sitter grammars:
+ *   - https://github.com/nicbytes/tree-sitter-firebase-security-rules
+ *   - https://github.com/grimsteel/tree-sitter-firestore-rules
+ * and reconciled against the official Firebase docs
+ * (firebase.google.com/docs/firestore/security/rules-structure and rules-conditions).
+ *
+ * Generation (also runs automatically before compileKotlin/compileJava):
+ *   ./gradlew generateFirestoreParser generateFirestoreLexer
+ * Lexer source: src/main/grammar/FirebaseRules.flex
+ *
+ * Design notes:
+ *   - The parser is intentionally PERMISSIVE: it accepts a superset of strict
+ *     Firestore syntax so the IDE keeps working while editing and so diagnostics
+ *     (a later milestone) can flag the semantic issues with precise messages.
+ *   - Paths are assembled by the grammar from generic tokens ('/', identifiers,
+ *     '{', '}', '$', '(' id ')') rather than via a context-sensitive lexer, so
+ *     the JFlex lexer stays context-free.
+ *   - Constructs NOT confirmed by official Firestore docs (and therefore left for
+ *     future diagnostics rather than rejected here) are tagged "UNCONFIRMED":
+ *     block comments, hex numbers, list/index/slice subscripts, trailing commas,
+ *     the "(default)" path literal, and let-bindings outside function bodies.
+ *     TODO(UNCONFIRMED): re-confirm each against the official conditions / rules-
+ *     language docs before relying on them in diagnostics —
+ *     https://firebase.google.com/docs/firestore/security/rules-conditions and
+ *     https://firebase.google.com/docs/rules/rules-language
+ */
+
+{
+  parserClass="dev.lezli.hotrulez.parser.FirebaseRulesParser"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="FirebaseRules"
+  psiImplClassSuffix="Impl"
+  psiPackage="dev.lezli.hotrulez.psi"
+  psiImplPackage="dev.lezli.hotrulez.psi.impl"
+
+  elementTypeHolderClass="dev.lezli.hotrulez.psi.FirebaseRulesTypes"
+  elementTypeClass="dev.lezli.hotrulez.parser.FirebaseRulesElementType"
+  tokenTypeClass="dev.lezli.hotrulez.lexer.FirebaseRulesTokenType"
+
+  // Engage Grammar-Kit's operator-precedence engine: every *_expression / *_literal
+  // rule extends the root `expression`, so left-recursive operator rules are parsed
+  // with precedence climbing rather than naive choice. (slice/type_reference are named
+  // to deliberately NOT match this pattern.)
+  extends(".*_(expression|literal)")=expression
+
+  tokens=[
+    // keywords
+    RULES_VERSION_KEYWORD='rules_version'
+    SERVICE_KEYWORD='service'
+    MATCH_KEYWORD='match'
+    ALLOW_KEYWORD='allow'
+    IF_KEYWORD='if'
+    FUNCTION_KEYWORD='function'
+    RETURN_KEYWORD='return'
+    LET_KEYWORD='let'
+    TRUE_KEYWORD='true'
+    FALSE_KEYWORD='false'
+    NULL_KEYWORD='null'
+    IN_KEYWORD='in'
+    IS_KEYWORD='is'
+
+    // operators (multi-char before single-char where it matters in the lexer)
+    OR_OR='||'
+    AND_AND='&&'
+    EQEQ='=='
+    NE='!='
+    LE='<='
+    GE='>='
+    LT='<'
+    GT='>'
+    PLUS='+'
+    MINUS='-'
+    STAR_STAR='**'
+    STAR='*'
+    SLASH='/'
+    PERCENT='%'
+    NOT='!'
+    QUESTION='?'
+    ASSIGN='='
+    DOLLAR='$'
+
+    // punctuation
+    DOT='.'
+    COMMA=','
+    COLON=':'
+    SEMICOLON=';'
+    LPAREN='('
+    RPAREN=')'
+    LBRACE='{'
+    RBRACE='}'
+    LBRACKET='['
+    RBRACKET=']'
+
+    // matched by the JFlex lexer; regexp here is documentation / live-preview only
+    IDENTIFIER='regexp:[a-zA-Z_][a-zA-Z0-9_]*'
+    NUMBER='regexp:0x[0-9a-fA-F]+|([0-9]+(\.[0-9]+)?|\.[0-9]+)([eE][+-]?[0-9]+)?'
+    STRING="regexp:'([^'\\]|\\.)*'|\"([^\"\\]|\\.)*\""
+    LINE_COMMENT='regexp://[^\n]*'
+    BLOCK_COMMENT='regexp:/\*([^*]|\*[^/])*\*/'
+  ]
+}
+
+// ---------------------------------------------------------------------------
+// Top level
+// ---------------------------------------------------------------------------
+
+root ::= top_level_item *
+
+// Top-level recovery: unrecognized leading or inter-declaration tokens are
+// consumed up to the next declaration keyword rather than collapsing the entire
+// rest of the file into a single PsiErrorElement region. The `!<<eof>>` guard and
+// pin make the item recoverable even when it matches nothing (e.g. leading junk).
+private top_level_item ::= !<<eof>> top_level_decl { pin=1 recoverWhile=top_level_recover }
+private top_level_decl ::= rules_version_statement
+                         | service_declaration
+                         | match_declaration
+                         | function_declaration
+private top_level_recover ::= !('rules_version' | 'service' | 'match' | 'function')
+
+rules_version_statement ::= 'rules_version' '=' STRING ';' { pin=1 }
+
+// The block is optional so a service that is still being typed (`service
+// cloud.firestore` before the `{`) parses cleanly instead of flashing a parse
+// error; a missing block is reported as a configurable warning by the structure
+// inspection rather than rejected here.
+service_declaration ::= 'service' service_name block? { pin=1 }
+service_name ::= IDENTIFIER ('.' IDENTIFIER)*
+
+// ---------------------------------------------------------------------------
+// Blocks and statements
+// ---------------------------------------------------------------------------
+
+block ::= '{' block_item * '}' { pin=1 }
+private block_item ::= !('}' | <<eof>>) block_decl { pin=1 recoverWhile=block_item_recover }
+private block_decl ::= match_declaration
+                     | allow_statement
+                     | function_declaration
+private block_item_recover ::= !('}' | 'match' | 'allow' | 'function')
+
+match_declaration ::= 'match' match_path block { pin=1 recoverWhile=statement_recover }
+
+allow_statement ::= 'allow' method_list (':' 'if' expression)? ';' { pin=1 recoverWhile=statement_recover }
+method_list ::= IDENTIFIER (',' IDENTIFIER)*
+
+// The function name is a named element (PsiNameIdentifierOwner) so go-to-definition,
+// find-usages, and rename can key off it; the resolver links calls to it across
+// service/match scope (see dev.lezli.hotrulez.references).
+function_declaration ::= 'function' IDENTIFIER parameter_list function_body {
+  pin=1 recoverWhile=statement_recover
+  implements="dev.lezli.hotrulez.references.FirebaseRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirebaseRulesNamedElementBase"
+}
+parameter_list ::= '(' (parameter (',' parameter)*)? ')'
+// Each parameter is its own named element so it can be resolved and renamed; the
+// bare-IDENTIFIER form gave the list no per-parameter PSI node to hang a name on.
+parameter ::= IDENTIFIER {
+  implements="dev.lezli.hotrulez.references.FirebaseRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirebaseRulesNamedElementBase"
+}
+function_body ::= '{' function_body_item * '}' { pin=1 }
+private function_body_item ::= let_statement | return_statement
+// Per-statement recovery inside a function body (mirrors statement_recover for
+// match/allow/function): a malformed let/return resyncs at the next statement
+// keyword or the body's closing brace instead of degrading the rest of the body.
+private function_body_recover ::= !('}' | 'let' | 'return')
+// UNCONFIRMED scope: official docs only allow `let` inside function bodies.
+// TODO(UNCONFIRMED): confirm whether `let` is permitted outside function bodies —
+//   https://firebase.google.com/docs/rules/rules-language
+let_statement ::= 'let' IDENTIFIER '=' expression ';' {
+  pin=1 recoverWhile=function_body_recover
+  implements="dev.lezli.hotrulez.references.FirebaseRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirebaseRulesNamedElementBase"
+}
+return_statement ::= 'return' expression? ';' { pin=1 recoverWhile=function_body_recover }
+
+private statement_recover ::= !('}' | 'match' | 'allow' | 'function' | 'service' | 'rules_version')
+
+// ---------------------------------------------------------------------------
+// Match paths (no interpolation here; that is only valid in get()/exists() args)
+// ---------------------------------------------------------------------------
+
+match_path ::= path_part +
+private path_part ::= '/' path_segment
+private path_segment ::= recursive_wildcard | path_wildcard | paren_path_segment | path_name_segment
+// Path/wildcard variables bind a name visible within the match subtree (with
+// inner-match shadowing); making them named elements drives their resolve/rename.
+path_wildcard ::= '{' IDENTIFIER '}' {
+  implements="dev.lezli.hotrulez.references.FirebaseRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirebaseRulesNamedElementBase"
+}
+recursive_wildcard ::= '{' IDENTIFIER '=' '**' '}' {
+  implements="dev.lezli.hotrulez.references.FirebaseRulesNamedElement"
+  mixin="dev.lezli.hotrulez.references.FirebaseRulesNamedElementBase"
+}
+path_name_segment ::= path_literal_token +
+private path_literal_token ::= IDENTIFIER
+                             | NUMBER
+                             | 'rules_version'
+                             | 'service'
+                             | 'match'
+                             | 'allow'
+                             | 'if'
+                             | 'function'
+                             | 'return'
+                             | 'let'
+                             | 'true'
+                             | 'false'
+                             | 'null'
+                             | 'in'
+                             | 'is'
+                             | '-'
+                             | '.'
+
+// ---------------------------------------------------------------------------
+// Expressions (Grammar-Kit operator-precedence form; lowest precedence first)
+// ---------------------------------------------------------------------------
+
+expression ::= ternary_expression
+             | or_expression
+             | and_expression
+             | relational_group
+             | additive_group
+             | multiplicative_group
+             | unary_group
+             | postfix_group
+             | primary_group
+
+ternary_expression ::= expression '?' expression ':' expression { rightAssociative=true }
+
+or_expression ::= expression '||' expression
+and_expression ::= expression '&&' expression
+
+// One precedence tier for equality + relational + membership + type-test, matching
+// CEL (Firestore's semantics) and the grimsteel grammar: all left-associative at the
+// same level, so `a == b < c` parses as `(a == b) < c`.
+private relational_group ::= eq_expression | ne_expression | lt_expression | le_expression | gt_expression | ge_expression | in_expression | is_expression
+eq_expression ::= expression '==' expression
+ne_expression ::= expression '!=' expression
+lt_expression ::= expression '<' expression
+le_expression ::= expression '<=' expression
+gt_expression ::= expression '>' expression
+ge_expression ::= expression '>=' expression
+in_expression ::= expression 'in' expression
+is_expression ::= expression 'is' type_reference
+type_reference ::= IDENTIFIER
+
+private additive_group ::= add_expression | sub_expression
+add_expression ::= expression '+' expression
+sub_expression ::= expression '-' expression
+
+private multiplicative_group ::= mul_expression | div_expression | mod_expression
+mul_expression ::= expression '*' expression
+div_expression ::= expression '/' expression
+mod_expression ::= expression '%' expression
+
+private unary_group ::= not_expression | neg_expression
+not_expression ::= '!' expression
+neg_expression ::= '-' expression
+
+private postfix_group ::= call_expression | member_expression | index_expression
+call_expression ::= expression argument_list
+member_expression ::= expression '.' IDENTIFIER
+// UNCONFIRMED: subscript / slice access is not documented for Firestore rules.
+// TODO(UNCONFIRMED): confirm list/map index & slice subscript support —
+//   https://firebase.google.com/docs/firestore/security/rules-conditions
+index_expression ::= expression '[' index_content ']'
+// Order matters: `slice` is tried first and backtracks when a ternary inside the
+// brackets consumes the ':' (so `a[b ? c : d]` parses as an index of a ternary).
+// Do not reorder these two alternatives.
+private index_content ::= slice | expression
+slice ::= expression? ':' expression?
+
+argument_list ::= '(' (argument (',' argument)* ','?)? ')'
+private argument ::= path_argument | expression
+
+private primary_group ::= parenthesized_expression
+                        | list_literal
+                        | map_literal
+                        | reference_expression
+                        | literal_expression { extraRoot=true }
+parenthesized_expression ::= '(' expression ')'
+// An identifier use. Its reference resolves to a function / parameter / let /
+// path variable (or to nothing, for built-ins and helpers); the mixin attaches
+// the reference directly on the PSI (see the references package).
+reference_expression ::= IDENTIFIER {
+  mixin="dev.lezli.hotrulez.references.FirebaseRulesReferenceExpressionMixin"
+}
+literal_expression ::= NUMBER | STRING | 'true' | 'false' | 'null'
+list_literal ::= '[' (expression (',' expression)* ','?)? ']'
+map_literal ::= '{' (map_entry (',' map_entry)* ','?)? '}'
+map_entry ::= map_key ':' expression
+private map_key ::= IDENTIFIER | STRING
+
+// ---------------------------------------------------------------------------
+// Path arguments to get()/exists()/getAfter()/existsAfter() and firestore.*
+// ---------------------------------------------------------------------------
+
+path_argument ::= path_arg_part +
+private path_arg_part ::= '/' path_arg_segment
+private path_arg_segment ::= recursive_wildcard
+                           | path_wildcard
+                           | path_interpolation
+                           | paren_path_segment
+                           | path_name_segment
+path_interpolation ::= '$' '(' expression ')'
+// UNCONFIRMED: the "(default)" literal segment is documented only for
+// cross-service firestore.get/exists() calls, not native Firestore get()/exists().
+// TODO(UNCONFIRMED): confirm the "(default)" path literal for native get()/exists() —
+//   https://firebase.google.com/docs/firestore/security/rules-conditions
+paren_path_segment ::= '(' IDENTIFIER ')'

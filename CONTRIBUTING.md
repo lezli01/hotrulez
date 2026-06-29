@@ -1,9 +1,9 @@
 # Contributing to hotrulez
 
 Thanks for your interest in improving **hotrulez** — a JetBrains IDE plugin for
-Firebase Cloud Firestore Security Rules. Contributions of every size are
-welcome: bug reports, documentation fixes, new diagnostics, test cases, and
-features.
+Firebase Security Rules (both Cloud Firestore and Cloud Storage). Contributions
+of every size are welcome: bug reports, documentation fixes, new diagnostics,
+test cases, and features.
 
 By participating in this project you agree to abide by our
 [Code of Conduct](CODE_OF_CONDUCT.md).
@@ -41,7 +41,7 @@ The parser, typed PSI, and parsing lexer are generated from
 automatically before compilation; to regenerate explicitly:
 
 ```bash
-./gradlew generateFirestoreParser generateFirestoreLexer
+./gradlew generateFirebaseParser generateFirebaseLexer
 ```
 
 ## Building and running
@@ -65,11 +65,12 @@ the fastest way to try a change against real `.rules` files.
   [AGENTS.md](AGENTS.md).
 - **Add focused tests** when changing lexer, parser, formatter, diagnostics, or
   symbol-intelligence logic. Match the existing test files
-  (`FirestoreRulesAnnotatorTest`, `FirestoreRulesResolveTest`, etc.).
+  (`FirebaseRulesAnnotatorTest`, `FirebaseRulesResolveTest`, etc.).
 - Keep diagnostic wording **structural** — describe syntax and structure; never
   assert that a rule is "secure" or that a request would be authorized.
-- Confirm Firestore Rules semantics against the official Firebase documentation
-  before adding or changing a check.
+- Confirm Firebase Rules semantics (for the relevant service — Cloud Firestore or
+  Cloud Storage) against the official Firebase documentation before adding or
+  changing a check.
 - Match the style of the surrounding Kotlin. A `.editorconfig` is provided.
 
 ## Commit messages — Conventional Commits
