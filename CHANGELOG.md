@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/lezli01/hotrulez/compare/v0.5.0...v0.6.0) (2026-06-29)
+
+
+### Features
+
+* support Cloud Storage rules alongside Cloud Firestore ([f115c19](https://github.com/lezli01/hotrulez/commit/f115c19390fe8c178cd4370c344e851e80b7962a))
+* support Cloud Storage rules alongside Cloud Firestore ([03b589d](https://github.com/lezli01/hotrulez/commit/03b589df472fc7f8b4a067a740aab9e55e66571a))
+
 ## [0.5.0](https://github.com/lezli01/hotrulez/compare/v0.4.0...v0.5.0) (2026-06-28)
 
 
