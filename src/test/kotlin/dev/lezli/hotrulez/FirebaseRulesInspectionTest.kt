@@ -70,11 +70,50 @@ class FirebaseRulesInspectionTest : BasePlatformTestCase() {
         assertContainsDescription(warnings, "Missing 'service cloud.firestore")
     }
 
-    fun testUnsupportedServiceNameIsWarning() {
+    fun testStorageServiceWithBucketRootHasNoWarnings() {
+        // firebase.storage is a first-class supported service: a well-formed storage
+        // file with the /b/{bucket}/o root must produce no structure warnings.
+        assertEmpty(
+            warningsFor(
+                """
+                rules_version = '2';
+                service firebase.storage {
+                  match /b/{bucket}/o {
+                    match /images/{imageId} {
+                      allow read, write: if request.auth != null;
+                    }
+                  }
+                }
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    fun testStorageServiceMissingBucketRootIsWarning() {
+        // A storage service whose top-level match is not /b/{bucket}/o draws the
+        // storage-specific missing-root warning (not the Firestore documents path).
         val warnings = warningsFor(
             """
             rules_version = '2';
             service firebase.storage {
+              match /images/{imageId} {
+                allow read: if true;
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(1, warnings.size)
+        assertContainsDescription(warnings, "Missing root 'match /b/{bucket}/o' block inside 'service firebase.storage'")
+    }
+
+    fun testUnknownServiceNameIsSoftWarning() {
+        // An unrecognised service — a typo, or another product such as firebase.database
+        // whose rules are JSON, not this language — is a soft warning, and the
+        // service-specific structure checks are skipped rather than guessing a dialect.
+        val warnings = warningsFor(
+            """
+            rules_version = '2';
+            service firebase.database {
               match /b/{id} {
                 allow read: if true;
               }
@@ -82,7 +121,32 @@ class FirebaseRulesInspectionTest : BasePlatformTestCase() {
             """.trimIndent(),
         )
         assertEquals(1, warnings.size)
-        assertContainsDescription(warnings, "found 'service firebase.storage'")
+        assertContainsDescription(
+            warnings,
+            "Expected 'service cloud.firestore' or 'service firebase.storage'; found 'service firebase.database'",
+        )
+    }
+
+    fun testMultipleServiceBlocksIsWarning() {
+        // Firebase allows only one service per file (Firestore and Storage rules go in
+        // separate files), so a second service block is flagged on its name.
+        val warnings = warningsFor(
+            """
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                allow read: if true;
+              }
+            }
+            service firebase.storage {
+              match /b/{bucket}/o {
+                allow read: if true;
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(1, warnings.size)
+        assertContainsDescription(warnings, "may declare only one 'service'")
     }
 
     fun testMissingRootMatchIsWarning() {
@@ -175,10 +239,24 @@ class FirebaseRulesInspectionTest : BasePlatformTestCase() {
         )
     }
 
-    fun testFirestoreNamespaceHelperWrongArityIsWarning() {
-        val warnings = warningsFor(
-            inCity("allow read: if firestore.exists();"),
-        )
+    fun testFirestoreNamespaceCallIsNotCrossServiceHelperInFirestoreFile() {
+        // Cross-service `firestore.get`/`firestore.exists` is a Cloud Storage construct.
+        // In a cloud.firestore file `firestore` is just a (user) symbol, so a member call
+        // on it — even with a "wrong" argument count — must not be flagged as a path helper.
+        // (In a storage file it IS flagged; see testStorageFirestoreCrossServiceHelperArityIsWarned.)
+        assertEmpty(warningsFor(inCity("allow read: if firestore.get('k', 'd') == 1;")))
+    }
+
+    fun testStorageBareExistsIsNotArityWarned() {
+        // Cloud Storage has no bare path helpers, so a bare `exists()` in a storage file
+        // is not the Firestore path helper and must not draw a path-helper arity warning.
+        assertEmpty(warningsFor(inBucket("allow read: if exists();")))
+    }
+
+    fun testStorageFirestoreCrossServiceHelperArityIsWarned() {
+        // The cross-service firestore.exists() IS a single-path helper, valid from
+        // storage rules, so a zero-argument call is still flagged for arity.
+        val warnings = warningsFor(inBucket("allow read: if firestore.exists();"))
         assertEquals(1, warnings.size)
         assertContainsDescription(warnings, "'exists()' takes exactly one argument but found 0")
     }
@@ -417,13 +495,26 @@ class FirebaseRulesInspectionTest : BasePlatformTestCase() {
         return myFixture.doHighlighting().filter { it.severity == HighlightSeverity.WARNING }
     }
 
-    /** Wraps a statement in a minimal, otherwise-well-formed v2 rules file. */
+    /** Wraps a statement in a minimal, otherwise-well-formed v2 Cloud Firestore rules file. */
     private fun inCity(statement: String): String =
         """
         rules_version = '2';
         service cloud.firestore {
           match /databases/{database}/documents {
             match /cities/{city} {
+              $statement
+            }
+          }
+        }
+        """.trimIndent()
+
+    /** Wraps a statement in a minimal, otherwise-well-formed v2 Cloud Storage rules file. */
+    private fun inBucket(statement: String): String =
+        """
+        rules_version = '2';
+        service firebase.storage {
+          match /b/{bucket}/o {
+            match /images/{imageId} {
               $statement
             }
           }

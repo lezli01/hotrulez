@@ -8,12 +8,12 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import dev.lezli.hotrulez.diagnostics.FirebaseRulesDiagnostics.SERVICE_FIRESTORE
 import dev.lezli.hotrulez.psi.FirebaseRulesFile
 import dev.lezli.hotrulez.psi.FirebaseRulesFunctionDeclaration
 import dev.lezli.hotrulez.psi.FirebaseRulesMatchDeclaration
 import dev.lezli.hotrulez.psi.FirebaseRulesRulesVersionStatement
 import dev.lezli.hotrulez.psi.FirebaseRulesServiceDeclaration
+import dev.lezli.hotrulez.references.RulesService
 
 /**
  * File-level structure warnings for Firestore Rules: the checks that need the
@@ -67,10 +67,21 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
         }
 
         if (services.isEmpty()) {
-            problems += problem(manager, anchor, isOnTheFly, "Missing 'service cloud.firestore { ... }' block.")
+            problems += problem(manager, anchor, isOnTheFly, "Missing 'service cloud.firestore { ... }' or 'service firebase.storage { ... }' block.")
         } else {
             for (service in services) {
                 checkService(service, manager, isOnTheFly, problems)
+            }
+            // A rules file targets exactly one service — Firebase rejects more than one
+            // `service` block per file (Firestore and Storage rules live in separate
+            // files). Flag every block after the first.
+            for (extra in services.drop(1)) {
+                problems += problem(
+                    manager,
+                    extra.serviceName ?: extra,
+                    isOnTheFly,
+                    "A rules file may declare only one 'service'; Firebase rejects multiple 'service' blocks per file.",
+                )
             }
         }
 
@@ -85,13 +96,17 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
     ) {
         val serviceName = service.serviceName ?: return
         val name = serviceName.text.filterNot { it.isWhitespace() }
+        val rulesService = RulesService.fromServiceName(name)
 
-        if (name != SERVICE_FIRESTORE) {
+        if (rulesService == null) {
+            // Unknown service — a typo, or another product (e.g. 'firebase.database',
+            // whose rules are JSON, not this language). Surface a soft warning and skip
+            // the service-specific structure checks rather than guess a dialect.
             problems += problem(
                 manager,
                 serviceName,
                 isOnTheFly,
-                "Firestore Rules files target 'service cloud.firestore'; found 'service $name'.",
+                "Expected 'service cloud.firestore' or 'service firebase.storage'; found 'service $name'.",
             )
             return
         }
@@ -108,18 +123,27 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
             )
             return
         }
-        // Direct children only: the root documents match must be a top-level match of
-        // the service block, not a coincidental occurrence buried in a nested match.
+        // Direct children only: the root match must be a top-level match of the
+        // service block, not a coincidental occurrence buried in a nested match.
         val hasRootMatch = PsiTreeUtil.getChildrenOfType(block, FirebaseRulesMatchDeclaration::class.java)
-            ?.any { FirebaseRulesDiagnostics.isRootDocumentsPath(it.matchPath) } ?: false
+            ?.any { matchesRootFor(rulesService, it) } ?: false
         if (!hasRootMatch) {
             problems += problem(
                 manager,
                 serviceName,
                 isOnTheFly,
-                "Missing root 'match /databases/{database}/documents' block inside 'service cloud.firestore'.",
+                "Missing root 'match ${rulesService.rootMatchHint}' block inside 'service $name'.",
             )
         }
+    }
+
+    /** Whether [match] is the conventional root match for [service]. */
+    private fun matchesRootFor(
+        service: RulesService,
+        match: FirebaseRulesMatchDeclaration,
+    ): Boolean = when (service) {
+        RulesService.FIRESTORE -> FirebaseRulesDiagnostics.isRootDocumentsPath(match.matchPath)
+        RulesService.STORAGE -> FirebaseRulesDiagnostics.isRootBucketPath(match.matchPath)
     }
 
     /** The first top-level declaration, used as the anchor for file-wide problems. */

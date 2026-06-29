@@ -68,7 +68,7 @@ class FirebaseRulesAnnotatorTest : BasePlatformTestCase() {
             inCity("allow read, fetch, write: if true;"),
         )
         assertEquals(1, errors.size)
-        assertContainsDescription(errors, "Unknown Firestore Rules operation 'fetch'")
+        assertContainsDescription(errors, "Unknown Firebase Rules operation 'fetch'")
     }
 
     fun testKnownOperationsProduceNoError() {

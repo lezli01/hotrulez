@@ -31,14 +31,16 @@ import dev.lezli.hotrulez.psi.FirebaseRulesTypes as T
 import dev.lezli.hotrulez.references.FirebaseRulesBuiltins
 import dev.lezli.hotrulez.references.FirebaseRulesNamedElement
 import dev.lezli.hotrulez.references.FirebaseRulesScopes
+import dev.lezli.hotrulez.references.RulesService
 
 /**
- * Position-aware completion for Firestore Rules. Routing is keyed by
+ * Position-aware completion for Firebase Rules. Routing is keyed by
  * [PlatformPatterns]: each leaf-anchored context gets its own provider, and a
  * contextual provider handles the position-sensitive cases:
  *
- *  - after a `.` ([MemberProvider]): shallow members from the static [FirebaseRulesBuiltins] table;
- *  - after `service ` ([ServiceProvider]): `cloud.firestore`;
+ *  - after a `.` ([MemberProvider]): shallow members from the detected service's
+ *    [RulesService] table (Firestore vs Storage), or their union when neutral;
+ *  - after `service ` ([ServiceProvider]): `cloud.firestore` and `firebase.storage`;
  *  - everything else ([ContextualProvider]):
  *      - after `allow ` (and within the method list): operation names;
  *      - after an `allow ... :`: the `if` keyword;
@@ -76,13 +78,13 @@ class FirebaseRulesCompletionContributor : CompletionContributor() {
         ) = addMembers(parameters.position, result)
     }
 
-    /** The single service literal after the `service` keyword. */
+    /** The service literals after the `service` keyword: `cloud.firestore` and `firebase.storage`. */
     private object ServiceProvider : CompletionProvider<CompletionParameters>() {
         override fun addCompletions(
             parameters: CompletionParameters,
             context: ProcessingContext,
             result: CompletionResultSet,
-        ) = addKeywords(result, listOf(FirebaseRulesBuiltins.SERVICE_FIRESTORE), "service")
+        ) = addKeywords(result, RulesService.SERVICE_NAMES, "service")
     }
 
     /** Operations, the allow-colon `if`, expression symbols, and structural keywords. */
@@ -104,7 +106,7 @@ class FirebaseRulesCompletionContributor : CompletionContributor() {
                 // Recovery net: normally MemberProvider/ServiceProvider own these leaves.
                 previousType == T.DOT -> addMembers(position, result)
                 previousType == T.SERVICE_KEYWORD ->
-                    addKeywords(result, listOf(FirebaseRulesBuiltins.SERVICE_FIRESTORE), "service")
+                    addKeywords(result, RulesService.SERVICE_NAMES, "service")
                 inMethodList(position, previousType, previous) ->
                     addKeywords(result, FirebaseRulesBuiltins.OPERATIONS, "operation")
                 // The allow rule's own ':' (a direct child of the allow statement), not a
@@ -120,7 +122,8 @@ class FirebaseRulesCompletionContributor : CompletionContributor() {
 
 private fun addMembers(position: PsiElement, result: CompletionResultSet) {
     val member = PsiTreeUtil.getParentOfType(position, FirebaseRulesMemberExpression::class.java) ?: return
-    FirebaseRulesBuiltins.MEMBERS[receiverKey(member.expression)]?.let { addKeywords(result, it, "member") }
+    val members = RulesService.membersFor(RulesService.forElement(position))
+    members[receiverKey(member.expression)]?.let { addKeywords(result, it, "member") }
 }
 
 /**
@@ -143,12 +146,13 @@ private fun receiverKey(receiver: PsiElement): String {
 }
 
 private fun addExpressionSymbols(position: PsiElement, result: CompletionResultSet) {
+    val service = RulesService.forElement(position)
     for (symbol in FirebaseRulesScopes.visibleSymbols(position)) {
         val name = symbol.name ?: continue
         result.addElement(LookupElementBuilder.create(name).withTypeText(symbolType(symbol)))
     }
-    addKeywords(result, FirebaseRulesBuiltins.GLOBALS, "built-in")
-    for (helper in FirebaseRulesBuiltins.HELPERS) {
+    addKeywords(result, RulesService.globalsFor(service), "built-in")
+    for (helper in RulesService.bareHelpersFor(service)) {
         result.addElement(LookupElementBuilder.create(helper).withTailText("()", true).withTypeText("helper"))
     }
     addKeywords(result, FirebaseRulesBuiltins.LITERALS, "literal")

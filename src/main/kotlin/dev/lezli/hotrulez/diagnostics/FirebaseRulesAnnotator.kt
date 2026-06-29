@@ -55,7 +55,7 @@ class FirebaseRulesAnnotator : Annotator {
         }
     }
 
-    /** Every operation name in an `allow` rule must be a known Firestore method. */
+    /** Every operation name in an `allow` rule must be a known Firebase Rules method. */
     private fun checkOperations(methodList: FirebaseRulesMethodList, holder: AnnotationHolder) {
         for (identifier in methodList.identifierLeaves()) {
             val name = identifier.text
@@ -63,7 +63,7 @@ class FirebaseRulesAnnotator : Annotator {
                 error(
                     holder,
                     identifier,
-                    "Unknown Firestore Rules operation '$name'. " +
+                    "Unknown Firebase Rules operation '$name'. " +
                         "Expected one of: get, list, read, create, update, delete, write.",
                 )
             }

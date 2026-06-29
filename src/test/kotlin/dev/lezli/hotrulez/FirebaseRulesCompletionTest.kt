@@ -24,7 +24,7 @@ class FirebaseRulesCompletionTest : BasePlatformTestCase() {
 
     fun testServiceCompletion() {
         val items = complete("rules_version = '2';\nservice <caret>")
-        assertContainsAll(items, "cloud.firestore")
+        assertContainsAll(items, "cloud.firestore", "firebase.storage")
     }
 
     fun testTopLevelKeywords() {
