@@ -41,7 +41,7 @@ kotlin {
 // --- Grammar-Kit + JFlex code generation ---------------------------------
 // Source grammar lives in src/main/grammar; generated parser/PSI/lexer go to
 // build/generated/sources/grammarkit and are added to the main source set.
-// Regenerate explicitly with: ./gradlew generateFirestoreParser generateFirestoreLexer
+// Regenerate explicitly with: ./gradlew generateFirebaseParser generateFirebaseLexer
 // (both run automatically before compileKotlin/compileJava).
 val generatedSourcesDir = layout.buildDirectory.dir("generated/sources/grammarkit")
 
@@ -50,19 +50,19 @@ grammarKit {
     grammarKitRelease.set("2022.3.2")
 }
 
-val generateFirestoreParser by tasks.registering(GenerateParserTask::class) {
-    sourceFile.set(layout.projectDirectory.file("src/main/grammar/FirestoreRules.bnf"))
+val generateFirebaseParser by tasks.registering(GenerateParserTask::class) {
+    sourceFile.set(layout.projectDirectory.file("src/main/grammar/FirebaseRules.bnf"))
     targetRootOutputDir.set(generatedSourcesDir)
-    pathToParser.set("dev/lezli/hotrulez/parser/FirestoreRulesParser.java")
+    pathToParser.set("dev/lezli/hotrulez/parser/FirebaseRulesParser.java")
     pathToPsiRoot.set("dev/lezli/hotrulez/psi")
     purgeOldFiles.set(true)
 }
 
-val generateFirestoreLexer by tasks.registering(GenerateLexerTask::class) {
-    sourceFile.set(layout.projectDirectory.file("src/main/grammar/FirestoreRules.flex"))
+val generateFirebaseLexer by tasks.registering(GenerateLexerTask::class) {
+    sourceFile.set(layout.projectDirectory.file("src/main/grammar/FirebaseRules.flex"))
     targetOutputDir.set(generatedSourcesDir.map { it.dir("dev/lezli/hotrulez/lexer") })
     purgeOldFiles.set(true)
-    dependsOn(generateFirestoreParser)
+    dependsOn(generateFirebaseParser)
 }
 
 sourceSets {
@@ -72,17 +72,17 @@ sourceSets {
 }
 
 tasks.named("compileKotlin") {
-    dependsOn(generateFirestoreParser, generateFirestoreLexer)
+    dependsOn(generateFirebaseParser, generateFirebaseLexer)
 }
 
 tasks.named("compileJava") {
-    dependsOn(generateFirestoreParser, generateFirestoreLexer)
+    dependsOn(generateFirebaseParser, generateFirebaseLexer)
 }
 
 // Tests reference the generated types directly; make the dependency explicit so a
 // test-only compile never races ahead of generation.
 tasks.named("compileTestKotlin") {
-    dependsOn(generateFirestoreParser, generateFirestoreLexer)
+    dependsOn(generateFirebaseParser, generateFirebaseLexer)
 }
 
 // The platform test framework boots a real IDE whose home is the distribution the

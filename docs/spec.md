@@ -70,8 +70,6 @@ v2 inherits every v1 non-goal unchanged. The plugin must not:
 - Connect to Firebase projects, emulators, the rules-test SDK, credentials, or
   live Firestore data, or run rules tests in-IDE.
 - Hard-code Firebase project IDs or environment-specific paths.
-- Support Cloud Storage Rules in this release (it is a sequenced future
-  milestone, not v2 scope).
 - Model the language as JavaScript, JSON, or generic configuration.
 - Replace official Firebase tools for deployment or authorization testing.
 - Add web app frameworks or unrelated UI dependencies.
@@ -96,7 +94,7 @@ name, the `get/list/read/create/update/delete/write` operations, the
 being valid only inside function bodies) were re-confirmed against the live docs
 on 2026-06-28:
 
-- Firestore Rules structure and path/wildcard variables:
+- Firebase Rules structure and path/wildcard variables:
   `https://firebase.google.com/docs/firestore/security/rules-structure`
 - Firebase Security Rules language (functions, `let`, scoping):
   `https://firebase.google.com/docs/rules/rules-language`
@@ -332,9 +330,19 @@ One milestone per release.
    — **unused functions** and **undefined references** (a name that resolves to
    nothing). Highest value per unit of effort because detection mostly exists
    and the resolver is built. Still no runtime/authorization claims.
-2. **Cloud Storage Rules.** Add `firebase.storage` as a sibling language/service
-   shape, reusing lexer, formatter, and highlighting infrastructure; differs in
-   service name, root match shape, and allowed methods.
+2. **Cloud Storage Rules — _delivered_.** `firebase.storage` is now supported
+   alongside `cloud.firestore`. Rather than a sibling `Language`, both dialects
+   share one language and grammar (the lexer, parser, formatter, highlighting, and
+   symbol intelligence are service-agnostic); the dialect is **detected from the
+   file's `service` declaration** and captured as data in `RulesService` — the
+   service name, the root-match shape (`/b/{bucket}/o` vs
+   `/databases/{database}/documents`), the `request`/`resource` member tables, the
+   top-level globals, and the path helpers. Diagnostics and completion consume that
+   profile; a missing service is **neutral** (service-specific checks suppressed,
+   both dialects offered) and an unrecognized service is a **soft warning**.
+   Cloud Storage's cross-service `firestore.get`/`firestore.exists` are recognized.
+   No new runtime/authorization claims. The user-facing identity was rebranded from
+   "Firestore Rules" to "Firebase Rules" for this milestone.
 3. **Authoring polish.** Structure view, code folding for braced blocks,
    quick-docs (the deferred hover docs for built-ins/helpers), and parameter
    info on calls.
@@ -359,4 +367,4 @@ v2 is successful when a developer editing a `.rules` file can:
   evaluating authorization.
 - Trust that nothing connects to Firebase or claims a rule is secure.
 - See tests covering resolve, scoping, shadowing, find-usages, rename, and
-  completion for representative Firestore Rules examples.
+  completion for representative Firebase Rules examples.
