@@ -11,7 +11,7 @@ class FirebaseRulesColorSettingsPageTest {
 
     @Test
     fun exposesDisplayNameHighlighterAndDemoText() {
-        assertEquals("Firestore Rules", page.displayName)
+        assertEquals("Firebase Rules", page.displayName)
         assertNotNull(page.highlighter)
         assertTrue(page.demoText.isNotBlank())
     }

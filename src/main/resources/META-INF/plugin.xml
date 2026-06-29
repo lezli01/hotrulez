@@ -5,8 +5,12 @@
 
     <description><![CDATA[
         <p>
-            Language support for <b>Firebase Cloud Firestore Security Rules</b>
-            (<code>.rules</code> files) in JetBrains IDEs.
+            Language support for <b>Firebase Security Rules</b> &mdash; both
+            <b>Cloud Firestore</b> and <b>Cloud Storage</b> &mdash; in
+            <code>.rules</code> files in JetBrains IDEs. The dialect (service name,
+            root match shape, and <code>request</code>/<code>resource</code>
+            members) is detected from the <code>service</code> declaration in each
+            file.
         </p>
         <p>Features:</p>
         <ul>
@@ -17,7 +21,7 @@
                 commenting</li>
             <li><b>Symbol intelligence</b> &mdash; go to definition, find usages,
                 and rename for functions, parameters, <code>let</code> bindings,
-                and path variables, with Firestore-aware scoping and
+                and path variables, with Firebase-aware scoping and
                 path-variable shadowing</li>
             <li><b>Scope-aware code completion</b> for keywords,
                 <code>allow</code> operations, in-scope symbols, built-ins
@@ -35,7 +39,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <fileType
-            name="Firestore Rules"
+            name="Firebase Rules"
             implementationClass="dev.lezli.hotrulez.FirebaseRulesFileType"
             fieldName="INSTANCE"
             language="FirebaseRules"
@@ -79,8 +83,8 @@
         <localInspection
             language="FirebaseRules"
             shortName="FirebaseRulesStructure"
-            displayName="Firestore Rules file structure"
-            groupName="Firestore Rules"
+            displayName="Firebase Rules file structure"
+            groupName="Firebase Rules"
             enabledByDefault="true"
             level="WARNING"
             implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesStructureInspection"/>
@@ -88,8 +92,8 @@
         <localInspection
             language="FirebaseRules"
             shortName="FirebaseRulesUsage"
-            displayName="Firestore Rules suspicious usage"
-            groupName="Firestore Rules"
+            displayName="Firebase Rules suspicious usage"
+            groupName="Firebase Rules"
             enabledByDefault="true"
             level="WARNING"
             implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesUsageInspection"/>

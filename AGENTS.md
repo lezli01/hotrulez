@@ -2,13 +2,16 @@
 
 ## Project Identity
 
-`hotrulez` is a JetBrains IDE plugin for Firebase Cloud Firestore Security Rules.
+`hotrulez` is a JetBrains IDE plugin for **Firebase Security Rules** — both Cloud
+Firestore (`service cloud.firestore`) and Cloud Storage (`service firebase.storage`)
+`.rules` files. The two share one rules language; the dialect is detected from the
+file's `service` declaration and modeled as data in `references/RulesService`.
 
 The plugin should provide:
 
-- Syntax highlighting for Firestore Rules files.
-- Formatting for Firestore Rules syntax.
-- Validation and IDE diagnostics for Firestore Rules structure and expressions.
+- Syntax highlighting for Firebase Rules files.
+- Formatting for Firebase Rules syntax.
+- Validation and IDE diagnostics for Firebase Rules structure and expressions.
 - Symbol intelligence: go-to-definition, find usages, rename refactoring, and
   scope-aware code completion for functions, parameters, `let` bindings, and path
   variables (shipped in v2 / 0.5).
@@ -48,23 +51,29 @@ This project should follow normal IntelliJ Platform plugin conventions:
   editor support (brace matcher, quote handler, commenter), and file type code
   separated by responsibility.
 
-## Firestore Rules Language Notes
+## Firebase Rules Language Notes
 
-The implementation should treat Firestore Rules as their own language, not as
+The implementation should treat Firebase Rules as their own language, not as
 JavaScript or JSON.
 
 Core syntax to preserve and validate includes:
 
 - `rules_version = '2';` at the top of modern rules files.
-- `service cloud.firestore { ... }`.
-- `match /databases/{database}/documents { ... }`.
+- `service cloud.firestore { ... }` (Cloud Firestore) or
+  `service firebase.storage { ... }` (Cloud Storage); detected from this declaration.
+- The conventional root match per service: `match /databases/{database}/documents`
+  (Firestore) or `match /b/{bucket}/o` (Storage).
 - Nested `match` blocks with path variables and recursive wildcards.
 - `allow` statements for operations such as `read`, `write`, `get`, `list`,
-  `create`, `update`, and `delete`.
+  `create`, `update`, and `delete` (the same operation set in both services).
 - `function` declarations and `return` expressions.
-- Built-in variables including `request`, `resource`, and path wildcard names.
-- Firestore rules helper calls including `exists()`, `existsAfter()`, `get()`,
-  and `getAfter()`.
+- Built-in variables including `request`, `resource`, and path wildcard names. The
+  `request`/`resource` member tables are **service-aware**: Firestore exposes
+  `resource.data`/`id`/`__name__`; Cloud Storage exposes object metadata
+  (`resource.size`, `contentType`, `metadata`, …).
+- Path helpers: Cloud Firestore's bare `exists()`/`existsAfter()`/`get()`/
+  `getAfter()`, and Cloud Storage's cross-service `firestore.get()`/
+  `firestore.exists()`. New service-specific vocabulary belongs in `RulesService`.
 
 Validation should be explicit and user-facing through IDE diagnostics. Prefer
 annotators or inspections for semantic checks that cannot be represented by the
@@ -88,7 +97,7 @@ checks available, such as:
 
 - Lexer/parser tests for representative `.rules` files.
 - Formatter tests for nested `service`, `match`, `allow`, and `function` blocks.
-- Annotation or inspection tests for invalid Firestore Rules constructs.
+- Annotation or inspection tests for invalid Firebase Rules constructs.
 - Gradle plugin verification tasks before release-oriented changes.
 
 Update this file when the project gains concrete build commands, test commands,
@@ -101,55 +110,55 @@ work being changed:
 
 - `./gradlew test` for the current lexer, syntax highlighting, file type,
   parser, and formatter tests.
-- `./gradlew generateFirestoreParser generateFirestoreLexer` to regenerate the
+- `./gradlew generateFirebaseParser generateFirebaseLexer` to regenerate the
   parser/PSI and lexer from the grammar. These run automatically before
   `compileKotlin`/`compileJava`, so a normal build/test already regenerates.
 
-The Firestore Rules grammar source lives in `src/main/grammar/`:
+The Firebase Rules grammar source lives in `src/main/grammar/`:
 
-- `FirestoreRules.bnf` — Grammar-Kit grammar (parser + typed PSI). It uses the
+- `FirebaseRules.bnf` — Grammar-Kit grammar (parser + typed PSI). It uses the
   operator-precedence engine for expressions.
-- `FirestoreRules.flex` — JFlex lexer used by the generated parser (separate from
-  the coarse highlighting lexer in `lexer/FirestoreRulesLexer.kt`).
+- `FirebaseRules.flex` — JFlex lexer used by the generated parser (separate from
+  the coarse highlighting lexer in `lexer/FirebaseRulesLexer.kt`).
 
 Generated sources are written to `build/generated/sources/grammarkit` (not
 committed). The grammar was synthesised from the nicbytes and grimsteel
 tree-sitter Firestore grammars and reconciled against official Firebase docs.
 
-Editor conveniences live in `dev.lezli.hotrulez.editor`: `FirestoreRulesBraceMatcher`
-(a `PairedBraceMatcher` for `{}`/`()`/`[]`), `FirestoreRulesQuoteHandler` (a
-`SimpleTokenSetQuoteHandler` over the `STRING` token), and `FirestoreRulesCommenter`
+Editor conveniences live in `dev.lezli.hotrulez.editor`: `FirebaseRulesBraceMatcher`
+(a `PairedBraceMatcher` for `{}`/`()`/`[]`), `FirebaseRulesQuoteHandler` (a
+`SimpleTokenSetQuoteHandler` over the `STRING` token), and `FirebaseRulesCommenter`
 (`//` line and `/* */` block comments). They key off the highlighting lexer's
-`FirestoreRulesTokenTypes`, not the generated PSI tokens, because they run against
+`FirebaseRulesTokenTypes`, not the generated PSI tokens, because they run against
 the editor highlighter. The `.rules` file icon is an SVG in
-`src/main/resources/icons`, loaded through `FirestoreRulesIcons`.
+`src/main/resources/icons`, loaded through `FirebaseRulesIcons`.
 
 Diagnostics live in `dev.lezli.hotrulez.diagnostics`. Severity decides the home:
-always-wrong, grammar-inexpressible ERRORS go in `FirestoreRulesAnnotator`
-(always on); configurable WARNINGS go in `FirestoreRulesStructureInspection`
-(file shape) and `FirestoreRulesUsageInspection` (element-local usage). Keep
+always-wrong, grammar-inexpressible ERRORS go in `FirebaseRulesAnnotator`
+(always on); configurable WARNINGS go in `FirebaseRulesStructureInspection`
+(file shape) and `FirebaseRulesUsageInspection` (element-local usage). Keep
 diagnostic wording structural — describe syntax/structure, never assert that a
-rule is secure or authorizes a request. Confirm Firestore Rules semantics against
+rule is secure or authorizes a request. Confirm Firebase Rules semantics against
 official Firebase docs before adding or changing a check (e.g. a condition-less
 `allow` is legal, and a recursive wildcard may appear anywhere in a v2 match
-path), and add a focused test for each diagnostic in `FirestoreRulesAnnotatorTest`
-or `FirestoreRulesInspectionTest`.
+path), and add a focused test for each diagnostic in `FirebaseRulesAnnotatorTest`
+or `FirebaseRulesInspectionTest`.
 
 Symbol intelligence (v2 / 0.5) lives in four packages and rides on a single PSI
 resolve layer:
 
 - `references/` is the core. Function declarations, parameters, `let` bindings,
   and path/wildcard variables are `PsiNameIdentifierOwner`s
-  (`FirestoreRulesNamedElement`), wired onto the generated PSI through the
-  `implements`/`mixin` attributes in `FirestoreRules.bnf`, with shared behavior in
-  `FirestoreRulesNamedElementBase`. `FirestoreRulesReferenceExpressionMixin`
-  attaches a poly-variant, soft `FirestoreRulesReference` directly on each
+  (`FirebaseRulesNamedElement`), wired onto the generated PSI through the
+  `implements`/`mixin` attributes in `FirebaseRules.bnf`, with shared behavior in
+  `FirebaseRulesNamedElementBase`. `FirebaseRulesReferenceExpressionMixin`
+  attaches a poly-variant, soft `FirebaseRulesReference` directly on each
   `reference_expression` — an `ASTWrapperPsiElement` does not consult a
   `psi.referenceContributor`, so the reference is hung on the PSI via `mixin`
-  rather than a contributor. `FirestoreRulesScopes` implements Firestore's actual
+  rather than a contributor. `FirebaseRulesScopes` implements Firestore's actual
   visibility rules: scope-based function resolution with forward references,
   function-local parameters and post-declaration `let`s, and match-subtree path
-  variables with nested shadowing. `FirestoreRulesBuiltins` holds the static,
+  variables with nested shadowing. `FirebaseRulesBuiltins` holds the static,
   doc-sourced member/keyword/operation tables (no type inference; custom claims
   not invented).
 - `findusages/` registers a `FindUsagesProvider` with a `DefaultWordsScanner` over
@@ -161,7 +170,7 @@ resolve layer:
 
 When a grammar change is needed to expose a PSI accessor or a named-element
 interface, make the narrowest `.bnf` change, re-run
-`./gradlew generateFirestoreParser generateFirestoreLexer` (a normal build already
+`./gradlew generateFirebaseParser generateFirebaseLexer` (a normal build already
 does), and keep generated and handwritten code separated. Add focused tests in the
-matching `FirestoreRulesResolveTest` / `FirestoreRulesFindUsagesTest` /
-`FirestoreRulesRenameTest` / `FirestoreRulesCompletionTest`.
+matching `FirebaseRulesResolveTest` / `FirebaseRulesFindUsagesTest` /
+`FirebaseRulesRenameTest` / `FirebaseRulesCompletionTest`.

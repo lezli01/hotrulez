@@ -38,7 +38,7 @@ the load-bearing Firebase semantics against the live docs.
 - [x] Tag any construct or member not confirmed by official docs `UNCONFIRMED`
   (matching the existing `.bnf` convention) with a TODO tied to the source.
   _(`TODO(UNCONFIRMED)` markers with the official doc URLs now sit beside every
-  `UNCONFIRMED` tag in `FirestoreRules.bnf` and `FirestoreRulesBuiltins.kt`.)_
+  `UNCONFIRMED` tag in `FirebaseRules.bnf` and `FirebaseRulesBuiltins.kt`.)_
 - [x] Update `README.md` and `AGENTS.md` with the new symbol-intelligence
   features once they ship.
 
@@ -71,7 +71,7 @@ the load-bearing Firebase semantics against the live docs.
 - [x] Register a `com.intellij.psi.referenceContributor` if references are
   attached by pattern rather than directly on PSI.
   _(N/A — references are attached directly on the PSI via
-  `FirestoreRulesReferenceExpressionMixin.getReference()`, so no
+  `FirebaseRulesReferenceExpressionMixin.getReference()`, so no
   `referenceContributor` is needed; the choice is documented in `plugin.xml`.)_
 
 ### Go to definition
@@ -130,7 +130,7 @@ the load-bearing Firebase semantics against the live docs.
   no type inference; custom claims not invented).
 - [x] Build the static member / keyword / operation table from the official
   Firebase reference docs; tag uncertain entries `UNCONFIRMED`.
-  _(Table built and `UNCONFIRMED`-tagged in `FirestoreRulesBuiltins.kt`; core
+  _(Table built and `UNCONFIRMED`-tagged in `FirebaseRulesBuiltins.kt`; core
   entries re-confirmed against the live docs 2026-06-28, see Ground Rules.)_
 - [x] Completion respects scoping: parameters only inside their function, path
   variables only within their subtree, `let` only after its declaration.
@@ -189,7 +189,11 @@ Sequenced, one milestone per release. See `docs/spec.md` for detail.
 - **0.6 — Actionable diagnostics:** quick-fixes/intentions for existing
   diagnostics + resolver-enabled semantic checks (unused functions, undefined
   references).
-- **Cloud Storage Rules:** `firebase.storage` as a sibling service shape.
+- **Cloud Storage Rules — delivered:** `firebase.storage` supported alongside
+  `cloud.firestore` via content-based service detection and a `RulesService`
+  profile (service-aware diagnostics, completion, and `request`/`resource` member
+  tables; storage root `/b/{bucket}/o`; cross-service `firestore.get`/
+  `firestore.exists` recognized). User-facing identity rebranded to "Firebase Rules".
 - **Authoring polish:** structure view, folding, quick-docs, parameter info.
 - **Toward semantics:** type/dataflow-aware expression analysis (no runtime
   evaluation).

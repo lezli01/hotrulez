@@ -33,19 +33,10 @@ import dev.lezli.hotrulez.psi.FirebaseRulesTypes as T
  */
 internal object FirebaseRulesDiagnostics {
     /**
-     * Operation names accepted inside an `allow` rule for Cloud Firestore
-     * (`read`/`write` plus the granular methods they expand to).
+     * Operation names accepted inside an `allow` rule. Identical for Cloud Firestore
+     * and Cloud Storage: `read`/`write` plus the granular methods they expand to.
      */
     val ALLOW_OPERATIONS = setOf("read", "write", "get", "list", "create", "update", "delete")
-
-    /**
-     * Path-resolving helper calls documented to take exactly one path argument:
-     * `get`, `getAfter`, `exists`, `existsAfter` (bare or as `firestore.*`).
-     */
-    val SINGLE_PATH_HELPERS = setOf("get", "getAfter", "exists", "existsAfter")
-
-    /** The only service a Firestore Rules file targets. */
-    const val SERVICE_FIRESTORE = "cloud.firestore"
 
     /** PSI element types that make up a match path, in source order. */
     private val PATH_SEGMENT_TYPES = setOf(
@@ -93,6 +84,20 @@ internal object FirebaseRulesDiagnostics {
             (database is FirebaseRulesPathWildcard ||
                 (database as? FirebaseRulesParenPathSegment)?.identifier?.text == "default") &&
             third.pathText() == "documents"
+    }
+
+    /**
+     * Whether [path] is the conventional Cloud Storage root `/b/{bucket}/o`. The
+     * bucket segment is normally the `{bucket}` wildcard but may be a literal bucket
+     * name, so only the surrounding `b` and `o` segments are required.
+     */
+    fun isRootBucketPath(path: FirebaseRulesMatchPath?): Boolean {
+        if (path == null) return false
+        val segments = pathSegments(path)
+        if (segments.size != 3) return false
+        val first = segments[0] as? FirebaseRulesPathNameSegment ?: return false
+        val third = segments[2] as? FirebaseRulesPathNameSegment ?: return false
+        return first.pathText() == "b" && third.pathText() == "o"
     }
 
     private fun FirebaseRulesPathNameSegment.pathText(): String =

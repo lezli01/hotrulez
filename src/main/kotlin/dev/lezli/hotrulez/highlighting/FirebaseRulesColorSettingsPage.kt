@@ -8,14 +8,14 @@ import com.intellij.openapi.options.colors.ColorSettingsPage
 import javax.swing.Icon
 
 /**
- * Exposes Firestore Rules highlight categories under
- * Settings | Editor | Color Scheme | Firestore Rules so users can customize them
+ * Exposes Firebase Rules highlight categories under
+ * Settings | Editor | Color Scheme | Firebase Rules so users can customize them
  * and see a live preview. Tags in [DEMO_TEXT] map to the annotator-driven attributes
  * (service name, function declaration, path variable) via
  * [getAdditionalHighlightingTagToDescriptorMap].
  */
 class FirebaseRulesColorSettingsPage : ColorSettingsPage {
-    override fun getDisplayName(): String = "Firestore Rules"
+    override fun getDisplayName(): String = "Firebase Rules"
 
     override fun getIcon(): Icon? = null
 

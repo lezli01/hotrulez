@@ -8,5 +8,5 @@ import dev.lezli.hotrulez.FirebaseRulesLanguage
 class FirebaseRulesFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, FirebaseRulesLanguage) {
     override fun getFileType(): FirebaseRulesFileType = FirebaseRulesFileType
 
-    override fun toString(): String = "Firestore Rules File"
+    override fun toString(): String = "Firebase Rules File"
 }

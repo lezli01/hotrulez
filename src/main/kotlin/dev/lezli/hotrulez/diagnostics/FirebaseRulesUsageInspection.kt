@@ -6,7 +6,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.util.PsiTreeUtil
-import dev.lezli.hotrulez.diagnostics.FirebaseRulesDiagnostics.SINGLE_PATH_HELPERS
 import dev.lezli.hotrulez.psi.FirebaseRulesAllowStatement
 import dev.lezli.hotrulez.psi.FirebaseRulesBlock
 import dev.lezli.hotrulez.psi.FirebaseRulesCallExpression
@@ -16,6 +15,7 @@ import dev.lezli.hotrulez.psi.FirebaseRulesMemberExpression
 import dev.lezli.hotrulez.psi.FirebaseRulesRecursiveWildcard
 import dev.lezli.hotrulez.psi.FirebaseRulesReferenceExpression
 import dev.lezli.hotrulez.psi.FirebaseRulesVisitor
+import dev.lezli.hotrulez.references.RulesService
 import dev.lezli.hotrulez.psi.FirebaseRulesTypes as T
 
 /**
@@ -76,12 +76,10 @@ class FirebaseRulesUsageInspection : LocalInspectionTool() {
             }
 
             override fun visitCallExpression(o: FirebaseRulesCallExpression) {
-                val name = calleeName(o) ?: return
-                if (name !in SINGLE_PATH_HELPERS) return
-                // A bare `get(...)` may be a user-defined function that shadows the
-                // builtin path helper; only the `firestore.*` member form is
-                // unambiguous. Skip the arity check when a same-named function exists.
-                if (o.expression is FirebaseRulesReferenceExpression && declaresFunction(o, name)) return
+                // Only flag calls that actually invoke a path helper in this file's
+                // dialect (see [pathHelperName]); anything else is a user function or a
+                // member call we leave alone.
+                val name = pathHelperName(o) ?: return
                 val arguments = o.argumentList
                 val count = arguments.expressionList.size + arguments.pathArgumentList.size
                 if (count != 1) {
@@ -114,23 +112,42 @@ class FirebaseRulesUsageInspection : LocalInspectionTool() {
             }
 
             /**
-             * The helper name only for forms that resolve to a path helper: a bare
-             * `get(/...)` reference, or the cross-service `firestore.get(/...)` form.
-             * A member call on any other receiver (e.g. `resource.data.get('k', d)`,
-             * the two-argument Firestore `Map.get`) is not a path helper and is left alone.
+             * The name of a path helper this call actually invokes in the file's
+             * dialect, or null when the arity rule does not apply:
+             *
+             *  - a bare `get`/`exists`/`getAfter`/`existsAfter` reference, but only in a
+             *    dialect that has bare path helpers (Cloud Firestore; Cloud Storage has
+             *    none) and only when no same-named user function shadows it;
+             *  - the cross-service `firestore.get`/`firestore.exists` member form, which
+             *    is a **Cloud Storage** construct — in a Firestore (or service-less) file
+             *    `firestore` is just a user symbol, so it is only treated as a path helper
+             *    when the detected dialect is Storage.
+             *
+             * A member call on any other receiver (e.g. `resource.data.get('k', d)`, the
+             * two-argument `Map.get`) is not a path helper and is left alone.
              */
-            private fun calleeName(call: FirebaseRulesCallExpression): String? =
-                when (val callee = call.expression) {
-                    is FirebaseRulesReferenceExpression -> callee.identifier.text
+            private fun pathHelperName(call: FirebaseRulesCallExpression): String? {
+                val service = RulesService.forElement(call)
+                return when (val callee = call.expression) {
+                    is FirebaseRulesReferenceExpression -> {
+                        val name = callee.identifier.text
+                        if (name in RulesService.bareHelpersFor(service) && !declaresFunction(call, name)) name else null
+                    }
                     is FirebaseRulesMemberExpression -> {
                         val receiver = callee.expression
-                        if (receiver is FirebaseRulesReferenceExpression && receiver.identifier.text == "firestore") {
-                            callee.identifier.text
+                        val name = callee.identifier.text
+                        if (service == RulesService.STORAGE &&
+                            receiver is FirebaseRulesReferenceExpression &&
+                            receiver.identifier.text == "firestore" &&
+                            name in RulesService.CROSS_SERVICE_HELPERS
+                        ) {
+                            name
                         } else {
                             null
                         }
                     }
                     else -> null
                 }
+            }
         }
 }
