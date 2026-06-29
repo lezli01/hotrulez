@@ -1,0 +1,248 @@
+package dev.lezli.hotrulez.formatting
+
+import com.intellij.formatting.Block
+import com.intellij.formatting.ChildAttributes
+import com.intellij.formatting.Indent
+import com.intellij.formatting.Spacing
+import com.intellij.formatting.Wrap
+import com.intellij.formatting.WrapType
+import com.intellij.lang.ASTNode
+import com.intellij.psi.TokenType
+import com.intellij.psi.formatter.common.AbstractBlock
+import com.intellij.psi.tree.IElementType
+import dev.lezli.hotrulez.parser.FirebaseRulesTokenSets
+import dev.lezli.hotrulez.psi.FirebaseRulesTypes as T
+
+/**
+ * Formatter block backed by the Grammar-Kit PSI. Children of a braced block
+ * (`block` / `function_body`) are indented one level; everything else aligns
+ * with its statement. All spacings keep user line breaks so multiline
+ * conditions and intentional blank lines survive.
+ */
+class FirebaseRulesBlock(
+    node: ASTNode,
+    private val blockIndent: Indent? = Indent.getNoneIndent(),
+) : AbstractBlock(node, Wrap.createWrap(WrapType.NONE, false), null) {
+
+    override fun buildChildren(): List<Block> =
+        node
+            .getChildren(null)
+            .filterNot { it.elementType == TokenType.WHITE_SPACE || it.textLength == 0 }
+            .map { child -> FirebaseRulesBlock(child, childIndent(child)) }
+
+    override fun getIndent(): Indent? = blockIndent
+
+    override fun isLeaf(): Boolean = node.firstChildNode == null
+
+    // Indent for a new line typed inside this block (Enter handling). Mirrors
+    // childIndent so typing a new line agrees with reformatting: a new line inside a
+    // braced block, bracketed literal, grouping paren, or argument list hangs one
+    // level; everything else aligns with the construct.
+    override fun getChildAttributes(newChildIndex: Int): ChildAttributes {
+        val elementType = node.elementType
+        val indent = if (elementType in BRACED_BLOCKS || elementType in HANGING_CONTAINERS) {
+            NESTED_INDENT
+        } else {
+            Indent.getNoneIndent()
+        }
+        return ChildAttributes(indent, null)
+    }
+
+    override fun getSpacing(child1: Block?, child2: Block): Spacing? =
+        spacingBetween(
+            (child1 as? FirebaseRulesBlock)?.node,
+            (child2 as? FirebaseRulesBlock)?.node,
+        )
+
+    private fun childIndent(child: ASTNode): Indent? =
+        when (node.elementType) {
+            // Braced statement blocks: indent every member, keep the braces flush.
+            in BRACED_BLOCKS -> if (child.isBrace()) Indent.getNoneIndent() else NESTED_INDENT
+
+            // Bracketed literals, grouping parens, and call argument lists: hang their
+            // contents one level and align the closing delimiter with the line that
+            // opened them.
+            in HANGING_CONTAINERS -> if (child.isDelimiter()) Indent.getNoneIndent() else NESTED_INDENT
+
+            // A wrapped method-chain segment (`\n  .field`) hangs under the receiver;
+            // the receiver itself stays aligned with the statement.
+            T.MEMBER_EXPRESSION ->
+                if (child.elementType == T.DOT || child.elementType == T.IDENTIFIER) {
+                    NESTED_INDENT
+                } else {
+                    Indent.getNoneIndent()
+                }
+
+            else -> Indent.getNoneIndent()
+        }
+
+    private fun spacingBetween(left: ASTNode?, right: ASTNode?): Spacing? {
+        if (left == null || right == null) {
+            return null
+        }
+        val parent = node.elementType
+
+        // Braced blocks: opener/body/closer each on their own line.
+        if (parent in BRACED_BLOCKS) {
+            if (left.elementType == T.LBRACE && right.elementType == T.RBRACE) {
+                return noSpace()
+            }
+            // Strip a blank line immediately after '{' or before '}'.
+            if (left.elementType == T.LBRACE || right.elementType == T.RBRACE) {
+                return lineBreakNoBlank()
+            }
+            // Separate structural block members while keeping simple statements tight.
+            if (separatedByBlankLine(left, right)) {
+                return blankLine()
+            }
+            return lineBreak()
+        }
+
+        if (parent == FILE) {
+            return lineBreak()
+        }
+
+        // Comments always sit on their own line within their statement.
+        if (left.isComment() || right.isComment()) {
+            return lineBreak()
+        }
+
+        return tokenSpacing(parent, left.elementType, right.elementType)
+    }
+
+    private fun tokenSpacing(parent: IElementType, left: IElementType, right: IElementType): Spacing {
+        // One space before an opening braced block: `service ... {`, `match ... {`, `function(...) {`.
+        if (right in BRACED_BLOCKS) {
+            return oneSpace()
+        }
+
+        // No space before a call/parameter argument list or a subscript: `f(x)`, `a[0]`.
+        if (right == T.PARAMETER_LIST || right == T.ARGUMENT_LIST || right == T.LBRACKET) {
+            return noSpace()
+        }
+
+        // Paths and path arguments never carry internal spaces.
+        if (parent in PATH_ELEMENTS) {
+            return noSpace()
+        }
+
+        // No space immediately inside (), [], or around map/wildcard braces.
+        if (left == T.LPAREN || right == T.RPAREN ||
+            left == T.LBRACKET || right == T.RBRACKET ||
+            left == T.LBRACE || right == T.RBRACE
+        ) {
+            return noSpace()
+        }
+
+        // No space around member-access dots.
+        if (left == T.DOT || right == T.DOT) {
+            return noSpace()
+        }
+
+        // Comma and statement-terminator spacing.
+        if (right == T.COMMA || right == T.SEMICOLON) {
+            return noSpace()
+        }
+        if (left == T.COMMA) {
+            return oneSpace()
+        }
+
+        // Colon depends on the surrounding construct.
+        if (left == T.COLON || right == T.COLON) {
+            return colonSpacing(parent, right == T.COLON)
+        }
+
+        // Ternary '?' takes a space on both sides.
+        if (left == T.QUESTION || right == T.QUESTION) {
+            return oneSpace()
+        }
+
+        // Unary operators stay attached to their operand: `!x`, `-1`.
+        if (parent == T.NOT_EXPRESSION || parent == T.NEG_EXPRESSION) {
+            return noSpace()
+        }
+
+        // Everything else — binary/relational/logical operators, assignment in
+        // `rules_version`/`let`, and keyword-separated tokens — takes one space on
+        // each side.
+        return oneSpace()
+    }
+
+    private fun colonSpacing(parent: IElementType, beforeColon: Boolean): Spacing =
+        when (parent) {
+            T.TERNARY_EXPRESSION -> oneSpace()
+            T.SLICE -> noSpace()
+            else -> if (beforeColon) noSpace() else oneSpace() // allow `: if`, map `key: value`
+        }
+
+    private fun separatedByBlankLine(left: ASTNode, right: ASTNode): Boolean {
+        // A leading comment stays attached to the member it documents, so any
+        // blank line belongs before the comment, not between it and that member.
+        if (left.isComment()) {
+            return false
+        }
+        val rightTarget = if (right.isComment()) firstNonCommentSibling(right) else right
+        return left.isBlockMember() || rightTarget?.isBlockMember() == true
+    }
+
+    private fun firstNonCommentSibling(node: ASTNode): ASTNode? {
+        var sibling = node.treeNext
+        while (sibling != null &&
+            (sibling.elementType == TokenType.WHITE_SPACE || sibling.isComment())
+        ) {
+            sibling = sibling.treeNext
+        }
+        return sibling
+    }
+
+    private fun ASTNode.isBrace(): Boolean =
+        elementType == T.LBRACE || elementType == T.RBRACE
+
+    private fun ASTNode.isDelimiter(): Boolean =
+        elementType in DELIMITERS
+
+    private fun ASTNode.isComment(): Boolean = elementType in FirebaseRulesTokenSets.COMMENTS
+
+    private fun ASTNode.isBlockMember(): Boolean =
+        elementType == T.FUNCTION_DECLARATION || elementType == T.MATCH_DECLARATION
+
+    private fun noSpace(): Spacing = Spacing.createSpacing(0, 0, 0, true, 1)
+
+    private fun oneSpace(): Spacing = Spacing.createSpacing(1, 1, 0, true, 1)
+
+    private fun lineBreak(): Spacing = Spacing.createSpacing(0, 0, 1, true, 1)
+
+    private fun blankLine(): Spacing = Spacing.createSpacing(0, 0, 2, true, 1)
+
+    private fun lineBreakNoBlank(): Spacing = Spacing.createSpacing(0, 0, 1, true, 0)
+
+    private companion object {
+        val NESTED_INDENT: Indent = Indent.getSpaceIndent(2)
+        val FILE: IElementType = dev.lezli.hotrulez.parser.FirebaseRulesParserDefinition.FILE
+
+        val BRACED_BLOCKS = setOf(T.BLOCK, T.FUNCTION_BODY)
+
+        // Bracketed literals, grouping parens, and call argument lists whose contents
+        // hang one indent level. Shared by childIndent and getChildAttributes so that
+        // typing a new line inside one of these and reformatting it agree.
+        val HANGING_CONTAINERS = setOf(
+            T.MAP_LITERAL, T.LIST_LITERAL, T.PARENTHESIZED_EXPRESSION, T.ARGUMENT_LIST,
+        )
+
+        val DELIMITERS = setOf(
+            T.LBRACE, T.RBRACE,
+            T.LBRACKET, T.RBRACKET,
+            T.LPAREN, T.RPAREN,
+        )
+
+        val PATH_ELEMENTS = setOf(
+            T.MATCH_PATH,
+            T.PATH_ARGUMENT,
+            T.PATH_WILDCARD,
+            T.PATH_INTERPOLATION,
+            T.PAREN_PATH_SEGMENT,
+            T.PATH_NAME_SEGMENT,
+            T.RECURSIVE_WILDCARD,
+        )
+    }
+}
