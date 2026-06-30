@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/lezli01/hotrulez/compare/v0.6.0...v0.6.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **description:** render Buy Me a Coffee as text link, not broken image ([726f4a1](https://github.com/lezli01/hotrulez/commit/726f4a1e41233fecf5cf42366d5033398da8bb75))
+* **description:** render Buy Me a Coffee as text link, not broken image ([159f13c](https://github.com/lezli01/hotrulez/commit/159f13c2ecf9939ba2570bea5667d5e31677dac7))
+
 ## [0.6.0](https://github.com/lezli01/hotrulez/compare/v0.5.0...v0.6.0) (2026-06-29)
 
 
