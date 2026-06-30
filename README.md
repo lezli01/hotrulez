@@ -15,6 +15,8 @@
 
 <p align="center">
   <a href="https://github.com/lezli01/hotrulez/actions/workflows/ci.yml"><img src="https://github.com/lezli01/hotrulez/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://plugins.jetbrains.com/plugin/32552"><img src="https://img.shields.io/jetbrains/plugin/v/32552?label=Marketplace" alt="JetBrains Marketplace version"></a>
+  <a href="https://plugins.jetbrains.com/plugin/32552"><img src="https://img.shields.io/jetbrains/plugin/d/32552?label=Downloads" alt="JetBrains Marketplace downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://github.com/lezli01/hotrulez/releases"><img src="https://img.shields.io/github/v/release/lezli01/hotrulez?sort=semver" alt="Latest release"></a>
   <a href="https://www.buymeacoffee.com/lezli01"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-ffdd00?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
@@ -474,19 +476,31 @@ For CI-style runs, this repository uses:
 
 ## How To Use
 
-> hotrulez is not yet published to the JetBrains Marketplace. You can install it
-> today in one of two ways: download the prebuilt plugin ZIP attached to a
-> [GitHub release](https://github.com/lezli01/hotrulez/releases), or build it
-> from source as shown below. Either way, install it with **Install Plugin from
-> Disk** (steps below).
+### Install from the JetBrains Marketplace (recommended)
 
-Build the plugin ZIP:
+[![Install from JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/32552?label=Install%20from%20Marketplace&logo=jetbrains)](https://plugins.jetbrains.com/plugin/32552)
+
+From inside your IDE:
+
+1. Open `Settings` / `Preferences` → `Plugins`.
+2. Select the `Marketplace` tab.
+3. Search for **Firebase Rules** (or `hotrulez`) and click `Install`.
+4. Restart the IDE if prompted.
+
+Or open the [plugin page](https://plugins.jetbrains.com/plugin/32552) and use its
+**Install** button.
+
+### Install from disk (specific version or offline)
+
+Prefer to pin a version or work offline? Download the prebuilt ZIP attached to a
+[GitHub release](https://github.com/lezli01/hotrulez/releases), or build it
+yourself:
 
 ```bash
-./gradlew buildPlugin
+./gradlew buildPlugin   # writes the ZIP to build/distributions/
 ```
 
-Install it in a JetBrains IDE:
+Then in a JetBrains IDE:
 
 1. Open `Settings` or `Preferences`.
 2. Go to `Plugins`.
