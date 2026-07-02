@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/lezli01/hotrulez/compare/v0.6.1...v0.7.0) (2026-07-02)
+
+
+### Features
+
+* actionable diagnostics — quick-fixes & symbol inspection (0.7) ([548dad8](https://github.com/lezli01/hotrulez/commit/548dad8129327bf79415d6e473fcac0826e1a4ca))
+
+
+### Bug Fixes
+
+* **diagnostics:** keep rules_version first when scaffolding a top-level function ([a8308b9](https://github.com/lezli01/hotrulez/commit/a8308b997350a9d6775ad95bbb0bcc38019c10ca))
+
 ## [0.6.1](https://github.com/lezli01/hotrulez/compare/v0.6.0...v0.6.1) (2026-06-30)
 
 
