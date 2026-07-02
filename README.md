@@ -64,9 +64,10 @@ language:
 - **Formatting** — one reformat turns compact or messy rules into clean,
   consistently indented output while preserving your comments, blank lines, and
   multiline conditions.
-- **Diagnostics** — 18 checks flag always-wrong constructs as errors and
-  surface suspicious-but-legal structure as configurable warnings, with wording
-  that stays structural (it never claims a rule is "secure").
+- **Diagnostics & quick-fixes** — checks flag always-wrong constructs as errors
+  and surface suspicious-but-legal structure and unresolved/unused symbols as
+  configurable warnings; most come with a one-keystroke fix (Alt+Enter), and the
+  wording stays structural (it never claims a rule is "secure").
 - **Symbol intelligence** — go to declaration, find usages, rename refactoring,
   and scope-aware code completion for functions, parameters, `let` bindings, and
   path variables, all built on a PSI resolve layer that honors Firebase Rules
@@ -200,9 +201,11 @@ block rather than left untouched.
 
 Severity decides the home. Always-wrong, grammar-inexpressible mistakes are
 reported as **errors** by an always-on annotator. Configurable **warnings** for
-file shape and suspicious usage live in two inspections you can tune under
-**Settings | Editor | Inspections | Firebase Rules**. None of the wording
-asserts that a rule is secure or that a request would be authorized.
+file shape, suspicious usage, and unresolved/unused symbols live in three
+inspections you can tune under **Settings | Editor | Inspections | Firebase
+Rules**. Most diagnostics — errors and warnings alike — carry an Alt+Enter
+quick-fix. None of the wording asserts that a rule is secure or that a request
+would be authorized.
 
 ### Errors (always reported)
 
@@ -238,6 +241,30 @@ match /cities/{city} {
 - **Condition-less allow** — `allow read;` → `'allow' rule has no 'if' condition. Add ': if <condition>' to restrict when the operation is permitted.` A condition-less `allow` is *legal* (it unconditionally grants the operation), so this is an opt-in nudge rather than an error.
 - **Recursive wildcard without v2** — `Recursive wildcard '{document=**}' should be used with rules_version = '2'; its match semantics differ between rules versions.`
 - **Helper-call arity** — `exists()` → `'exists()' takes exactly one argument but found 0.` Applies to `get`, `getAfter`, `exists`, and `existsAfter`.
+
+### Symbol warnings
+
+A resolver-based inspection — the same scope resolution that powers
+go-to-definition and rename — flags symbols that don't line up, without ever
+evaluating authorization:
+
+- **Unresolved reference** — a name resolving to no function, parameter, `let`, or path variable that also isn't a built-in → `Cannot resolve symbol 'isOwner'.` Members (`request.auth`), path variables, and built-ins/helpers are never flagged.
+- **Unused function / `let`** — a declaration nothing references → `Function 'isOwner' is never used.` / `Variable 'tmp' is never used.`
+- **Unused parameter** — a parameter never read in its body → `Parameter 'uid' is never used.` (reported only; removing it would change every call site).
+
+### Quick-fixes
+
+Most diagnostics offer an Alt+Enter fix that edits the file for you:
+
+- Insert or correct `rules_version = '2';`, or move it above the `service` block.
+- Change an unknown service to `cloud.firestore` or `firebase.storage`; scaffold a missing `service` block or root `match`.
+- Replace an unknown operation with the closest real one, remove a duplicate parameter, or add a missing `return false;`.
+- Add a placeholder `: if <condition>` to a condition-less `allow`.
+- Create a missing function for an unresolved call, or remove an unused function or `let`.
+
+The "no automatic fix" cases are deliberate: an empty operation list, a bare
+`return;`, multiple `service` blocks, and helper-call arity have no unambiguous
+repair, so they report without one.
 
 ## Symbol Intelligence
 
@@ -399,7 +426,7 @@ src/main/kotlin/dev/lezli/hotrulez/
   parser/
   psi/
   formatting/
-  diagnostics/
+  diagnostics/                      # annotator, inspections, quick-fixes (fixes/)
   editor/
   references/                       # PSI named elements, resolver, reference
   findusages/                       # FindUsagesProvider + word scanner
@@ -420,7 +447,7 @@ The implementation is split by responsibility:
 - `parser/` wires the generated parser/PSI into a recoverable `ParserDefinition`.
 - `psi/` defines the Firebase Rules PSI file and wrapper elements.
 - `formatting/` provides IntelliJ formatter blocks and spacing rules.
-- `diagnostics/` provides the annotator and inspections.
+- `diagnostics/` provides the annotator and inspections, with quick-fixes in `diagnostics/fixes/`.
 - `editor/` provides the brace matcher, quote handler, and commenter.
 - `references/` makes declarations named elements and resolves a name use to its
   declaration with Firestore scoping (the layer go-to-definition, find-usages,

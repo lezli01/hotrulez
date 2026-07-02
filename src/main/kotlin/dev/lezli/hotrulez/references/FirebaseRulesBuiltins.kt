@@ -41,9 +41,27 @@ object FirebaseRulesBuiltins {
     val FUNCTION_BODY_KEYWORDS = listOf("let", "return")
 
     /**
-     * Whether [name] is a built-in variable or path helper in any Firebase Rules
-     * dialect (so the resolver does not treat it as an undefined reference). The
-     * union is intentionally service-agnostic — see [RulesService.ALL_BUILTIN_NAMES].
+     * Service-agnostic global namespaces, global functions, and type-constructor /
+     * conversion functions available in any rules condition: the `math` / `timestamp` /
+     * `duration` / `latlng` / `hashing` namespaces, the `debug()` helper, and the type
+     * names that double as conversion functions (`int`, `float`, `string`, `path`, …). A
+     * use puts the leading name in `reference_expression` position (e.g. `math` in
+     * `math.abs(x)`, `int` in `int(x)`), so the resolver must recognise them to avoid a
+     * false "unresolved" report. Mirrors the highlighting lexer's `TYPE_NAMES`, plus
+     * `debug`.
      */
-    fun isBuiltinName(name: String): Boolean = name in RulesService.ALL_BUILTIN_NAMES
+    val GLOBALS = setOf(
+        "math", "timestamp", "duration", "latlng", "hashing", "debug",
+        "bool", "bytes", "float", "int", "number", "string",
+        "list", "map", "set", "path", "constraint", "map_diff",
+    )
+
+    /**
+     * Whether [name] is a built-in variable, path helper, or global namespace/function in
+     * any Firebase Rules dialect (so the resolver does not treat it as an undefined
+     * reference). Service-specific names come from [RulesService.ALL_BUILTIN_NAMES]; the
+     * service-agnostic globals come from [GLOBALS].
+     */
+    fun isBuiltinName(name: String): Boolean =
+        name in RulesService.ALL_BUILTIN_NAMES || name in GLOBALS
 }
