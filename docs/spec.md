@@ -1,370 +1,338 @@
-# hotrulez Project Spec — v2 (Symbol Intelligence)
+# hotrulez Project Spec — v3 (Assisted Authoring)
 
 Status: draft
-Last updated: 2026-06-27
-Supersedes: `docs/v1/spec.md` (archived). The v1 spec and task list cover the
-road to the shipped 0.4.0 release and remain the historical record under
+Last updated: 2026-07-02
+Supersedes: `docs/v2/spec.md` (archived). The v2 spec and task list cover
+symbol intelligence (shipped 0.5.0) and Cloud Storage support (shipped 0.6.0)
+and remain the historical record under `docs/v2/`. The v1 milestone lives under
 `docs/v1/`.
 
 ## Context
 
-`hotrulez` is a JetBrains IDE plugin for Firebase Cloud Firestore Security
-Rules. v1 (shipped through 0.4.0) made `.rules` a complete **passive** language:
-file recognition, syntax highlighting, a generated Grammar-Kit/JFlex parser and
-typed PSI, a PSI-aware formatter, structural and usage diagnostics (an annotator
-plus two inspections), and editor polish (icon, color settings page, brace
-matcher, quote handler, commenter).
+`hotrulez` is a JetBrains IDE plugin for Firebase Security Rules — both Cloud
+Firestore (`service cloud.firestore`) and Cloud Storage (`service
+firebase.storage`) `.rules` files. Through 0.6.1 it makes `.rules` a
+first-class language:
 
-What v1 deliberately does **not** have is anything *interactive* that depends on
-understanding which symbol is which. There is no code completion, no
-go-to-definition, no find-usages, no rename refactoring. The PSI is a tree of
-syntax, not a graph of meaning: a call to `isOwner(...)` is not linked to the
-`function isOwner(...)` that defines it, and a use of the path variable `city`
-is not linked to the `{city}` that binds it.
+- **v1 (→ 0.4.0)** — passive language: file recognition, syntax highlighting,
+  a Grammar-Kit/JFlex parser and typed PSI, a PSI-aware formatter, structural
+  diagnostics (an always-on annotator plus two configurable inspections, 18
+  checks in total), and editor polish (icon, color settings page, brace
+  matcher, quote handler, commenter).
+- **v2 (0.5.0)** — symbol intelligence: a PSI reference/resolve layer that
+  honors Firebase Rules scoping and path-variable shadowing, and the four
+  features that ride on it — go-to-definition, find-usages, rename, and
+  scope-aware completion — for functions, parameters, `let` bindings, and path
+  variables.
+- **v2 (0.6.0)** — Cloud Storage as a sibling dialect of the same language,
+  detected from the `service` declaration and modeled as data in
+  `references/RulesService` (service name, root-match shape,
+  `request`/`resource` member tables, path helpers).
 
-v2 closes exactly that gap.
+The plugin now **understands** a `.rules` file. What it does not yet do is
+**act on that understanding**. Its diagnostics point at problems but never
+offer to fix them: `FirebaseRulesStructureInspection` registers every problem
+with `LocalQuickFix.EMPTY_ARRAY`, and the annotator only calls `.range().create()`.
+And although the resolver knows exactly which names resolve and which do not, no
+diagnostic yet reports an *undefined* reference or an *unused* declaration —
+the two checks the resolver most directly makes possible.
+
+v3 closes that gap. It is the arc from *"the IDE reads your rules"* to *"the
+IDE helps you write them."*
 
 ## Thesis
 
-**v2 builds the one thing v1 lacks — a PSI reference/resolve layer for Firestore
-Rules — and uses it to deliver the four features that ride on it together:
-go-to-definition, find-usages, rename refactoring, and code completion.**
+**v3 turns the plugin's existing understanding into active assistance,
+delivered as three sequenced releases — one milestone per release, matching the
+project's established cadence.** Each release stands on infrastructure that is
+already shipped; none of them relaxes a single v1/v2 non-goal.
 
-These four are not independent milestones. They all sit on a single piece of
-infrastructure: the ability to resolve a *use* of a name to its *declaration*
-(and to enumerate the declarations visible at a point). Build that resolver once
-and all four features become reachable from it. Splitting them across releases
-would mean building the same resolver twice, so they ship as one milestone.
+1. **0.7 — Actionable Diagnostics.** Make the diagnostics the plugin already
+   raises *fixable*, and add the two new checks the 0.5 resolver unlocks
+   (undefined references, unused declarations). This is the highest value per
+   unit of effort: the detection layer mostly exists, quick-fixes are the most
+   visible "the IDE is smart" win after completion and navigation, and the new
+   checks are the direct payoff of having built the resolver.
+2. **0.8 — Authoring Polish.** Reveal and navigate structure: a structure view
+   (the `service` / `match` / `function` outline), code folding for braced
+   blocks, quick-documentation (hover) for built-ins and helpers (the docs
+   deferred out of v2), and parameter info on function and helper calls.
+3. **0.9 — Toward Semantics.** Begin type/dataflow-aware expression analysis —
+   flagging *obvious*, doc-grounded member and type mistakes — staying strictly
+   short of runtime evaluation.
 
-## Decisions
+This spec describes **0.7 in full implementation detail**, **0.8 in enough
+detail to commit to it**, and **0.9 as a lightly-sketched direction** — the
+later a milestone is, the less we should over-specify it before the earlier
+work teaches us what we actually need.
 
-These decisions were made deliberately and constrain the rest of this document.
+## Anchors
 
-- **Release model: incremental 0.5.x, one milestone per release.** v2 is the
-  0.5 line. Later milestones ship as 0.6, 0.7, … This spec describes the v2
-  milestone in implementation detail and sketches the sequenced roadmap after
-  it; it does not try to fully specify 0.6+.
-- **Anchor: first-principles parity with mature JetBrains language plugins.**
-  The bar is "what Kotlin, Go, and Rust language plugins do for symbols." There
-  is no external usage telemetry; scope is chosen from platform convention and
-  what makes `.rules` feel like a first-class language, not from a feature
-  request backlog.
-- **Hold every v1 non-goal.** v2 adds IDE intelligence *within the same
+- **First-principles parity with mature JetBrains language plugins.** The bar
+  is "what the Kotlin, Go, and Rust language plugins do." There is no usage
+  telemetry; scope is chosen because platform convention makes `.rules` feel
+  like a first-class language. Quick-fixes, an undefined-symbol inspection, a
+  structure view, folding, quick-docs, and parameter info are all table stakes
+  for a first-class language plugin — and all are still missing here.
+- **Hold every v1/v2 non-goal.** v3 adds IDE assistance *within the same
   conservative, structural scope*. It does not evaluate authorization, connect
   to Firebase, or model runtime behavior. See Non-Goals.
-- **Emulator / in-IDE rules testing is out of scope and is not on the roadmap.**
-  Running rules against the emulator or the rules-test SDK would break v1's
-  "no project connection" principle and is not part of language-plugin parity —
-  it is a test-runner concern that `firebase-tools` and the emulator suite
-  already serve. It is explicitly dropped, not deferred.
-- **Quick documentation (hover docs) is deferred to the authoring-polish
-  milestone, not v2.** Built-ins and helpers appear in completion in v2 but do
-  not carry doc payloads yet.
+- **Every fix is safe and obvious.** A quick-fix either makes one unambiguous
+  correction (insert the missing `rules_version`, change `'1'` to `'2'`) or
+  inserts a clearly-marked placeholder and parks the caret on it. A fix never
+  guesses program *meaning* — it never invents a condition, a return value, or
+  a type.
+- **Emulator / in-IDE rules testing remains out of scope, not deferred.**
+  Running the emulator or the rules-test SDK would break the "no project
+  connection" principle and is a test-runner concern that `firebase-tools`
+  already serves. It is explicitly dropped.
 
 ## Non-Goals
 
-v2 inherits every v1 non-goal unchanged. The plugin must not:
+v3 inherits every v1/v2 non-goal unchanged. The plugin must not:
 
 - Evaluate whether a request is allowed or denied, or otherwise infer
-  authorization or security quality.
+  authorization or security quality. Diagnostics — including the new ones —
+  stay structural.
 - Connect to Firebase projects, emulators, the rules-test SDK, credentials, or
-  live Firestore data, or run rules tests in-IDE.
+  live data, or run rules tests in-IDE.
 - Hard-code Firebase project IDs or environment-specific paths.
 - Model the language as JavaScript, JSON, or generic configuration.
-- Replace official Firebase tools for deployment or authorization testing.
-- Add web app frameworks or unrelated UI dependencies.
+- Replace official Firebase tooling for deployment or authorization testing.
+- Add web-app frameworks or unrelated UI dependencies.
 
-Additionally, v2-specific non-goals:
+Additionally, v3-specific non-goals:
 
-- **No type inference.** Completion offers documented members from a static
-  table; it does not infer the type of an arbitrary expression. `request.` and
-  `resource.` member completion is a fixed, doc-sourced list, never the result
-  of evaluating field types. Deep, type-aware analysis is a later milestone.
-- **No semantic correctness claims.** Resolve/rename only links names to
-  declarations; it does not assert a rule is correct or secure.
+- **No type inference (still).** The new undefined-reference check is *name
+  resolution* — it reports an identifier that resolves to no declaration and is
+  not a known built-in. It is **not** type analysis: members after `.`
+  (`request.foo`, `resource.data.bar`) are **never** flagged, because that would
+  require a type model, and custom `request.auth.token` claims are never
+  invented. (0.9 revisits type-shaped checks, and even there stays doc-grounded
+  and short of runtime evaluation.)
+- **Path / wildcard variables are never "unused."** A match segment such as
+  `/cities/{city}` is routinely declared without being referenced — it is a
+  structural URL capture, not a dead local. The unused-symbol check deliberately
+  excludes path/wildcard variables.
+- **No fix that silently changes meaning.** Where the correct repair is
+  genuinely ambiguous (which operation an empty `allow` intended, what
+  expression a bare `return;` wanted, which of several `service` blocks to keep),
+  the diagnostic is reported **without** an automatic fix rather than guessing.
+  These gaps are listed explicitly below — never left silent.
 
 ## Documentation Sources
 
-Firebase Rules semantics below were re-checked against official docs on
-2026-06-27, per the standing ground rule that Firebase docs are authoritative
-for language semantics. The load-bearing facts (the `cloud.firestore` service
-name, the `get/list/read/create/update/delete/write` operations, the
-`request`/`resource` built-ins and `request.auth.uid`/`resource.data`, the
-`get/exists/getAfter` helpers, `{city}`/`{name=**}` path wildcards, and `let`
-being valid only inside function bodies) were re-confirmed against the live docs
-on 2026-06-28:
+Per the standing ground rule, official Firebase docs are authoritative for
+language semantics and current IntelliJ Platform SDK docs (via Context7) are
+authoritative for extension points. Before implementing each milestone,
+re-check the relevant pages and do not encode a member, scoping, or fix
+behavior the docs do not confirm; tag anything uncertain `UNCONFIRMED`
+(matching the existing `.bnf` convention) with a TODO tied to the source.
 
-- Firebase Rules structure and path/wildcard variables:
+Firebase semantics load-bearing for v3 (already confirmed for v2 on 2026-06-28;
+re-confirm the specific facts each milestone relies on before coding):
+
+- Rules structure, path/wildcard variables, and the per-service root match:
   `https://firebase.google.com/docs/firestore/security/rules-structure`
-- Firebase Security Rules language (functions, `let`, scoping):
+- Rules language (functions, `let`, scoping, forward references):
   `https://firebase.google.com/docs/rules/rules-language`
-- Conditions, `request`/`resource`, and helper calls:
+- Conditions, `request`/`resource`, helper calls:
   `https://firebase.google.com/docs/firestore/security/rules-conditions`
-- `request` object reference (member table source):
+- `request`/`resource` member reference (member-table source):
   `https://firebase.google.com/docs/reference/rules/rules.firestore.Request`
 
-Before implementing the resolver, completion table, or rename scoping, re-check
-these pages and the current IntelliJ Platform SDK docs for the relevant
-extension points. Do not encode a member or scoping rule this spec does not
-confirm; tag anything uncertain `UNCONFIRMED` (matching the existing `.bnf`
-convention) and leave a TODO tied to the official source.
+IntelliJ Platform SDK topics to re-check before 0.7: attaching a
+`LocalQuickFix` to an inspection `ProblemDescriptor`; attaching a quick-fix /
+intention to an annotation (`AnnotationBuilder.withFix` and the current
+adapter for turning a `LocalQuickFix` into an `IntentionAction`, e.g.
+`LocalQuickFixAndIntentionActionOnPsiElement`); `ProblemHighlightType`
+values (`LIKE_UNKNOWN_SYMBOL`, `LIKE_UNUSED_SYMBOL`); and
+`localInspection` registration. Prefer extension points over startup code.
 
-## Confirmed Firebase Semantics (the resolver must honor these)
+## v3 Milestone Detail
 
-The resolver and rename processor must implement Firestore's actual scoping, not
-a textual approximation. The following are confirmed from the sources above.
+### 0.7 — Actionable Diagnostics (specified in full)
 
-### Functions
+Two halves that share one new package of fix classes.
 
-- Syntax: `function name(arg0, arg1, ...) { /* let bindings */ return expr; }`.
-  Zero or more parameters. The body contains **a single `return` statement** and
-  (in `rules_version = '2'`) **up to 10 `let` bindings**; it must end with the
-  `return`. No loops or other logic.
-- Functions "automatically access functions and variables from the scope in
-  which they are defined." A function declared inside a `match` block can
-  therefore reference that block's path variables and enclosing built-ins; a
-  function declared at `service` scope cannot see match-local path variables.
-- Functions "may call other functions but may not recurse"; total call-stack
-  depth is limited to 20.
-- **Resolution is scope-based, not declaration-order-based.** A call resolves to
-  a function of that name visible in the current or an enclosing scope,
-  regardless of whether the declaration appears before or after the call in the
-  file. The resolver must not assume top-to-bottom visibility.
+#### Half A — Quick-fixes for existing diagnostics
 
-### `let` bindings
+Attach a fix to each existing diagnostic **where a single unambiguous or
+clearly-placeholder repair exists**. Fixes are implemented once (as
+`LocalQuickFix`) and attached to inspection problems directly and to annotator
+errors via the platform's quick-fix/intention adapter.
 
-- Syntax: `let name = expression;`, function-local, up to 10 per function.
-- A `let` name is visible within the remainder of the function body after its
-  declaration. Uses resolve to that binding.
+Structure-inspection warnings (replace the current `LocalQuickFix.EMPTY_ARRAY`):
 
-### Path / wildcard variables
+| Diagnostic | Quick-fix | Notes |
+|---|---|---|
+| Missing `rules_version` | Insert `rules_version = '2';` at the top of the file | Flagship fix. |
+| Non-v2 `rules_version` | Change the version literal to `'2'` | |
+| `rules_version` after `service` | Move the `rules_version` line above the `service` block | |
+| Unknown service name | Two fixes: change to `cloud.firestore`; change to `firebase.storage` | |
+| `service` missing its block | Add a `{ … }` block, scaffolding the conventional root match for the detected service | Caret parked inside the block. |
+| Missing root match | Insert `match /databases/{database}/documents { }` (Firestore) or `match /b/{bucket}/o { }` (Storage), per detected service | Service-aware via `RulesService.rootMatchHint`. |
 
-- A single-segment wildcard `{city}` binds the name `city` (a string); a
-  recursive wildcard `{document=**}` binds the name `document` (a path).
-- A bound path variable is "visible within the `match` scope or any nested scope
-  where the `path` is declared." A use resolves to the nearest enclosing binding
-  of that name.
-- **Shadowing:** if a nested `match` re-declares the same name, the inner
-  binding shadows the outer one within the nested subtree. Rename and
-  find-usages must respect this — renaming an outer `{city}` must not touch a
-  shadowed inner `{city}`'s uses, and vice versa.
+Annotator errors (extend the annotator's `error(...)` helper to accept fixes):
 
-### Built-in variables and helpers (completion targets, not navigable)
+| Diagnostic | Quick-fix | Notes |
+|---|---|---|
+| Unknown operation (`allow read, fetch`) | Replace with the closest known operation, offered only within a small edit distance of a real op | Typo repair; no fix when nothing is close. |
+| Duplicate parameter name | Remove the duplicate parameter | |
+| Function missing its `return` | Add `return <expr>;` with a `false` placeholder, caret on the placeholder | Placeholder, not a guess. |
+| Misplaced recursive wildcard (v1) | Two fixes: move `{name=**}` to the last segment; upgrade to `rules_version = '2';` | Shares the version-upgrade fix. |
 
-- `request` top-level members: `auth`, `method`, `path`, `params`, `resource`,
-  `time`.
-- `request.auth` members: `uid`, `token` (and `request.auth` may be null when
-  unauthenticated).
-- `request.auth.token`: standard JWT claims (e.g. `email`, `email_verified`,
-  `phone_number`, `name`, `sub`, `firebase`) plus arbitrary custom claims.
-  Custom claims cannot be statically enumerated; the table lists only the
-  documented standard claims and notes that custom claims exist.
-- `resource` and `request.resource` members: `data` (the field map), `id`,
-  `__name__`.
-- Helper calls and their arity (already encoded in v1's diagnostics, reused
-  here): `exists(path)`, `existsAfter(path)`, `get(path)`, `getAfter(path)` each
-  take exactly one path argument.
+Usage-inspection warnings:
 
-The member table is **illustrative** here; the implementer must build the
-authoritative version from the reference docs and tag anything uncertain
-`UNCONFIRMED`.
+| Diagnostic | Quick-fix | Notes |
+|---|---|---|
+| Recursive wildcard without v2 | Add / upgrade to `rules_version = '2';` | Shared version fix. |
+| Condition-less `allow` | Append `: if <condition>;` placeholder, caret on the placeholder | Nudge; placeholder, not a guess. |
 
-## v2 Scope: Symbol Intelligence
+**Deliberately no automatic fix** (reported as before, documented here so the
+gap is never silent): empty operation list (intended operation is ambiguous);
+bare `return;` (no expression to synthesize); more than one recursive wildcard
+(which to drop is ambiguous); multiple `service` blocks (cannot choose or
+merge); helper-call arity (the missing/extra argument is unknown).
 
-### Symbols the resolver covers
+#### Half B — New resolver-enabled checks
 
-Full treatment — resolve (go-to-definition), find-usages, and rename — for all
-four user-defined symbol kinds:
+A new configurable inspection, `FirebaseRulesSymbolInspection` (displayName
+"Firebase Rules symbol resolution", group "Firebase Rules", `WARNING`, on by
+default). It lives in an inspection rather than the always-on annotator because
+unresolved and unused names are constantly transient while typing — the same
+severity philosophy that puts file-shape checks in an inspection.
 
-- **Functions** (and their resolution across service/match scope, forward
-  references, and inter-function calls).
-- **Function parameters** (function-local).
-- **`let` bindings** (function-local, post-declaration scope).
-- **Path / wildcard variables** (match-subtree scope, with shadowing).
+- **Undefined reference.** A `reference_expression` whose `FirebaseRulesReference`
+  resolves to nothing (`multiResolve` is empty) **and** whose name is not a
+  built-in (`FirebaseRulesBuiltins.isBuiltinName`) is reported as `Cannot
+  resolve symbol 'x'` with `ProblemHighlightType.LIKE_UNKNOWN_SYMBOL`. The
+  reference is `soft`, so the platform does not flag it on its own — this
+  inspection is the explicit surfacing. Members are `member_expression` nodes,
+  not `reference_expression`s, so `request.foo` is structurally excluded — no
+  type model, no non-goal violation. Optional secondary fix when the name is in
+  callee position: *Create function 'x'*, scaffolding
+  `function x(<args>) { return false; }` in the nearest enclosing block.
+- **Unused function.** A `function` declaration with no resolving reference in
+  the file, reported with `ProblemHighlightType.LIKE_UNUSED_SYMBOL` as `Function
+  'x' is never used`. Fix: *Remove function 'x'* (safe delete of the
+  declaration). Usages are found with the shipped find-usages layer
+  (`ReferencesSearch` over the single file).
+- **Unused `let` binding.** A `let x = …;` never referenced in the remainder of
+  its function body: `Variable 'x' is never used`. Fix: *Remove 'let' binding*.
+- **Unused parameter.** A parameter never referenced in its function body:
+  `Parameter 'x' is never used`, grayed. **Reported only, no removal fix in
+  0.7** — removing a parameter must update every call site's argument list,
+  which is refactoring-grade and deferred. Documented, not silent.
+- **Not flagged:** path / wildcard variables (see Non-Goals), and any name that
+  resolves or is a built-in/helper.
 
-Built-in variables (`request`, `resource`) and helper functions
-(`exists`/`get`/`getAfter`/`existsAfter`) are **recognized by the resolver** so
-they are never mistaken for undefined symbols, and they **appear in completion**,
-but they are **not navigable** — Ctrl+click on a built-in is a no-op (there is no
-declaration to jump to). Quick-docs for them is deferred.
+#### Confirmed semantics the new checks must honor
 
-### Go to definition
+- Resolution is **scope-based, not declaration-order-based**: a forward
+  reference to a function declared later in an enclosing scope resolves and is
+  therefore *not* undefined. `FirebaseRulesScopes` already implements this; the
+  inspection must consult it, never a textual/top-to-bottom heuristic.
+- A `let` is visible only *after* its declaration, and shadowing (nested path
+  variable / same-named function) follows the v2 rules. "Unused" and
+  "undefined" must be computed through the resolver so these all hold.
+- Built-ins (`request`, `resource`) and helpers (`get`/`getAfter`/`exists`/
+  `existsAfter`, and Storage's cross-service `firestore.get`/`firestore.exists`)
+  are recognized, non-navigable, and never "undefined."
 
-- Ctrl+click / "Go to Declaration" on a function call jumps to its `function`
-  declaration.
-- On a path-variable use, jumps to the binding wildcard in the match path.
-- On a parameter or `let` use, jumps to its binding.
-- On a built-in or helper, does nothing (documented behavior, not a bug).
-- Delivered through `PsiReference.resolve()` on the relevant PSI elements;
-  the platform's go-to-declaration uses it automatically.
+#### Implementation components (0.7)
 
-### Find usages
+- New package `dev.lezli.hotrulez.diagnostics.fixes` — one `LocalQuickFix` per
+  repair above, each mutating the PSI (insert/replace/delete) via the document
+  or PSI factory; placeholder fixes position the caret.
+- Extend `FirebaseRulesAnnotator.error(...)` to accept optional fixes and attach
+  them through `AnnotationBuilder.withFix` (via the current SDK adapter).
+- Populate `FirebaseRulesStructureInspection` / `FirebaseRulesUsageInspection`
+  problem descriptors with their fixes (drop `LocalQuickFix.EMPTY_ARRAY`).
+- New `FirebaseRulesSymbolInspection` for Half B, registered as a
+  `localInspection` in `plugin.xml`.
+- Reuse the shipped resolver (`FirebaseRulesScopes`, `FirebaseRulesReference`,
+  `FirebaseRulesBuiltins`) and find-usages layer; regenerate the grammar only if
+  a missing PSI accessor forces a narrow `.bnf` change.
 
-- Find Usages on any covered declaration lists every resolving use, scoped
-  correctly (path-variable usages stop at a shadowing redeclaration).
-- Requires a `FindUsagesProvider` and a word scanner over the lexer, plus
-  `PsiNamedElement` declarations; the standard usage search consumes the same
-  references that power go-to-definition.
+#### Tests (0.7)
 
-### Rename refactoring
+- New `FirebaseRulesQuickFixTest`: for each fix, apply it to a before-fixture
+  and assert the after-text (using the existing `testData` fixture style).
+- Extend `FirebaseRulesInspectionTest` for `FirebaseRulesSymbolInspection`:
+  undefined reference flagged; forward reference and enclosing-scope call *not*
+  flagged; built-ins/helpers not flagged; members never flagged; unused
+  function / `let` / parameter flagged; path variables never flagged.
+- Recovery: fixes and the symbol inspection degrade gracefully in a partially
+  malformed file (no exceptions; unrelated blocks unaffected).
+- `./gradlew test` green after the milestone.
 
-- Rename a function → updates the declaration and every call site.
-- Rename a parameter or `let` → updates the binding and its in-body uses.
-- Rename a path variable → updates the binding wildcard and every use within
-  that match subtree, **stopping at a shadowing redeclaration**, and leaving
-  unrelated same-named bindings untouched.
-- New names are validated by a `NamesValidator` (must be a legal identifier;
-  reserved keywords rejected).
-- Works largely through references + `PsiNamedElement.setName()`; the
-  path-variable scoping edge cases are handled by a dedicated
-  `RenamePsiElementProcessor` so shadowing is correct.
+#### Acceptance (0.7)
 
-### Code completion
+- Every diagnostic in the Half-A table offers its fix; the "no automatic fix"
+  set is reported without one, as designed.
+- The symbol inspection flags undefined references and unused
+  functions/`let`s/parameters with correct, resolver-based scoping, and never
+  flags members, built-ins, helpers, or path variables.
+- All v1/v2 non-goals still hold; nothing connects to Firebase, evaluates
+  authorization, or infers a type.
+- Tests cover fixes, the symbol inspection (positives and scoping negatives),
+  and recovery; implementation follows current JetBrains SDK and Firebase docs.
 
-A `CompletionContributor` with position-keyed providers. Completion offers:
+### 0.8 — Authoring Polish (committed; specified enough to start)
 
-- **After `allow `**: operation names `get, list, read, create, update, delete,
-  write`.
-- **Statement / structural position**: keywords `match`, `allow`, `function`,
-  `return`, `let`, `if`, plus `rules_version` and `service` at file top level.
-- **After `service `**: `cloud.firestore`.
-- **Expression position**: in-scope user symbols (functions, parameters, `let`
-  bindings, and path variables visible at the caret per the scoping rules),
-  built-in variables (`request`, `resource`), helper functions
-  (`exists`/`get`/`getAfter`/`existsAfter`), and literals (`true`, `false`,
-  `null`).
-- **Shallow member completion** after `request.`, `request.auth.`,
-  `request.resource.`, and `resource.`: the documented members from the static
-  table (one to two levels deep). This is a fixed list sourced from Firebase
-  docs — **not type inference**. Unknown/custom claims are not invented.
+Structure and navigation features, each riding on the existing PSI and
+`RulesService` profile. All are read-only views over the PSI — no new
+semantics.
 
-Completion must respect scoping: a function's parameters are only offered inside
-that function; a path variable is only offered within its match subtree; a `let`
-is only offered after its declaration.
+- **Structure view** — `lang.psiStructureViewFactory`: an outline of the
+  `service` → `match` (by path) → `function` / `allow` tree, so a large rules
+  file is navigable from the Structure tool window.
+- **Code folding** — `lang.foldingBuilder`: fold `service`, `match`, and
+  `function` braced blocks (and optionally block comments), with sensible
+  placeholder text (e.g. the match path).
+- **Quick documentation** — `lang.documentationProvider`: hover / Ctrl-Q docs
+  for built-ins (`request`, `resource` and their members), helpers, and
+  `allow` operations, sourced from the same static, doc-sourced `RulesService`
+  and `FirebaseRulesBuiltins` tables that drive completion. This is the hover
+  docs deferred out of v2. Still no type inference.
+- **Parameter info** — `codeInsight.parameterInfo`: on a call to a user
+  `function` (parameter names from the declaration) and to the fixed-arity path
+  helpers (`get`/`exists`/…), show the signature while typing arguments.
 
-## Implementation Components
+Non-goals unchanged; docs strings stay structural and doc-grounded. Detailed
+task breakdown deferred until 0.7 ships.
 
-New package: `dev.lezli.hotrulez.references` (resolve/declarations) plus feature
-packages as below. Reuse the existing generated PSI; do not regenerate the
-grammar for this milestone unless a missing PSI accessor forces a narrow `.bnf`
-change (e.g. exposing a named-element interface on declarations).
+### 0.9 — Toward Semantics (direction, not commitment)
 
-- **Declarations as named elements.** Make function declarations, parameters,
-  `let` bindings, and path wildcards implement `PsiNamedElement` (and expose a
-  name identifier), via Grammar-Kit `implements`/`mixin` hooks or a
-  `*PsiImplUtil`. This is what find-usages and rename key off.
-- **References and resolution.** Implement `PsiReference` (poly-variant where a
-  name could be ambiguous) on function-call names and on identifier uses that
-  can denote a parameter / `let` / path variable. Resolution walks enclosing
-  scopes per the confirmed semantics. Register a
-  `com.intellij.psi.referenceContributor` if references are attached by pattern
-  rather than directly on PSI.
-- **Find usages:** `com.intellij.lang.findUsagesProvider` with a
-  `DefaultWordsScanner` over the highlighting/parsing lexer.
-- **Rename:** a `com.intellij.lang.refactoring.namesValidator` and a
-  `com.intellij.refactoring.renamePsiElementProcessor` for path-variable
-  scoping.
-- **Completion:** `com.intellij.completion.contributor` with
-  `PlatformPatterns`-keyed `CompletionProvider`s and a static, doc-sourced
-  member/keyword/operation table.
-- **Go to definition:** no dedicated EP needed — provided by `PsiReference`
-  resolution. Add a `GotoDeclarationHandler` only if a case is not expressible
-  as a reference.
+Begin *doc-grounded* expression analysis, still short of runtime evaluation:
+flag *obvious* member and type mistakes that the static Firebase docs make
+unambiguous — e.g. a member that cannot exist on a known built-in in the
+detected dialect, or an operator applied to plainly incompatible literal types
+— while never asserting authorization, never inventing types for user data, and
+never evaluating a rule. The exact check set will be shaped by what 0.7/0.8
+reveal about false-positive risk; this milestone is intentionally left
+under-specified until then, and may itself split across releases.
 
-All registration goes through `plugin.xml` extension points. Re-check the
-current IntelliJ Platform SDK docs for the exact tag names and signatures before
-implementing; prefer extension points over startup code.
+## Future (explicitly not planned)
 
-## Tests
+Emulator / rules-test-SDK integration and any in-IDE authorization evaluation
+remain out of scope — they would require revisiting the no-connection,
+no-evaluation core principles that define the product.
 
-Add focused tests with each piece, using the existing test fixtures style under
-`src/test/testData`. Recommended fixtures and checks:
+## Overall Acceptance Criteria (v3 program)
 
-- **Resolve:** call → function declaration (incl. a forward reference and a
-  call to a function declared in an enclosing scope); parameter use → parameter;
-  `let` use → `let`; path-variable use → binding wildcard.
-- **Scoping negatives:** a service-scope function does not resolve a match-local
-  path variable; a `let` is not visible before its declaration.
-- **Shadowing:** nested `match` reusing a path-variable name resolves each use
-  to the nearest binding; find-usages and rename respect the boundary.
-- **Find usages:** counts and locations for each symbol kind.
-- **Rename:** function rename updates all call sites; path-variable rename
-  updates only the correct subtree and leaves a shadowed same-name binding
-  untouched; rename to a reserved keyword is rejected.
-- **Completion:** operations after `allow`; in-scope symbols in expression
-  position; scoping (parameter not offered outside its function; `let` not
-  offered before declaration); shallow members after `request.` / `resource.` /
-  `request.auth.`; built-ins/helpers present but non-navigable.
-- **Recovery:** completion and resolve degrade gracefully in a partially
-  malformed file (no exceptions; unrelated blocks still work).
+v3 is successful when a developer editing a `.rules` file can:
 
-## Milestone Definition
-
-### v2 / 0.5: Symbol Intelligence
-
-Done when:
-
-- A PSI reference/resolve layer links uses to declarations for functions,
-  parameters, `let` bindings, and path variables, honoring Firestore scoping
-  and path-variable shadowing.
-- Go-to-definition, find-usages, and rename work for all four symbol kinds, with
-  correct scoping; built-ins are recognized but non-navigable.
-- Code completion offers in-scope symbols, keywords, operations, helpers, and
-  shallow `request.`/`resource.` members from a static doc-sourced table, with
-  scoping respected and no type inference.
-- All v1 non-goals still hold; nothing connects to Firebase or evaluates
-  authorization.
-- Tests cover resolve, scoping negatives, shadowing, find-usages, rename, and
-  completion as listed above.
-- Implementation choices follow current official JetBrains SDK and Firebase
-  docs.
-
-## Future Milestones (sequenced, not v2 scope)
-
-Written here so the direction is explicit, but **not** part of the 0.5 release.
-One milestone per release.
-
-1. **0.6 — Actionable diagnostics.** Quick-fixes / intentions for the
-   diagnostics v1 already raises (e.g. insert missing `rules_version = '2';`,
-   add a missing `if`), plus new semantic checks the resolver now makes possible
-   — **unused functions** and **undefined references** (a name that resolves to
-   nothing). Highest value per unit of effort because detection mostly exists
-   and the resolver is built. Still no runtime/authorization claims.
-2. **Cloud Storage Rules — _delivered_.** `firebase.storage` is now supported
-   alongside `cloud.firestore`. Rather than a sibling `Language`, both dialects
-   share one language and grammar (the lexer, parser, formatter, highlighting, and
-   symbol intelligence are service-agnostic); the dialect is **detected from the
-   file's `service` declaration** and captured as data in `RulesService` — the
-   service name, the root-match shape (`/b/{bucket}/o` vs
-   `/databases/{database}/documents`), the `request`/`resource` member tables, the
-   top-level globals, and the path helpers. Diagnostics and completion consume that
-   profile; a missing service is **neutral** (service-specific checks suppressed,
-   both dialects offered) and an unrecognized service is a **soft warning**.
-   Cloud Storage's cross-service `firestore.get`/`firestore.exists` are recognized.
-   No new runtime/authorization claims. The user-facing identity was rebranded from
-   "Firestore Rules" to "Firebase Rules" for this milestone.
-3. **Authoring polish.** Structure view, code folding for braced blocks,
-   quick-docs (the deferred hover docs for built-ins/helpers), and parameter
-   info on calls.
-4. **Toward semantics.** Type/dataflow-aware expression analysis (field/member
-   validation against a model, obvious type mismatches), staying short of
-   runtime evaluation.
-
-Explicitly **not planned:** emulator or rules-test-SDK integration and any
-in-IDE authorization evaluation. These would require revisiting v1's
-no-connection, no-evaluation core principles and are out of the product's scope.
-
-## Acceptance Criteria
-
-v2 is successful when a developer editing a `.rules` file can:
-
-- Ctrl+click a function call, parameter, `let`, or path variable and land on its
-  declaration; Find Usages from any of them; and Rename any of them with the
-  rest of the file updated correctly (including correct path-variable
-  shadowing).
-- Get useful, scope-aware completion for symbols, keywords, operations, helpers,
-  and `request.`/`resource.` members — without the plugin inventing types or
-  evaluating authorization.
-- Trust that nothing connects to Firebase or claims a rule is secure.
-- See tests covering resolve, scoping, shadowing, find-usages, rename, and
-  completion for representative Firebase Rules examples.
+- **0.7** — accept a one-click fix for the structural problems the plugin flags,
+  and see undefined references and unused functions/`let`s/parameters surfaced
+  with correct scoping — without the plugin inventing meaning, types, or
+  authorization judgments.
+- **0.8** — navigate a large file via a structure view, fold blocks, read
+  built-in/helper docs on hover, and see parameter info while calling functions
+  and helpers.
+- **0.9** — receive conservative, doc-grounded warnings about obvious
+  expression mistakes, still with nothing connected to Firebase and no runtime
+  evaluation.
+- Trust, throughout, that every check and fix is structural: the plugin never
+  connects to Firebase and never claims a rule is secure.
