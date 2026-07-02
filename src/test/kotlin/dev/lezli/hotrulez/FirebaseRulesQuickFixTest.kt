@@ -432,6 +432,32 @@ class FirebaseRulesQuickFixTest : BasePlatformTestCase() {
         )
     }
 
+    fun testCreateFunctionAtTopLevelKeepsRulesVersionFirst() {
+        // Regression: an unresolved call inside a top-level function body has no enclosing
+        // service/match block, so the fix takes its file-level branch. It must not graft the
+        // scaffolded helper above `rules_version`, which Firebase requires to be the file's
+        // first statement.
+        myFixture.configureByText(
+            FirebaseRulesFileType,
+            """
+            rules_version = '2';
+            function checkAuth() {
+              return validate(true);
+            }
+            """.trimIndent(),
+        )
+        launchFix("Create function 'validate'")
+        val text = myFixture.file.text
+        assertTrue(
+            "rules_version must remain the first statement; got:\n$text",
+            text.trimStart().startsWith("rules_version"),
+        )
+        assertTrue(
+            "scaffolded function must be placed after rules_version; got:\n$text",
+            text.indexOf("function validate") > text.indexOf("rules_version"),
+        )
+    }
+
     fun testRemoveUnusedFunction() {
         applyFix(
             "Remove function 'unused'",

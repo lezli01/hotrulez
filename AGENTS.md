@@ -98,29 +98,18 @@ checks available, such as:
 - Lexer/parser tests for representative `.rules` files.
 - Formatter tests for nested `service`, `match`, `allow`, and `function` blocks.
 - Annotation or inspection tests for invalid Firebase Rules constructs.
-
-## OpenWiki
-
-This repository has documentation located in the `/openwiki` directory.
-
-Start here:
-- [OpenWiki quickstart](openwiki/quickstart.md)
-
-OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
-
-When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
-
-## OpenWiki
-
-This repository has documentation located in the `/openwiki` directory.
-
-Start here:
-- [OpenWiki quickstart](openwiki/quickstart.md)
-
-OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
-
-When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
 - Gradle plugin verification tasks before release-oriented changes.
+
+## OpenWiki
+
+This repository has documentation located in the `/openwiki` directory.
+
+Start here:
+- [OpenWiki quickstart](openwiki/quickstart.md)
+
+OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
+
+When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
 
 Update this file when the project gains concrete build commands, test commands,
 or a different implementation stack.

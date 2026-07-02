@@ -4,8 +4,10 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.modcommand.ModCommandAction
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.PsiWhiteSpace
 import dev.lezli.hotrulez.psi.FirebaseRulesBlock
+import dev.lezli.hotrulez.psi.FirebaseRulesFile
 
 /**
  * Fixes are written once as [ModCommandAction]s (see the concrete `*Fix` classes in this
@@ -41,4 +43,27 @@ internal fun PsiElement.deleteWithLeadingWhitespace() {
 internal fun moveCaretInsideBlock(updater: ModPsiUpdater, block: FirebaseRulesBlock?) {
     val lbrace = block?.firstChild ?: return
     updater.moveCaretTo(lbrace.textRange.endOffset)
+}
+
+/**
+ * Inserts [element] as [block]'s first entry, immediately after its opening `{`, so a
+ * scaffolded declaration lands at the top of the block. Falls back to a plain append when the
+ * block has no children yet (a half-typed block whose brace hasn't parsed). Returns the
+ * grafted node.
+ */
+internal fun insertAfterOpeningBrace(block: FirebaseRulesBlock, element: PsiElement): PsiElement {
+    val openingBrace = block.firstChild
+    return if (openingBrace != null) block.addAfter(element, openingBrace) else block.add(element)
+}
+
+/**
+ * Inserts [statement] at the very top of [file], adding a trailing newline so it does not run
+ * into the declaration that used to be first. Used by the fixes that put `rules_version` back
+ * at the top of the file. Returns the grafted node.
+ */
+internal fun prependStatementToFile(file: FirebaseRulesFile, statement: PsiElement): PsiElement {
+    val anchor = file.firstChild ?: return file.add(statement)
+    val inserted = file.addBefore(statement, anchor)
+    file.addAfter(PsiParserFacade.getInstance(file.project).createWhiteSpaceFromText("\n"), inserted)
+    return inserted
 }

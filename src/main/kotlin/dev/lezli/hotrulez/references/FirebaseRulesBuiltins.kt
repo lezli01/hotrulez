@@ -41,20 +41,27 @@ object FirebaseRulesBuiltins {
     val FUNCTION_BODY_KEYWORDS = listOf("let", "return")
 
     /**
-     * Service-agnostic global namespaces, global functions, and type-constructor /
-     * conversion functions available in any rules condition: the `math` / `timestamp` /
-     * `duration` / `latlng` / `hashing` namespaces, the `debug()` helper, and the type
-     * names that double as conversion functions (`int`, `float`, `string`, `path`, …). A
-     * use puts the leading name in `reference_expression` position (e.g. `math` in
-     * `math.abs(x)`, `int` in `int(x)`), so the resolver must recognise them to avoid a
-     * false "unresolved" report. Mirrors the highlighting lexer's `TYPE_NAMES`, plus
-     * `debug`.
+     * Built-in type names: the `is`-operator right-hand sides and conversion functions
+     * (`int`, `float`, `string`, `path`, …) together with the global namespaces (`math`,
+     * `timestamp`, `duration`, `latlng`, `hashing`). This is the single source of truth
+     * shared with the highlighting lexer ([dev.lezli.hotrulez.lexer.FirebaseRulesLexer]
+     * consumes it), so a newly supported Firebase type is recognised by both the resolver
+     * and the highlighter from one edit rather than two lists drifting apart.
      */
-    val GLOBALS = setOf(
-        "math", "timestamp", "duration", "latlng", "hashing", "debug",
+    val TYPE_NAMES = setOf(
         "bool", "bytes", "float", "int", "number", "string",
-        "list", "map", "set", "path", "constraint", "map_diff",
+        "list", "map", "set", "path", "latlng", "timestamp",
+        "duration", "constraint", "map_diff", "math", "hashing",
     )
+
+    /**
+     * Service-agnostic global namespaces, global functions, and type-constructor /
+     * conversion functions available in any rules condition: the [TYPE_NAMES] above plus the
+     * `debug()` helper. A use puts the leading name in `reference_expression` position (e.g.
+     * `math` in `math.abs(x)`, `int` in `int(x)`), so the resolver must recognise them to
+     * avoid a false "unresolved" report.
+     */
+    val GLOBALS = TYPE_NAMES + "debug"
 
     /**
      * Whether [name] is a built-in variable, path helper, or global namespace/function in

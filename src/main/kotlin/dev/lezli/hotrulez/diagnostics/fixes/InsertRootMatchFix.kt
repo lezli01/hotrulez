@@ -24,12 +24,7 @@ class InsertRootMatchFix(
         val project = context.project
         val match = FirebaseRulesElementFactory.matchDeclaration(project, rootMatchPath)
 
-        val openingBrace = block.firstChild
-        if (openingBrace != null) {
-            block.addAfter(match, openingBrace)
-        } else {
-            block.add(match)
-        }
+        insertAfterOpeningBrace(block, match)
         val reformatted = CodeStyleManager.getInstance(project).reformat(block) as FirebaseRulesBlock
         moveCaretInsideBlock(updater, reformatted.matchDeclarationList.firstOrNull()?.block)
     }

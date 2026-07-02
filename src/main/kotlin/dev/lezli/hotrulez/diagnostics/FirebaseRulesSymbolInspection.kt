@@ -8,6 +8,7 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiRecursiveElementWalkingVisitor
 import com.intellij.psi.util.PsiTreeUtil
 import dev.lezli.hotrulez.diagnostics.fixes.CreateFunctionFix
 import dev.lezli.hotrulez.diagnostics.fixes.RemoveDeclarationFix
@@ -45,7 +46,26 @@ class FirebaseRulesSymbolInspection : LocalInspectionTool() {
         val problems = mutableListOf<ProblemDescriptor>()
         val usedDeclarations = HashSet<PsiElement>()
 
-        for (reference in PsiTreeUtil.findChildrenOfType(file, FirebaseRulesReferenceExpression::class.java)) {
+        // Collect every element kind this inspection reasons about in a single tree pass: it
+        // runs on-the-fly on each keystroke, so four separate findChildrenOfType calls would
+        // re-walk the whole file four times per edit on top of the per-reference resolve.
+        val references = mutableListOf<FirebaseRulesReferenceExpression>()
+        val functions = mutableListOf<FirebaseRulesFunctionDeclaration>()
+        val lets = mutableListOf<FirebaseRulesLetStatement>()
+        val parameters = mutableListOf<FirebaseRulesParameter>()
+        file.accept(object : PsiRecursiveElementWalkingVisitor() {
+            override fun visitElement(element: PsiElement) {
+                when (element) {
+                    is FirebaseRulesReferenceExpression -> references += element
+                    is FirebaseRulesFunctionDeclaration -> functions += element
+                    is FirebaseRulesLetStatement -> lets += element
+                    is FirebaseRulesParameter -> parameters += element
+                }
+                super.visitElement(element)
+            }
+        })
+
+        for (reference in references) {
             // Skip anything inside a parse error so we don't pile onto the parser's own
             // diagnostics while the file is being typed / is malformed.
             if (PsiTreeUtil.getParentOfType(reference, PsiErrorElement::class.java) != null) continue
@@ -77,7 +97,7 @@ class FirebaseRulesSymbolInspection : LocalInspectionTool() {
             )
         }
 
-        val unusedFunctions = PsiTreeUtil.findChildrenOfType(file, FirebaseRulesFunctionDeclaration::class.java)
+        val unusedFunctions = functions
             .filter { it !in usedDeclarations }
             .toSet()
         for (function in unusedFunctions) {
@@ -89,7 +109,7 @@ class FirebaseRulesSymbolInspection : LocalInspectionTool() {
             )
         }
 
-        for (binding in PsiTreeUtil.findChildrenOfType(file, FirebaseRulesLetStatement::class.java)) {
+        for (binding in lets) {
             if (binding in usedDeclarations || binding.enclosingFunction() in unusedFunctions) continue
             val nameIdentifier = binding.nameIdentifier ?: continue
             problems += unused(
@@ -102,7 +122,7 @@ class FirebaseRulesSymbolInspection : LocalInspectionTool() {
         // Parameters are report-only: removing one would change the function's arity and every
         // call site, which is deferred beyond 0.7. Skip params of an already-unused function so
         // the same declaration isn't flagged twice.
-        for (parameter in PsiTreeUtil.findChildrenOfType(file, FirebaseRulesParameter::class.java)) {
+        for (parameter in parameters) {
             if (parameter in usedDeclarations || parameter.enclosingFunction() in unusedFunctions) continue
             val nameIdentifier = parameter.nameIdentifier ?: continue
             problems += unused(manager, nameIdentifier, isOnTheFly, "Parameter '${parameter.name}' is never used.")

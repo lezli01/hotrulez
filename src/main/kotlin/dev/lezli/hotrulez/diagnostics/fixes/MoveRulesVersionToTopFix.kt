@@ -3,7 +3,6 @@ package dev.lezli.hotrulez.diagnostics.fixes
 import com.intellij.modcommand.ActionContext
 import com.intellij.modcommand.ModPsiUpdater
 import com.intellij.modcommand.PsiUpdateModCommandAction
-import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.util.PsiTreeUtil
 import dev.lezli.hotrulez.diagnostics.FirebaseRulesDiagnostics
 import dev.lezli.hotrulez.psi.FirebaseRulesFile
@@ -31,12 +30,6 @@ class MoveRulesVersionToTopFix(file: FirebaseRulesFile) :
         versions.forEach { it.deleteWithLeadingWhitespace() }
 
         val statement = FirebaseRulesElementFactory.rulesVersionStatement(project, value)
-        val anchor = file.firstChild
-        if (anchor == null) {
-            file.add(statement)
-        } else {
-            val inserted = file.addBefore(statement, anchor)
-            file.addAfter(PsiParserFacade.getInstance(project).createWhiteSpaceFromText("\n"), inserted)
-        }
+        prependStatementToFile(file, statement)
     }
 }

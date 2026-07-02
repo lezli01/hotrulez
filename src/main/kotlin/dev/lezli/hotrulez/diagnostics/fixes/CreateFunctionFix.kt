@@ -11,6 +11,7 @@ import dev.lezli.hotrulez.psi.FirebaseRulesBlock
 import dev.lezli.hotrulez.psi.FirebaseRulesCallExpression
 import dev.lezli.hotrulez.psi.FirebaseRulesFunctionDeclaration
 import dev.lezli.hotrulez.psi.FirebaseRulesReferenceExpression
+import dev.lezli.hotrulez.psi.FirebaseRulesRulesVersionStatement
 import dev.lezli.hotrulez.references.FirebaseRulesElementFactory
 
 /**
@@ -34,17 +35,26 @@ class CreateFunctionFix(callee: FirebaseRulesReferenceExpression) :
         val function = FirebaseRulesElementFactory.functionDeclaration(project, functionName, parameters)
 
         val block = PsiTreeUtil.getParentOfType(callee, FirebaseRulesBlock::class.java)
+        val file = callee.containingFile
         val inserted: PsiElement = if (block != null) {
-            val openingBrace = block.firstChild
-            if (openingBrace != null) block.addAfter(function, openingBrace) else block.add(function)
+            insertAfterOpeningBrace(block, function)
         } else {
-            val anchor = callee.containingFile.firstChild
-            if (anchor != null) callee.containingFile.addBefore(function, anchor) else callee.containingFile.add(function)
+            // No enclosing service/match block: the unresolved call sits in a top-level function
+            // body, so the scaffolded helper is itself a top-level declaration. Anchor it after
+            // any `rules_version` statement — inserting before the raw firstChild would demote
+            // rules_version from the first statement, a shape the Firebase compiler rejects.
+            val rulesVersion = PsiTreeUtil.getChildrenOfType(file, FirebaseRulesRulesVersionStatement::class.java)?.firstOrNull()
+            if (rulesVersion != null) {
+                file.addAfter(function, rulesVersion)
+            } else {
+                val anchor = file.firstChild
+                if (anchor != null) file.addBefore(function, anchor) else file.add(function)
+            }
         }
 
         // Reformat via the whole file: reformatting only the enclosing block mis-indents its
         // existing statements when the block is deeply nested.
-        CodeStyleManager.getInstance(project).reformat(callee.containingFile)
+        CodeStyleManager.getInstance(project).reformat(file)
         val body = (inserted as? FirebaseRulesFunctionDeclaration)?.functionBody
         body?.returnStatementList?.firstOrNull()?.expression?.let { updater.select(it) }
     }
