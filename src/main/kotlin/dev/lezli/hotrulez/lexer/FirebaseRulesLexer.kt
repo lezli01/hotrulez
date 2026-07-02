@@ -4,6 +4,7 @@ import com.intellij.lexer.LexerBase
 import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import dev.lezli.hotrulez.diagnostics.FirebaseRulesDiagnostics
+import dev.lezli.hotrulez.references.FirebaseRulesBuiltins
 
 class FirebaseRulesLexer : LexerBase() {
     private var buffer: CharSequence = ""
@@ -171,7 +172,7 @@ class FirebaseRulesLexer : LexerBase() {
             text in WORD_OPERATORS && inValuePosition(tokenStart) ->
                 FirebaseRulesTokenTypes.OPERATOR
             nextNonWhitespace(index) == '(' -> FirebaseRulesTokenTypes.FUNCTION_CALL
-            text in TYPE_NAMES && inValuePosition(tokenStart) -> FirebaseRulesTokenTypes.TYPE
+            text in FirebaseRulesBuiltins.TYPE_NAMES && inValuePosition(tokenStart) -> FirebaseRulesTokenTypes.TYPE
             else -> FirebaseRulesTokenTypes.IDENTIFIER
         }
         finish(type, index)
@@ -287,13 +288,9 @@ class FirebaseRulesLexer : LexerBase() {
         // and type test (`x is string`).
         val WORD_OPERATORS = setOf("in", "is")
 
-        // Built-in type names (used with the `is` operator) and global function
-        // namespaces (`math.*`, `timestamp.*`, `duration.*`, `latlng.*`, `hashing.*`).
-        val TYPE_NAMES = setOf(
-            "bool", "bytes", "float", "int", "number", "string",
-            "list", "map", "set", "path", "latlng", "timestamp",
-            "duration", "constraint", "map_diff", "math", "hashing",
-        )
+        // Built-in type names (used with the `is` operator and as conversion functions) are
+        // owned by FirebaseRulesBuiltins.TYPE_NAMES — the single source of truth shared with
+        // the resolver's GLOBALS; see its use in scanIdentifier above.
 
         // The set of valid `allow` operations is owned by FirebaseRulesDiagnostics
         // (the single source of truth shared with the annotator); see its use in

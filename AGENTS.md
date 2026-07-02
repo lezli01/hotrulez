@@ -100,6 +100,17 @@ checks available, such as:
 - Annotation or inspection tests for invalid Firebase Rules constructs.
 - Gradle plugin verification tasks before release-oriented changes.
 
+## OpenWiki
+
+This repository has documentation located in the `/openwiki` directory.
+
+Start here:
+- [OpenWiki quickstart](openwiki/quickstart.md)
+
+OpenWiki includes repository overview, architecture notes, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
+
+When working in this repository, read the OpenWiki quickstart first, then follow its links to the relevant architecture, workflow, domain, operation, and testing notes.
+
 Update this file when the project gains concrete build commands, test commands,
 or a different implementation stack.
 
@@ -136,13 +147,20 @@ the editor highlighter. The `.rules` file icon is an SVG in
 Diagnostics live in `dev.lezli.hotrulez.diagnostics`. Severity decides the home:
 always-wrong, grammar-inexpressible ERRORS go in `FirebaseRulesAnnotator`
 (always on); configurable WARNINGS go in `FirebaseRulesStructureInspection`
-(file shape) and `FirebaseRulesUsageInspection` (element-local usage). Keep
+(file shape), `FirebaseRulesUsageInspection` (element-local usage), and
+`FirebaseRulesSymbolInspection` (unresolved references and unused
+functions/`let`s/parameters, resolved through `FirebaseRulesScopes` so it agrees
+with go-to-definition and rename). Quick-fixes live in the `diagnostics.fixes`
+subpackage: each is a single `ModCommandAction` (`PsiUpdateModCommandAction`)
+attached to the annotator via `AnnotationBuilder.withFix(action.asIntention())`
+and to the inspections via `LocalQuickFix.from(action)` (see `asQuickFix`). Keep
 diagnostic wording structural — describe syntax/structure, never assert that a
 rule is secure or authorizes a request. Confirm Firebase Rules semantics against
 official Firebase docs before adding or changing a check (e.g. a condition-less
 `allow` is legal, and a recursive wildcard may appear anywhere in a v2 match
-path), and add a focused test for each diagnostic in `FirebaseRulesAnnotatorTest`
-or `FirebaseRulesInspectionTest`.
+path), and add a focused test for each diagnostic in `FirebaseRulesAnnotatorTest`,
+`FirebaseRulesInspectionTest`, `FirebaseRulesSymbolInspectionTest`, or
+`FirebaseRulesQuickFixTest`.
 
 Symbol intelligence (v2 / 0.5) lives in four packages and rides on a single PSI
 resolve layer:

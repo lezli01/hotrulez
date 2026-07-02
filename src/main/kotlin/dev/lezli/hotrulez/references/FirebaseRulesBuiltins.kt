@@ -41,9 +41,34 @@ object FirebaseRulesBuiltins {
     val FUNCTION_BODY_KEYWORDS = listOf("let", "return")
 
     /**
-     * Whether [name] is a built-in variable or path helper in any Firebase Rules
-     * dialect (so the resolver does not treat it as an undefined reference). The
-     * union is intentionally service-agnostic — see [RulesService.ALL_BUILTIN_NAMES].
+     * Built-in type names: the `is`-operator right-hand sides and conversion functions
+     * (`int`, `float`, `string`, `path`, …) together with the global namespaces (`math`,
+     * `timestamp`, `duration`, `latlng`, `hashing`). This is the single source of truth
+     * shared with the highlighting lexer ([dev.lezli.hotrulez.lexer.FirebaseRulesLexer]
+     * consumes it), so a newly supported Firebase type is recognised by both the resolver
+     * and the highlighter from one edit rather than two lists drifting apart.
      */
-    fun isBuiltinName(name: String): Boolean = name in RulesService.ALL_BUILTIN_NAMES
+    val TYPE_NAMES = setOf(
+        "bool", "bytes", "float", "int", "number", "string",
+        "list", "map", "set", "path", "latlng", "timestamp",
+        "duration", "constraint", "map_diff", "math", "hashing",
+    )
+
+    /**
+     * Service-agnostic global namespaces, global functions, and type-constructor /
+     * conversion functions available in any rules condition: the [TYPE_NAMES] above plus the
+     * `debug()` helper. A use puts the leading name in `reference_expression` position (e.g.
+     * `math` in `math.abs(x)`, `int` in `int(x)`), so the resolver must recognise them to
+     * avoid a false "unresolved" report.
+     */
+    val GLOBALS = TYPE_NAMES + "debug"
+
+    /**
+     * Whether [name] is a built-in variable, path helper, or global namespace/function in
+     * any Firebase Rules dialect (so the resolver does not treat it as an undefined
+     * reference). Service-specific names come from [RulesService.ALL_BUILTIN_NAMES]; the
+     * service-agnostic globals come from [GLOBALS].
+     */
+    fun isBuiltinName(name: String): Boolean =
+        name in RulesService.ALL_BUILTIN_NAMES || name in GLOBALS
 }

@@ -1,0 +1,18 @@
+<html>
+<body>
+Reports unresolved and unused symbols in a Firebase Security Rules file, using the same
+scope-based resolution as go-to-definition and rename. An identifier that does not resolve to
+any function, parameter, <code>let</code> binding, or path/wildcard variable in scope &mdash;
+and is not a built-in such as <code>request</code>, <code>resource</code>, or a path helper
+&mdash; is reported as <code>Cannot resolve symbol</code>; an unresolved call additionally
+offers to create the missing function. A <code>function</code> or <code>let</code> binding that
+nothing references is reported as unused (with a quick-fix to remove it), and an unused function
+parameter is reported without a fix.
+<p>
+Member accesses (<code>request.auth</code>), path/wildcard variables, and built-ins are never
+reported, and the check stays quiet inside code the parser could not yet parse.
+<p>
+This check describes the symbols in the rules file only. It does not evaluate whether a rule is
+secure or whether it authorizes any particular request.
+</body>
+</html>

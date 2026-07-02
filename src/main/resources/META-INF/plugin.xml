@@ -109,6 +109,15 @@
             level="WARNING"
             implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesUsageInspection"/>
 
+        <localInspection
+            language="FirebaseRules"
+            shortName="FirebaseRulesSymbol"
+            displayName="Firebase Rules unresolved and unused symbols"
+            groupName="Firebase Rules"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesSymbolInspection"/>
+
         <!-- Symbol intelligence (v2): resolve/go-to-definition, find usages, rename, completion.
              References are attached directly on the PSI (see
              FirebaseRulesReferenceExpressionMixin.getReference()), so no

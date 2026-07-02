@@ -8,6 +8,12 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
+import dev.lezli.hotrulez.diagnostics.fixes.AddServiceBlockFix
+import dev.lezli.hotrulez.diagnostics.fixes.InsertRootMatchFix
+import dev.lezli.hotrulez.diagnostics.fixes.MoveRulesVersionToTopFix
+import dev.lezli.hotrulez.diagnostics.fixes.SetServiceNameFix
+import dev.lezli.hotrulez.diagnostics.fixes.UseRulesVersion2Fix
+import dev.lezli.hotrulez.diagnostics.fixes.asQuickFix
 import dev.lezli.hotrulez.psi.FirebaseRulesFile
 import dev.lezli.hotrulez.psi.FirebaseRulesFunctionDeclaration
 import dev.lezli.hotrulez.psi.FirebaseRulesMatchDeclaration
@@ -43,7 +49,13 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
         val problems = mutableListOf<ProblemDescriptor>()
 
         if (versions.isEmpty()) {
-            problems += problem(manager, anchor, isOnTheFly, "Missing 'rules_version = '2';' declaration at the top of the file.")
+            problems += problem(
+                manager,
+                anchor,
+                isOnTheFly,
+                "Missing 'rules_version = '2';' declaration at the top of the file.",
+                UseRulesVersion2Fix(file).asQuickFix(),
+            )
         } else {
             val firstVersion = versions.first()
             val version = FirebaseRulesDiagnostics.rulesVersion(firstVersion)
@@ -54,6 +66,7 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
                     firstVersion,
                     isOnTheFly,
                     "Expected 'rules_version = '2';' declaration at the top of the file; found $found.",
+                    UseRulesVersion2Fix(file).asQuickFix(),
                 )
             }
 
@@ -61,7 +74,13 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
                 val firstServiceOffset = services.minOf { it.textRange.startOffset }
                 val misplaced = versions.firstOrNull { it.textRange.startOffset > firstServiceOffset }
                 if (misplaced != null) {
-                    problems += problem(manager, misplaced, isOnTheFly, "'rules_version' must be declared before the 'service' block.")
+                    problems += problem(
+                        manager,
+                        misplaced,
+                        isOnTheFly,
+                        "'rules_version' must be declared before the 'service' block.",
+                        MoveRulesVersionToTopFix(file).asQuickFix(),
+                    )
                 }
             }
         }
@@ -107,6 +126,8 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
                 serviceName,
                 isOnTheFly,
                 "Expected 'service cloud.firestore' or 'service firebase.storage'; found 'service $name'.",
+                SetServiceNameFix(serviceName, "cloud.firestore").asQuickFix(),
+                SetServiceNameFix(serviceName, "firebase.storage").asQuickFix(),
             )
             return
         }
@@ -120,6 +141,7 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
                 serviceName,
                 isOnTheFly,
                 "'service $name' is missing its rule block '{ ... }'.",
+                AddServiceBlockFix(service).asQuickFix(),
             )
             return
         }
@@ -133,6 +155,7 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
                 serviceName,
                 isOnTheFly,
                 "Missing root 'match ${rulesService.rootMatchHint}' block inside 'service $name'.",
+                InsertRootMatchFix(block, rulesService.rootMatchHint).asQuickFix(),
             )
         }
     }
@@ -160,12 +183,13 @@ class FirebaseRulesStructureInspection : LocalInspectionTool() {
         element: PsiElement,
         isOnTheFly: Boolean,
         message: String,
+        vararg fixes: LocalQuickFix,
     ): ProblemDescriptor =
         manager.createProblemDescriptor(
             element,
             message,
             isOnTheFly,
-            LocalQuickFix.EMPTY_ARRAY,
+            fixes,
             ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
         )
 }

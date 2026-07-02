@@ -4,9 +4,17 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.psi.PsiElement
+import com.intellij.modcommand.ModCommandAction
 import com.intellij.psi.tree.IElementType
+import com.intellij.util.text.EditDistance
 import dev.lezli.hotrulez.diagnostics.FirebaseRulesDiagnostics.ALLOW_OPERATIONS
+import dev.lezli.hotrulez.diagnostics.fixes.AddReturnFalseFix
+import dev.lezli.hotrulez.diagnostics.fixes.ChangeOperationFix
+import dev.lezli.hotrulez.diagnostics.fixes.MoveRecursiveWildcardToLastFix
+import dev.lezli.hotrulez.diagnostics.fixes.RemoveParameterFix
+import dev.lezli.hotrulez.diagnostics.fixes.UseRulesVersion2Fix
 import dev.lezli.hotrulez.psi.FirebaseRulesAllowStatement
+import dev.lezli.hotrulez.psi.FirebaseRulesFile
 import dev.lezli.hotrulez.psi.FirebaseRulesFunctionDeclaration
 import dev.lezli.hotrulez.psi.FirebaseRulesMatchPath
 import dev.lezli.hotrulez.psi.FirebaseRulesMethodList
@@ -60,11 +68,13 @@ class FirebaseRulesAnnotator : Annotator {
         for (identifier in methodList.identifierLeaves()) {
             val name = identifier.text
             if (name !in ALLOW_OPERATIONS) {
+                val fixes = closestOperations(name).map { ChangeOperationFix(identifier, it) }
                 error(
                     holder,
                     identifier,
                     "Unknown Firebase Rules operation '$name'. " +
                         "Expected one of: get, list, read, create, update, delete, write.",
+                    *fixes.toTypedArray(),
                 )
             }
         }
@@ -78,7 +88,12 @@ class FirebaseRulesAnnotator : Annotator {
         for (parameter in parameterList.parameterList) {
             val identifier = parameter.identifier
             if (!seen.add(identifier.text)) {
-                error(holder, identifier, "Duplicate parameter name '${identifier.text}'.")
+                error(
+                    holder,
+                    identifier,
+                    "Duplicate parameter name '${identifier.text}'.",
+                    RemoveParameterFix(parameter),
+                )
             }
         }
     }
@@ -95,7 +110,7 @@ class FirebaseRulesAnnotator : Annotator {
             val name = function.identifier?.text
             val anchor = function.identifier ?: function.childToken(T.FUNCTION_KEYWORD) ?: function
             val subject = if (name != null) "Function '$name'" else "Function"
-            error(holder, anchor, "$subject must end with a 'return' statement.")
+            error(holder, anchor, "$subject must end with a 'return' statement.", AddReturnFalseFix(body))
         }
     }
 
@@ -133,13 +148,22 @@ class FirebaseRulesAnnotator : Annotator {
                     holder,
                     segment,
                     "In rules_version '1', a recursive wildcard '{name=**}' must be the last segment of a match path.",
+                    MoveRecursiveWildcardToLastFix(segment as FirebaseRulesRecursiveWildcard),
+                    UseRulesVersion2Fix(path.containingFile as FirebaseRulesFile),
                 )
             }
         }
     }
 
-    private fun error(holder: AnnotationHolder, element: PsiElement, message: String) {
-        holder.newAnnotation(HighlightSeverity.ERROR, message).range(element).create()
+    private fun error(
+        holder: AnnotationHolder,
+        element: PsiElement,
+        message: String,
+        vararg fixes: ModCommandAction,
+    ) {
+        val builder = holder.newAnnotation(HighlightSeverity.ERROR, message).range(element)
+        for (fix in fixes) builder.withFix(fix.asIntention())
+        builder.create()
     }
 
     private fun PsiElement.identifierLeaves(): List<PsiElement> =
@@ -149,4 +173,22 @@ class FirebaseRulesAnnotator : Annotator {
 
     private fun PsiElement.childToken(type: IElementType): PsiElement? =
         node.findChildByType(type)?.psi
+
+    /**
+     * The known operation(s) closest to [name] by Damerau-Levenshtein distance (a
+     * transposition counts as one edit), compared case-insensitively, when the closest is
+     * within [MAX_OPERATION_EDIT_DISTANCE]. Returns empty when nothing is close enough, so an
+     * unrecognisable token gets no misleading fix; ties at the minimum distance are all offered.
+     */
+    private fun closestOperations(name: String): List<String> {
+        val scored = ALLOW_OPERATIONS.map { it to EditDistance.optimalAlignment(name, it, false) }
+        val min = scored.minOfOrNull { it.second } ?: return emptyList()
+        if (min > MAX_OPERATION_EDIT_DISTANCE) return emptyList()
+        return scored.filter { it.second == min }.map { it.first }
+    }
+
+    private companion object {
+        /** Only suggest a replacement operation within this Damerau-Levenshtein distance of the typo. */
+        const val MAX_OPERATION_EDIT_DISTANCE = 2
+    }
 }

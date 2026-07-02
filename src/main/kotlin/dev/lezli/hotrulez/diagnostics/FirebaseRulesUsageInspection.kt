@@ -6,9 +6,13 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.util.PsiTreeUtil
+import dev.lezli.hotrulez.diagnostics.fixes.AddIfConditionFix
+import dev.lezli.hotrulez.diagnostics.fixes.UseRulesVersion2Fix
+import dev.lezli.hotrulez.diagnostics.fixes.asQuickFix
 import dev.lezli.hotrulez.psi.FirebaseRulesAllowStatement
 import dev.lezli.hotrulez.psi.FirebaseRulesBlock
 import dev.lezli.hotrulez.psi.FirebaseRulesCallExpression
+import dev.lezli.hotrulez.psi.FirebaseRulesFile
 import dev.lezli.hotrulez.psi.FirebaseRulesFunctionDeclaration
 import dev.lezli.hotrulez.psi.FirebaseRulesMatchPath
 import dev.lezli.hotrulez.psi.FirebaseRulesMemberExpression
@@ -46,6 +50,7 @@ class FirebaseRulesUsageInspection : LocalInspectionTool() {
                 holder.registerProblem(
                     o,
                     "'allow' rule has no 'if' condition. Add ': if <condition>' to restrict when the operation is permitted.",
+                    AddIfConditionFix(o).asQuickFix(),
                 )
             }
 
@@ -71,6 +76,7 @@ class FirebaseRulesUsageInspection : LocalInspectionTool() {
                         wildcard,
                         "Recursive wildcard '{${wildcard.identifier.text}=**}' should be used with rules_version = '2'; " +
                             "its match semantics differ between rules versions.",
+                        UseRulesVersion2Fix(o.containingFile as FirebaseRulesFile).asQuickFix(),
                     )
                 }
             }
