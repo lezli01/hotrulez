@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="src/main/resources/icons/firebaseRules.svg" alt="hotrulez logo" width="96">
+  <img src="src/main/resources/icons/firebaseRules.svg" alt="HotRulez logo" width="96">
 </p>
 
-<h1 align="center">hotrulez</h1>
+<h1 align="center">HotRulez</h1>
 
 <p align="center">
   <strong>First-class Firebase Security Rules support for JetBrains IDEs — Cloud Firestore and Cloud Storage.</strong>
@@ -32,7 +32,7 @@
 
 ---
 
-## Why hotrulez?
+## Why HotRulez?
 
 Firebase Security Rules — for both Cloud Firestore and Cloud Storage — are a real
 language with their own grammar, scoping, and built-ins, but no JetBrains IDE
@@ -41,7 +41,7 @@ treated as JavaScript, JSON, or plain text: no highlighting that understands
 `match` and `allow`, no rules-aware formatting, no go-to-definition for your
 helper functions, and no warning when a rule can never parse.
 
-**There is currently no freely available solution that fills this gap.** hotrulez
+**There is currently no freely available solution that fills this gap.** HotRulez
 exists to fill that hole: a free, open-source plugin that makes Firebase Rules a
 first-class language in the IDE — entirely structural and static, never evaluating
 authorization or connecting to Firebase.
@@ -320,7 +320,7 @@ claims.
 
 ## Structure, Folding & Documentation
 
-Beyond editing, hotrulez helps you read and navigate a `.rules` file the way a
+Beyond editing, HotRulez helps you read and navigate a `.rules` file the way a
 first-class language plugin does — all read-only projections of the parsed
 structure, adding no new semantics.
 
@@ -552,7 +552,7 @@ From inside your IDE:
 
 1. Open `Settings` / `Preferences` → `Plugins`.
 2. Select the `Marketplace` tab.
-3. Search for **Firebase Rules** (or `hotrulez`) and click `Install`.
+3. Search for **Firebase Rules** (or HotRulez) and click `Install`.
 4. Restart the IDE if prompted.
 
 Or open the [plugin page](https://plugins.jetbrains.com/plugin/32552) and use its
@@ -585,7 +585,7 @@ After installation:
 
 ## Project Status
 
-`hotrulez` covers file recognition, highlighting, structural parsing, automatic
+HotRulez covers file recognition, highlighting, structural parsing, automatic
 formatting, diagnostics, symbol intelligence (go-to-definition, find usages,
 rename, and code completion), authoring aids (structure view, code folding, quick
 documentation, and parameter info), and editor conveniences (brace, quote, and
@@ -615,7 +615,7 @@ squash-merged. Details are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Security
 
-hotrulez is purely structural and never connects to Firebase, so its attack
+HotRulez is purely structural and never connects to Firebase, so its attack
 surface is small — but security reports are taken seriously. Please report
 vulnerabilities privately via GitHub's
 [security advisories](https://github.com/lezli01/hotrulez/security/advisories/new)
@@ -623,4 +623,4 @@ rather than a public issue. See [SECURITY.md](SECURITY.md) for details.
 
 ## License
 
-`hotrulez` is released under the [MIT License](LICENSE). © 2026 lezli01.
+HotRulez is released under the [MIT License](LICENSE). © 2026 lezli01.

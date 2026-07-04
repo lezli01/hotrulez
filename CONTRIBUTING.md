@@ -1,6 +1,6 @@
-# Contributing to hotrulez
+# Contributing to HotRulez
 
-Thanks for your interest in improving **hotrulez** — a JetBrains IDE plugin for
+Thanks for your interest in improving **HotRulez** — a JetBrains IDE plugin for
 Firebase Security Rules (both Cloud Firestore and Cloud Storage). Contributions
 of every size are welcome: bug reports, documentation fixes, new diagnostics,
 test cases, and features.
@@ -52,7 +52,7 @@ automatically before compilation; to regenerate explicitly:
 | Build the installable plugin ZIP (`build/distributions/`) | `./gradlew buildPlugin` |
 | Launch a sandbox IDE with the plugin loaded | `./gradlew runIde` |
 
-`./gradlew runIde` boots a throwaway JetBrains IDE with hotrulez installed —
+`./gradlew runIde` boots a throwaway JetBrains IDE with HotRulez installed —
 the fastest way to try a change against real `.rules` files.
 
 ## Making changes

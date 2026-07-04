@@ -1,5 +1,5 @@
 <!--
-  Thanks for contributing to hotrulez!
+  Thanks for contributing to HotRulez!
   PRs are squash-merged, so your PR title must follow Conventional Commits, e.g.
     feat(completion): offer request.auth.token members
     fix(formatter): keep multiline conditions split

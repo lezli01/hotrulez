@@ -2,7 +2,7 @@
 
 ## Project Identity
 
-`hotrulez` is a JetBrains IDE plugin for **Firebase Security Rules** — both Cloud
+HotRulez is a JetBrains IDE plugin for **Firebase Security Rules** — both Cloud
 Firestore (`service cloud.firestore`) and Cloud Storage (`service firebase.storage`)
 `.rules` files. The two share one rules language; the dialect is detected from the
 file's `service` declaration and modeled as data in `references/RulesService`.

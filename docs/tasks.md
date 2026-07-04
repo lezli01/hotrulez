@@ -1,4 +1,4 @@
-# hotrulez Tasks — 0.8 (Authoring Polish)
+# HotRulez Tasks — 0.8 (Authoring Polish)
 
 Status: draft
 Last updated: 2026-07-03

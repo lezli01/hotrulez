@@ -1,4 +1,4 @@
-# hotrulez Project Spec — 0.8 (Authoring Polish)
+# HotRulez Project Spec — 0.8 (Authoring Polish)
 
 Status: draft
 Last updated: 2026-07-03
@@ -12,7 +12,7 @@ milestone under `docs/v1/`.
 
 ## Context
 
-`hotrulez` is a JetBrains IDE plugin for Firebase Security Rules — both Cloud
+HotRulez is a JetBrains IDE plugin for Firebase Security Rules — both Cloud
 Firestore (`service cloud.firestore`) and Cloud Storage (`service
 firebase.storage`) `.rules` files. Through the Assisted Authoring arc it has
 grown from a passive language into an active assistant:

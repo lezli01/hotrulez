@@ -1,11 +1,11 @@
 name: Feature request
-description: Suggest a new capability or improvement for hotrulez
+description: Suggest a new capability or improvement for HotRulez
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the idea! Note that hotrulez is intentionally **static and
+        Thanks for the idea! Note that HotRulez is intentionally **static and
         structural** — it never connects to Firebase, runs the emulator, or
         evaluates whether a rule authorizes a request. Requests that stay within
         that scope (highlighting, formatting, structural diagnostics, symbol
@@ -21,7 +21,7 @@ body:
     id: proposal
     attributes:
       label: Proposed solution
-      description: What would you like hotrulez to do? A small `.rules` example of the before/after helps.
+      description: What would you like HotRulez to do? A small `.rules` example of the before/after helps.
     validations:
       required: true
   - type: textarea
@@ -38,5 +38,5 @@ body:
       options:
         - label: I have searched existing issues and discussions for this idea.
           required: true
-        - label: This stays within hotrulez's static, structural scope (no Firebase connection or authorization evaluation).
+        - label: This stays within HotRulez's static, structural scope (no Firebase connection or authorization evaluation).
           required: false
