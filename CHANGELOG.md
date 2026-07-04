@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/lezli01/hotrulez/compare/v0.6.1...v0.7.0) (2026-07-04)
+
+
+### Features
+
+* 0.8 Authoring Polish — structure view, folding, quick docs, parameter info ([7fa2a07](https://github.com/lezli01/hotrulez/commit/7fa2a070255a842568743eb8cefe69d0369ab5de))
+* actionable diagnostics — quick-fixes & symbol inspection (0.7) ([548dad8](https://github.com/lezli01/hotrulez/commit/548dad8129327bf79415d6e473fcac0826e1a4ca))
+* add authoring polish — structure view, folding, quick docs, parameter info ([dc5de3b](https://github.com/lezli01/hotrulez/commit/dc5de3b274cfb6a5651675b8ba8d75271db4f242))
+
+
+### Bug Fixes
+
+* **authoring:** correct comment attribution and cross-service dialect gate ([4dbc6bc](https://github.com/lezli01/hotrulez/commit/4dbc6bcfb1ba9bf209ad5d3cd929f84e33c6878e))
+* capitalize the HotRulez brand on human-facing surfaces ([#32](https://github.com/lezli01/hotrulez/issues/32)) ([693c3c3](https://github.com/lezli01/hotrulez/commit/693c3c3513e57c6cdd46db671c0b00647c8cc1ee))
+* **diagnostics:** keep rules_version first when scaffolding a top-level function ([a8308b9](https://github.com/lezli01/hotrulez/commit/a8308b997350a9d6775ad95bbb0bcc38019c10ca))
+
 ## [0.6.1](https://github.com/lezli01/hotrulez/compare/v0.6.0...v0.6.1) (2026-06-30)
 
 
