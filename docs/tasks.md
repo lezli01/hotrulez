@@ -1,103 +1,157 @@
 # HotRulez Tasks — 0.9 (Toward Semantics)
 
-Status: **sketch — no implementation breakdown yet.** 0.9 is deliberately kept at
-sketch altitude (see `docs/spec.md`): its correctness is an empirical property (the
-false-positive rate of a semantic check on real rules files), so it is not broken
-into checkable feature items until that risk is measured and the check set is
-committed. This list is therefore a **promotion checklist** — the spikes and
-decisions that turn the 0.9 *sketch* into a full, implementable plan — not a build
-list. One milestone per release; the feature checklist appears only once 0.9 is
-promoted.
+Status: **committed plan.** Promoted from sketch on 2026-07-05 after doc-grounded
+FP-risk grounding. This breaks out milestone 0.9 in full: one conservative,
+service-aware semantic check — `FirebaseRulesMemberInspection` — that flags an
+unknown member on a *closed* built-in receiver, plus the prerequisite table fixes it
+depends on. Candidate B (operator/literal-type) is deferred (see `docs/spec.md`).
 Last updated: 2026-07-05.
-Source: `docs/spec.md` (0.9 — Toward Semantics, sketch).
+Source: `docs/spec.md` (0.9 — Toward Semantics).
 Predecessor: `docs/v4/tasks.md` (archived; the 0.8 Authoring Polish breakdown —
 shipped in PR #31 / released in the 0.7.0 line).
 
-## Ground Rules (apply the moment coding starts)
+## Ground Rules
 
-- [ ] Re-check current IntelliJ Platform SDK docs (via Context7) before adding an
-  inspection or fix: `com.intellij.codeInspection.LocalInspectionTool` (as
-  `FirebaseRulesSymbolInspection` uses) and the `ModCommand`
-  `PsiUpdateModCommandAction` fix pattern from 0.7. Platform target: IntelliJ IDEA
-  2025.2, `sinceBuild = 252`, Java 21.
-- [ ] Re-confirm the load-bearing Firebase docs before encoding any check: the
-  `request`/`resource` member reference for **both** dialects (which members are
-  fixed vs. open), and that custom auth claims (`request.auth.token.*`) are
-  arbitrary.
+- [ ] Re-confirm the load-bearing Firebase docs before coding the closed sets: the
+  `request`/`resource` member reference for **both** dialects
+  (`rules.firestore.Request`, `rules.firestore.Resource`, storage rules-conditions /
+  reference), and that custom auth claims (`request.auth.token.*`), the `firebase`
+  reserved claim's MFA/SAML members + open index signature, `*.data.*`,
+  Storage `resource.metadata.*`, and Storage `request.params.*` are all **open**.
+- [ ] Re-check current IntelliJ Platform SDK docs (via Context7) before registering
+  the inspection: `com.intellij.codeInspection.LocalInspectionTool` /
+  `localInspection` EP and the `ModCommand` `PsiUpdateModCommandAction` fix pattern
+  (both already used by 0.7). Platform target: IntelliJ IDEA 2025.2,
+  `sinceBuild = 252`, Java 21.
 - [ ] Hold every v1/v2/0.7/0.8 non-goal: no authorization evaluation, no
   Firebase/emulator/rules-test-SDK connection, no project IDs, structural-not-JS.
-- [ ] **No type inference** — no type derived for any variable, member, call result,
-  or user value; a literal-operand check (Candidate B) stays literals-only.
-- [ ] Any check degrades gracefully on a partially-malformed file (no exceptions;
-  unrelated blocks unaffected) — the standing bar.
-- [ ] Tag any member/rule not confirmed by official docs `UNCONFIRMED` with a TODO
-  tied to its source.
+- [ ] **No type inference** — the member check is a fixed doc-sourced closed-set
+  lookup; derive no type of any variable/member/call/user value.
+- [ ] Degrade gracefully on a partially-malformed file (no exceptions; unrelated
+  blocks unaffected).
+- [ ] Tag anything the docs don't unambiguously confirm `UNCONFIRMED` with a TODO
+  tied to its source (notably `request.query` exhaustiveness).
+- [ ] Keep diagnostic wording **structural** — "'x' is not a member of `request`" —
+  never "insecure" / "authorizes".
 
-## Promotion checklist (sketch → plan)
+## Milestone 0.9: `FirebaseRulesMemberInspection`
 
-Resolve these before writing the first check. Each maps to an Open Question in
-`docs/spec.md`; the leaning (where one exists) is noted.
+### Prerequisite table fixes (correctness — land FIRST, in `RulesService`)
 
-- [ ] **Measure the false-positive risk.** Run Candidate A's logic (mentally or as a
-  throwaway spike) over a corpus of real, idiomatic `.rules` files — the plugin's own
-  test fixtures plus public examples — and record where it would wrongly flag. This is
-  the gate; everything else depends on it.
-- [ ] **Decide the check set** (spec Q1): A only *(leaning)*, A + B, or A split across
-  releases. Only promote what the risk measurement supports.
-- [ ] **Fix the closed/open receiver model** (spec Q3/Q4): confirm the exhaustive
-  built-in receivers (`request`, `request.auth`, `resource`, `request.resource` +
-  Storage equivalents) and the open ones never to flag (`request.auth.token.*`,
-  `*.data.*`, Storage `resource.metadata.*`) against the docs; decide where the
-  explicit `closed` marker lives (`RulesService` vs. a derived set) — a table key is
-  **not** "closed."
-- [ ] **Choose the extension shape** (spec Q2): new `FirebaseRulesMemberInspection`
-  *(leaning)* vs. extending `FirebaseRulesSymbolInspection`; independent toggle.
-- [ ] **Choose severity + default** (spec Q5): `WEAK_WARNING`, on-by-default
-  *(leaning)* vs. `WARNING` / opt-in.
-- [ ] **Decide neutral-file behavior** (spec Q7): suppress when no dialect is detected
-  *(leaning)* vs. union like completion.
-- [ ] **Decide on a quick-fix** (spec Q6): "did you mean `<closest valid member>`"
-  rename via the 0.7 `ModCommand` pattern *only* on an unambiguous near match, or defer
-  fixes for the first cut.
-- [ ] **Decide the release split** (spec Q8): one 0.9 (semver **0.8.0**) vs. 0.9.x
-  increments.
+- [ ] Add an explicit **closed-receiver flag model** to
+  `references/FirebaseRulesService.kt` (e.g. `closedReceivers: Map<String,
+  Set<String>>` per dialect), **separate** from `members` (which stays the
+  completion source). This is the *only* authority the inspection flags against.
+- [ ] Populate Firestore closed receivers: `request` → {auth, method, path, query,
+  resource, time}; `request.auth` → {uid, token}; `resource` → {data, id,
+  __name__}; `request.resource` → {data, id, __name__}; `request.query` → {limit,
+  offset, orderBy} (tag `UNCONFIRMED` on exhaustiveness).
+- [ ] Populate Storage closed receivers: `request` → {auth, params, path, resource,
+  time}; `request.auth` → {uid, token}; `resource` → {name, bucket, generation,
+  metageneration, size, timeCreated, updated, md5Hash, crc32c, etag,
+  contentDisposition, contentEncoding, contentLanguage, contentType, metadata};
+  `request.resource` → {name, bucket, size, md5Hash, crc32c, contentDisposition,
+  contentEncoding, contentLanguage, contentType, metadata}.
+- [ ] **Mark `request.auth.token` OPEN** (both dialects) — keep its standard claims
+  in `members` for completion, but exclude it from the closed flag model (custom
+  claims are unbounded).
+- [ ] **Never close `request.auth.token.firebase`** — keep it out of the closed flag
+  model (MFA/SAML members + open index signature). Optionally add its known members
+  to completion hints only.
+- [ ] **Remove `params` from the Firestore `request` `members`** entry (Firestore has
+  no `request.params`); leave the Storage `request.params` entry intact (open).
 
-## When promoted, the plan will need (outline — not yet checkable)
+### The inspection
 
-Once the checklist above resolves, promote this file to a full 0.8-style breakdown
-covering, at minimum:
+- [ ] Add `diagnostics/FirebaseRulesMemberInspection.kt` (`LocalInspectionTool`):
+  visit `FirebaseRulesMemberExpression`s; skip anything inside a `PsiErrorElement`
+  (don't stack on parser diagnostics).
+- [ ] Resolve dialect via `RulesService.forElement`; if null (**neutral file**),
+  flag nothing and return.
+- [ ] Compute `receiverKey` via `FirebaseRulesMemberPath.receiverKey` (shared, no
+  duplication).
+- [ ] **Short-circuit:** if any hop in the receiver chain is an OPEN receiver
+  (`request.auth.token`, `request.auth.token.firebase`, `…firebase.identities`,
+  Firestore `resource.data` / `request.resource.data`, Storage `resource.metadata` /
+  `request.resource.metadata`, Storage `request.params`), return without flagging.
+- [ ] Flag `<receiver>.<member>` only when `receiverKey` is a closed receiver in the
+  file's dialect and `member` ∉ that receiver's complete set; register a
+  `ProblemHighlightType`/`WEAK WARNING` problem.
+- [ ] Message stays structural; cross-dialect members get a dialect-aware message
+  (Storage `request.method`; Firestore `resource.size`).
 
-- The chosen inspection class, its registration in `plugin.xml`, and its toggle.
-- The closed-receiver model change (and any `FirebaseRulesDocs` participation).
-- Dialect gating via `RulesService.forElement`; neutral-file behavior as decided.
-- Reuse of `FirebaseRulesMemberPath.receiverKey`, the resolver, and the `ModCommand`
-  fix pattern — no duplication.
-- Tests: true positives on closed receivers, **guaranteed negatives** on every open
-  namespace (`*.data.*`, `request.auth.token.*`, Storage `metadata.*`), dialect
-  correctness, forward references, and malformed-file recovery — plus a corpus
-  regression asserting no false positive on the existing valid fixtures.
-- `README.md`, `AGENTS.md`, and the `plugin.xml` `<description>` updated (text-only).
-- `./gradlew test` and `verifyPlugin` green.
+### Quick-fix
 
-## Reference — the shipped inputs 0.9 builds on
+- [ ] Add `diagnostics/fixes/RenameMemberFix.kt` (`PsiUpdateModCommandAction`,
+  `asQuickFix`): when a known member of the receiver is within Levenshtein ≤ 2 of the
+  typo, offer *"Did you mean 'X'?"* and rewrite the identifier.
+- [ ] Offer the rename only on a close in-dialect match; otherwise (esp. cross-dialect
+  true positives) emit the dialect-aware message with **no** fix.
 
-Verified against the current tree; these are the intended, already-shipped inputs:
+### Registration & docs
 
-- `references/FirebaseRulesService.kt` — `RulesService` (per-dialect `members`,
-  `globals`, `bareHelpers`; `forElement` / `membersFor` dialect gating).
-- `references/FirebaseRulesMemberPath.kt` — `receiverKey(...)` (shared member-path
-  logic, extracted in 0.8).
-- `references/FirebaseRulesBuiltins.kt` — `isBuiltinName`, `OPERATIONS`, type/global
-  namespaces.
-- `documentation/FirebaseRulesDocs.kt` — 0.8 doc-prose table `(title, summaryHtml,
-  docUrl)`, keyed off the same member paths (source of "see docs" prose).
-- `diagnostics/FirebaseRulesSymbolInspection.kt` — the 0.7 resolver-based inspection
-  (the model to mirror or extend; note it *never* flags members today).
-- `diagnostics/fixes/` — the 0.7 `ModCommand` `PsiUpdateModCommandAction` quick-fix
-  pattern (`CreateFunctionFix`, `RemoveDeclarationFix`, `asQuickFix`).
+- [ ] Register the `localInspection` in `plugin.xml` (shortName `FirebaseRulesMember`,
+  displayName "Firebase Rules unknown member", groupName "Firebase Rules",
+  `enabledByDefault="true"`, `level="WEAK WARNING"`), verified against current SDK docs.
+- [ ] Update `README.md`, `AGENTS.md`, and the `plugin.xml` `<description>` feature
+  list (text-only) to describe the unknown-member check and its dialect-awareness.
 
-## Future Milestones (roadmap — not 0.9 scope)
+### Tests
+
+- [ ] `FirebaseRulesMemberInspectionTest` — **true positives:** `request.foo`
+  (Firestore); `resource.size` in a Firestore file; `request.method` in a Storage
+  file; `request.resourse` (typo). **Guaranteed negatives (critical):**
+  `resource.data.<field>`, `request.resource.data.<field>`,
+  `request.auth.token.<customClaim>`,
+  `request.auth.token.firebase.sign_in_second_factor`,
+  `request.auth.token.firebase.<x>`, Storage `resource.metadata.<key>`, Storage
+  `request.params.<key>`; a valid member on every closed receiver in both dialects;
+  a neutral (no-`service`) file; a malformed file (no exception).
+- [ ] Quick-fix test — did-you-mean rename applies and yields valid text; a
+  cross-dialect case shows the message with no rename.
+- [ ] Drift-guard test — closed flag model stays consistent with the documented sets
+  and with `members` where they overlap; assert `request.auth.token` and
+  `request.auth.token.firebase` are **open**; assert Firestore `request` has no
+  `params`.
+- [ ] Run `./gradlew test` (green); keep `verifyPlugin` green.
+
+## Release-Quality Acceptance (0.9)
+
+- [ ] Unknown member on a closed, service-correct receiver is flagged at
+  weak-warning with a did-you-mean fix (near match) or dialect-aware message
+  (cross-dialect); nothing under any open receiver is ever flagged, in either
+  dialect.
+- [ ] Neutral files flag nothing; malformed files throw nothing; Firestore
+  completion no longer offers `request.params`.
+- [ ] All prior non-goals hold; no type inferred; no authorization judged; wording
+  stays structural.
+- [ ] Tests cover positives, the full guaranteed-negative set, dialect-awareness,
+  the quick-fix, and drift.
+- [ ] Implementation follows current official JetBrains SDK and Firebase docs;
+  `UNCONFIRMED` tags carry source TODOs.
+
+## Implementation Decisions (grilled 2026-07-05 — please confirm)
+
+Mirror the eight decisions in `docs/spec.md` "Decisions taken"; nothing here
+reopens them. Load-bearing implementation calls:
+
+- The inspection flags ONLY against the explicit `closedReceivers` model, NEVER
+  against every `members` key (the two diverge — `request.auth.token` in-completion
+  but flag-open; `request.query` flag-closed but not in completion).
+- Service-scoping is mandatory: `RulesService.forElement` selects the dialect set;
+  a global merge would destroy the cross-dialect true positives.
+- The open-receiver short-circuit is the correctness core — it must run on **every
+  hop** of the receiver chain, not just the immediate receiver.
+- `request.auth.token.firebase` is hard-forbidden from the closed model (adversarial
+  finding: MFA/SAML members + open index signature).
+
+## Deferred / roadmap (not 0.9 scope)
+
+- **Candidate B** (operator on incompatible literal operands) — deferred; revisit
+  with a real type-inference pass, where each flag can cite an inferred type. See
+  `docs/spec.md` "Candidate B".
+- Escalating the four fully-documented Firestore/Storage interfaces from
+  weak-warning to `WARNING` once real-world FP data confirms low risk.
 
 Explicitly **not planned:** emulator / rules-test-SDK integration and any in-IDE
-authorization *evaluation*. A broader semantic-analysis push (type-aware checks over
-user data, cross-rule reasoning) would be a new arc beyond Assisted Authoring.
+authorization evaluation.
