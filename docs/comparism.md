@@ -1,7 +1,8 @@
 # HotRulez vs. other JetBrains Firebase Rules plugins
 
-A feature comparison of **HotRulez** against the three other JetBrains Marketplace
-plugins in the same space, scoped strictly to **Firebase Security Rules** authoring.
+A feature comparison of **HotRulez** against the other JetBrains Marketplace
+plugins that support the Firebase Security Rules language, scoped strictly to
+**Firebase Security Rules** authoring.
 
 > **As of 2026-07-05.** Competitor data is drawn from each plugin's JetBrains
 > Marketplace listing (description, versions, and the public
@@ -21,24 +22,19 @@ Connect, hosting, analytics, and so on — is **out of scope** and excluded, exc
 for two capabilities that directly touch rules and are therefore kept as rows:
 **emulator / rules-testing** and **rules deploy**.
 
-One consequence worth stating up front: the plugin literally named *"Firebase
-Firestore"* (id 23609) is a Firestore **data** tool and provides **no** support
-for the rules language at all. It is included here precisely because its name
-invites confusion.
+## The three plugins at a glance
 
-## The four plugins at a glance
-
-| | **HotRulez** | Firebase Rules | Firebase Firestore | Firebase Pro |
-|---|:---:|:---:|:---:|:---:|
-| Marketplace ID | [32552](https://plugins.jetbrains.com/plugin/32552) | [15189](https://plugins.jetbrains.com/plugin/15189-firebase-rules) | [23609](https://plugins.jetbrains.com/plugin/23609-firebase-firestore) | [28937](https://plugins.jetbrains.com/plugin/28937-firebase-pro) |
-| Vendor | lezli01 | Anbora Labs | Anton Shuvaev | JHTech Labs |
-| Price | **Free** | Paid (7-day trial) | Paid (10-day trial) | Paid (30-day trial) |
-| Open source | ✅ MIT | ✅ | ❔ | ❌ |
-| **Handles the `.rules` language** | ✅ | ✅ | ❌ *(data tool)* | ✅ |
-| Cloud Firestore rules | ✅ | ✅ | ❌ | ✅ |
-| Cloud Storage rules | ✅ | 🟡 *(undocumented)* | ❌ | ✅ |
-| Latest version | 0.7.x | 2026.1.2 (May 2026) | 1.0.5 (2026) | 262.1.15 (Jun 2026) |
-| Downloads | — *(newest entrant)* | ~124,500 | ~14,500 | ~11,500 |
+| | **HotRulez** | Firebase Rules | Firebase Pro |
+|---|:---:|:---:|:---:|
+| Marketplace ID | [32552](https://plugins.jetbrains.com/plugin/32552) | [15189](https://plugins.jetbrains.com/plugin/15189-firebase-rules) | [28937](https://plugins.jetbrains.com/plugin/28937-firebase-pro) |
+| Vendor | lezli01 | Anbora Labs | JHTech Labs |
+| Price | **Free** | Paid (7-day trial) | Paid (30-day trial) |
+| Open source | ✅ MIT | ✅ | ❌ |
+| **Handles the `.rules` language** | ✅ | ✅ | ✅ |
+| Cloud Firestore rules | ✅ | ✅ | ✅ |
+| Cloud Storage rules | ✅ | 🟡 *(undocumented)* | ✅ |
+| Latest version | 0.7.x | 2026.1.2 (May 2026) | 262.1.15 (Jun 2026) |
+| Downloads | — *(newest entrant)* | ~124,500 | ~11,500 |
 
 ## Feature comparison — Firebase Rules scope
 
@@ -46,38 +42,38 @@ Legend: ✅ documented / supported · 🟡 partial or basic · ❔ not documente
 ❌ not supported / out of scope. See [Notes & caveats](#notes--caveats) — a ❔ for
 a competitor means *the listing doesn't mention it*, not that it is proven absent.
 
-| Capability | **HotRulez** | Firebase&nbsp;Rules<br>(15189) | Firebase&nbsp;Firestore<br>(23609) | Firebase&nbsp;Pro<br>(28937) |
-|---|:---:|:---:|:---:|:---:|
-| **Editing & display** | | | | |
-| File recognition (`*.rules` type + icon) | ✅ | ✅ | ❌ | ✅ |
-| Syntax highlighting (configurable colors) | ✅ *(24 categories)* | ✅ | ❌ | ✅ |
-| Code formatting / reformat | ✅ | ✅ | ❌ | ✅ |
-| Code folding | ✅ | ❔ | ❌ | ❔ |
-| Brace matching | ✅ | ❔ | ❌ | ❔ |
-| Comment toggling (line / block) | ✅ | ❔ | ❌ | ❔ |
-| Quote auto-closing | ✅ | ❔ | ❌ | ❔ |
-| **Completion** | | | | |
-| Keywords / `allow` operations / service names | ✅ | 🟡 *("basic")* | ❌ | ✅ |
-| Members after `request.` / `resource.` | ✅ *(service-aware)* | ❔ | ❌ | ✅ |
-| Scope-aware symbols (functions, params, `let`, path vars) | ✅ | ❔ | ❌ | ✅ |
-| **Navigation & refactoring** | | | | |
-| Structure view / file outline | ✅ | ✅ | ❌ | ✅ |
-| Go to declaration / definition | ✅ | 🟡 *("navigation")* | ❌ | ✅ |
-| Find usages | ✅ | ❔ | ❌ | ✅ |
-| Rename refactoring | ✅ *(scope-aware)* | ❔ | ❌ | ❔ |
-| **Diagnostics** | | | | |
-| Syntax / parse-error diagnostics | ✅ | ✅ | ❌ | 🟡 |
-| Semantic inspections (unresolved / unused symbols, structure) | ✅ *(3 inspections)* | 🟡 *("linter")* | ❌ | ✅ |
-| Quick-fixes / intentions (Alt+Enter) | ✅ | ❔ | ❌ | ✅ |
-| **Docs & signature help** | | | | |
-| Quick documentation (hover / Ctrl+Q) | ✅ *(doc-grounded)* | ❔ | ❌ | ✅ |
-| Parameter info (Ctrl+P) | ✅ | ❔ | ❌ | ❔ |
-| Live templates / snippets | ❌ | ❔ | ❌ | ❔ |
-| **Rules dialects & tooling** | | | | |
-| Cloud Firestore rules (`service cloud.firestore`) | ✅ | ✅ | ❌ | ✅ |
-| Cloud Storage rules (`service firebase.storage`) | ✅ | 🟡 *(inferred)* | ❌ | ✅ |
-| Emulator / rules-testing integration | ❌ *(by design)* | ❌ | ❌ *(data only)* | 🟡 *(start/manage)* |
-| Rules deploy integration | ❌ *(by design)* | ❌ | ❌ | ❔ |
+| Capability | **HotRulez** | Firebase&nbsp;Rules<br>(15189) | Firebase&nbsp;Pro<br>(28937) |
+|---|:---:|:---:|:---:|
+| **Editing & display** | | | |
+| File recognition (`*.rules` type + icon) | ✅ | ✅ | ✅ |
+| Syntax highlighting (configurable colors) | ✅ *(24 categories)* | ✅ | ✅ |
+| Code formatting / reformat | ✅ | ✅ | ✅ |
+| Code folding | ✅ | ❔ | ❔ |
+| Brace matching | ✅ | ❔ | ❔ |
+| Comment toggling (line / block) | ✅ | ❔ | ❔ |
+| Quote auto-closing | ✅ | ❔ | ❔ |
+| **Completion** | | | |
+| Keywords / `allow` operations / service names | ✅ | 🟡 *("basic")* | ✅ |
+| Members after `request.` / `resource.` | ✅ *(service-aware)* | ❔ | ✅ |
+| Scope-aware symbols (functions, params, `let`, path vars) | ✅ | ❔ | ✅ |
+| **Navigation & refactoring** | | | |
+| Structure view / file outline | ✅ | ✅ | ✅ |
+| Go to declaration / definition | ✅ | 🟡 *("navigation")* | ✅ |
+| Find usages | ✅ | ❔ | ✅ |
+| Rename refactoring | ✅ *(scope-aware)* | ❔ | ❔ |
+| **Diagnostics** | | | |
+| Syntax / parse-error diagnostics | ✅ | ✅ | 🟡 |
+| Semantic inspections (unresolved / unused symbols, structure) | ✅ *(3 inspections)* | 🟡 *("linter")* | ✅ |
+| Quick-fixes / intentions (Alt+Enter) | ✅ | ❔ | ✅ |
+| **Docs & signature help** | | | |
+| Quick documentation (hover / Ctrl+Q) | ✅ *(doc-grounded)* | ❔ | ✅ |
+| Parameter info (Ctrl+P) | ✅ | ❔ | ❔ |
+| Live templates / snippets | ❌ | ❔ | ❔ |
+| **Rules dialects & tooling** | | | |
+| Cloud Firestore rules (`service cloud.firestore`) | ✅ | ✅ | ✅ |
+| Cloud Storage rules (`service firebase.storage`) | ✅ | 🟡 *(inferred)* | ✅ |
+| Emulator / rules-testing integration | ❌ *(by design)* | ❌ | 🟡 *(start/manage)* |
+| Rules deploy integration | ❌ *(by design)* | ❌ | ❔ |
 
 ## What sets each apart
 
@@ -102,14 +98,6 @@ a competitor means *the listing doesn't mention it*, not that it is proven absen
   member/semantic completion — is **not documented**, and neither Cloud Storage
   nor `service firebase.storage` is named anywhere in the listing (Storage support
   is only inferred from the shared DSL). It is a **paid** plugin (7-day trial).
-
-- **Firebase Firestore — Anton Shuvaev (23609)** — **out of scope.** Despite the
-  name, this is a Firestore **data** management tool: connect to cloud/emulator
-  instances, browse collections and documents, run queries with autocomplete, do
-  CRUD, and import/export CSV/JSON. It provides **no** support for the `.rules`
-  security-rules language — no file recognition, highlighting, completion,
-  validation, navigation, testing, or deployment of rules. Listed here only to
-  dispel the naming overlap. Paid (10-day trial).
 
 - **Firebase Pro — JHTech Labs (28937)** — the closest competitor on rules-language
   depth. It gives the Security Rules file type genuine first-class language
@@ -143,9 +131,8 @@ a competitor means *the listing doesn't mention it*, not that it is proven absen
   builders, and the reference/rename/completion stack.
 
 - **"Free" is a real differentiator.** HotRulez is MIT-licensed and free;
-  *Firebase Rules*, *Firebase Firestore*, and *Firebase Pro* are all commercial
-  (trial-then-pay). Among plugins that actually support the rules **language**,
-  HotRulez is the only free option.
+  *Firebase Rules* and *Firebase Pro* are both commercial (trial-then-pay). Among
+  plugins that support the rules **language**, HotRulez is the only free option.
 
 - **HotRulez is intentionally scope-limited.** It performs no authorization
   evaluation and no Firebase/emulator/deploy integration — those ❌ cells are a
@@ -154,4 +141,4 @@ a competitor means *the listing doesn't mention it*, not that it is proven absen
 
 - **Storage-rules parity.** HotRulez and *Firebase Pro* both explicitly support
   `service firebase.storage`; *Firebase Rules* (15189) does not name Storage in
-  its listing; *Firebase Firestore* (23609) supports neither rules dialect.
+  its listing, so its Storage support is only inferred from the shared DSL.

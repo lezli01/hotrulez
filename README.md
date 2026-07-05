@@ -367,28 +367,25 @@ touch the `.rules` DSL (Cloud Firestore and Cloud Storage), on rules-authoring
 features only. For the full breakdown, sources, and caveats, see
 [docs/comparism.md](docs/comparism.md).
 
-| | **HotRulez** | [Firebase Rules][p15189] | [Firebase Firestore][p23609] | [Firebase Pro][p28937] |
-|---|:---:|:---:|:---:|:---:|
-| Price | **Free** (MIT) | Paid | Paid | Paid |
-| Open source | ✅ | ✅ | ❔ | ❌ |
-| Handles the `.rules` language | ✅ | ✅ | ❌ *(data tool)* | ✅ |
-| Syntax highlighting & formatting | ✅ | ✅ | ❌ | ✅ |
-| Structure view | ✅ | ✅ | ❌ | ✅ |
-| Scope-aware completion (symbols + members) | ✅ | ❔ | ❌ | ✅ |
-| Go to declaration / find usages | ✅ | 🟡 | ❌ | ✅ |
-| Rename refactoring | ✅ | ❔ | ❌ | ❔ |
-| Diagnostics + quick-fixes | ✅ | 🟡 | ❌ | ✅ |
-| Quick documentation (Ctrl+Q) | ✅ | ❔ | ❌ | ✅ |
-| Parameter info (Ctrl+P) | ✅ | ❔ | ❌ | ❔ |
-| Cloud Storage rules | ✅ | 🟡 | ❌ | ✅ |
+| | **HotRulez** | [Firebase Rules][p15189] | [Firebase Pro][p28937] |
+|---|:---:|:---:|:---:|
+| Price | **Free** (MIT) | Paid | Paid |
+| Open source | ✅ | ✅ | ❌ |
+| Handles the `.rules` language | ✅ | ✅ | ✅ |
+| Syntax highlighting & formatting | ✅ | ✅ | ✅ |
+| Structure view | ✅ | ✅ | ✅ |
+| Scope-aware completion (symbols + members) | ✅ | ❔ | ✅ |
+| Go to declaration / find usages | ✅ | 🟡 | ✅ |
+| Rename refactoring | ✅ | ❔ | ❔ |
+| Diagnostics + quick-fixes | ✅ | 🟡 | ✅ |
+| Quick documentation (Ctrl+Q) | ✅ | ❔ | ✅ |
+| Parameter info (Ctrl+P) | ✅ | ❔ | ❔ |
+| Cloud Storage rules | ✅ | 🟡 | ✅ |
 
 ✅ supported &bull; 🟡 partial / basic &bull; ❔ not documented on the listing (may
-still be present) &bull; ❌ not supported. *"Firebase Firestore" is a Firestore
-**data** browser with no rules-language support; it is shown to dispel the name
-overlap.*
+still be present) &bull; ❌ not supported.
 
 [p15189]: https://plugins.jetbrains.com/plugin/15189-firebase-rules
-[p23609]: https://plugins.jetbrains.com/plugin/23609-firebase-firestore
 [p28937]: https://plugins.jetbrains.com/plugin/28937-firebase-pro
 
 ## Current Limitations
