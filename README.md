@@ -25,6 +25,7 @@
 <p align="center">
   <a href="#why-hotrulez">Why</a> &bull;
   <a href="#what-it-does">What It Does</a> &bull;
+  <a href="#how-it-compares">Compare</a> &bull;
   <a href="#how-to-use">Install</a> &bull;
   <a href="#contributing">Contributing</a> &bull;
   <a href="docs/spec.md">Spec</a>
@@ -356,6 +357,39 @@ structure, adding no new semantics.
   types over an existing one.
 - **Comment toggling** — **Comment with Line Comment** inserts `//`, and
   **Comment with Block Comment** wraps a selection in `/* */`.
+
+## How It Compares
+
+HotRulez is not the only Firebase-related plugin on the JetBrains Marketplace, but
+it is the only **free, open-source** one that treats the Firebase Security Rules
+*language* as a first-class citizen. The table below compares the plugins that
+touch the `.rules` DSL (Cloud Firestore and Cloud Storage), on rules-authoring
+features only. For the full breakdown, sources, and caveats, see
+[docs/comparism.md](docs/comparism.md).
+
+| | **HotRulez** | [Firebase Rules][p15189] | [Firebase Firestore][p23609] | [Firebase Pro][p28937] |
+|---|:---:|:---:|:---:|:---:|
+| Price | **Free** (MIT) | Paid | Paid | Paid |
+| Open source | ✅ | ✅ | ❔ | ❌ |
+| Handles the `.rules` language | ✅ | ✅ | ❌ *(data tool)* | ✅ |
+| Syntax highlighting & formatting | ✅ | ✅ | ❌ | ✅ |
+| Structure view | ✅ | ✅ | ❌ | ✅ |
+| Scope-aware completion (symbols + members) | ✅ | ❔ | ❌ | ✅ |
+| Go to declaration / find usages | ✅ | 🟡 | ❌ | ✅ |
+| Rename refactoring | ✅ | ❔ | ❌ | ❔ |
+| Diagnostics + quick-fixes | ✅ | 🟡 | ❌ | ✅ |
+| Quick documentation (Ctrl+Q) | ✅ | ❔ | ❌ | ✅ |
+| Parameter info (Ctrl+P) | ✅ | ❔ | ❌ | ❔ |
+| Cloud Storage rules | ✅ | 🟡 | ❌ | ✅ |
+
+✅ supported &bull; 🟡 partial / basic &bull; ❔ not documented on the listing (may
+still be present) &bull; ❌ not supported. *"Firebase Firestore" is a Firestore
+**data** browser with no rules-language support; it is shown to dispel the name
+overlap.*
+
+[p15189]: https://plugins.jetbrains.com/plugin/15189-firebase-rules
+[p23609]: https://plugins.jetbrains.com/plugin/23609-firebase-firestore
+[p28937]: https://plugins.jetbrains.com/plugin/28937-firebase-pro
 
 ## Current Limitations
 
