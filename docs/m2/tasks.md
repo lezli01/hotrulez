@@ -1,18 +1,18 @@
-# hotrulez Tasks — v2 (Symbol Intelligence)
+# hotrulez Tasks — m2 (Symbol Intelligence)
 
-Status: **archived — complete.** The v2 milestone shipped (symbol intelligence
-in 0.5.0, Cloud Storage in 0.6.0); every item below is done. Kept as the
-historical record. Superseded by `docs/tasks.md` (v3 — Assisted Authoring).
+Status: **archived — complete.** The m2 milestone shipped (symbol intelligence
+and Cloud Storage); every item below is done. Kept as the
+historical record. Superseded by `docs/m3/tasks.md` (m3 — Actionable Diagnostics).
 Last updated: 2026-06-28 (archived 2026-07-02)
-Source: `docs/v2/spec.md`
-Predecessor: `docs/v1/tasks.md` (archived; covers the road to 0.4.0).
+Source: `docs/m2/spec.md`
+Predecessor: `docs/m1/tasks.md` (archived; covers the road to m1).
 
-This list covers the v2 / 0.5 milestone only. Later milestones are sketched in
-the roadmap section and in `docs/spec.md`; they are not v2 scope and are not
+This list covers the m2 milestone only. Later milestones are sketched in
+the roadmap section and in `docs/spec.md`; they are not m2 scope and are not
 broken into checkable items here.
 
 Coverage status (audited 2026-06-28 against branch `feat/v2-symbol-intelligence`):
-the v2 milestone is complete — go-to-definition, find-usages, rename, and
+the m2 milestone is complete — go-to-definition, find-usages, rename, and
 scope-aware completion all ship with tests (all green in the last `./gradlew test`
 run; see `build/test-results/`). The items the initial audit left partial have
 since been closed: `TODO(UNCONFIRMED)` source markers, a `let`-rename test, the
@@ -30,8 +30,8 @@ the load-bearing Firebase semantics against the live docs.
   _(Standing process rule, re-run for this milestone's Firebase semantics; the
   registered EPs are standard current-platform forms and unchanged this
   milestone.)_
-- [x] Hold every v1 non-goal: no authorization evaluation, no Firebase/emulator/
-  rules-test-SDK connection, no Storage rules in v2, no project IDs, structural
+- [x] Hold every m1 non-goal: no authorization evaluation, no Firebase/emulator/
+  rules-test-SDK connection, no Storage rules in m2, no project IDs, structural
   not JavaScript.
 - [x] No type inference: `request.`/`resource.` member completion comes from a
   static, doc-sourced table, never from evaluating expression types.
@@ -44,7 +44,7 @@ the load-bearing Firebase semantics against the live docs.
 - [x] Update `README.md` and `AGENTS.md` with the new symbol-intelligence
   features once they ship.
 
-## Milestone v2 / 0.5: Symbol Intelligence
+## Milestone m2: Symbol Intelligence
 
 ### Reference / resolve infrastructure
 
@@ -165,7 +165,7 @@ the load-bearing Firebase semantics against the live docs.
 - [x] Verify the exact EP tag names and signatures against current SDK docs
   before implementation.
 
-## Release-Quality Acceptance (v2 / 0.5)
+## Release-Quality Acceptance (m2)
 
 - [x] Go-to-definition, find-usages, and rename work for functions, parameters,
   `let` bindings, and path variables, with correct Firestore scoping and
@@ -174,7 +174,7 @@ the load-bearing Firebase semantics against the live docs.
 - [x] Completion offers scope-aware symbols, keywords, operations, helpers, and
   shallow `request.`/`resource.` members from a static doc-sourced table, with
   no type inference.
-- [x] All v1 non-goals still hold; nothing connects to Firebase or evaluates
+- [x] All m1 non-goals still hold; nothing connects to Firebase or evaluates
   authorization.
 - [x] Tests cover resolve, scoping negatives, shadowing, find-usages, rename,
   and completion.
@@ -184,11 +184,11 @@ the load-bearing Firebase semantics against the live docs.
   Firebase semantics — operations, `request`/`resource` built-ins, helpers, path
   wildcards, `let` scoping — were re-confirmed against the live docs 2026-06-28.)_
 
-## Future Milestones (roadmap — not v2 scope)
+## Future Milestones (roadmap — not m2 scope)
 
 Sequenced, one milestone per release. See `docs/spec.md` for detail.
 
-- **0.6 — Actionable diagnostics:** quick-fixes/intentions for existing
+- **m3 — Actionable diagnostics:** quick-fixes/intentions for existing
   diagnostics + resolver-enabled semantic checks (unused functions, undefined
   references).
 - **Cloud Storage Rules — delivered:** `firebase.storage` supported alongside

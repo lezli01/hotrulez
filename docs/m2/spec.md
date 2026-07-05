@@ -1,35 +1,35 @@
-# hotrulez Project Spec — v2 (Symbol Intelligence)
+# hotrulez Project Spec — m2 (Symbol Intelligence & Cloud Storage)
 
 Status: **archived — complete.** Everything in this document shipped: symbol
-intelligence as 0.5.0 (2026-06-28) and Cloud Storage support as 0.6.0
-(2026-06-29). It is kept as the historical record for the v2 milestone.
-Superseded by `docs/spec.md` (v3 — Assisted Authoring).
+intelligence in m2 (2026-06-28) and Cloud Storage support in m2
+(2026-06-29). It is kept as the historical record for the m2 milestone.
+Superseded by `docs/m3/spec.md` (m3 — Actionable Diagnostics).
 Last updated: 2026-06-27 (archived 2026-07-02)
-Supersedes: `docs/v1/spec.md` (archived). The v1 spec and task list cover the
-road to the shipped 0.4.0 release and remain the historical record under
-`docs/v1/`.
+Supersedes: `docs/m1/spec.md` (archived). The m1 spec and task list cover the
+road to the shipped m1 release and remain the historical record under
+`docs/m1/`.
 
 ## Context
 
 `hotrulez` is a JetBrains IDE plugin for Firebase Cloud Firestore Security
-Rules. v1 (shipped through 0.4.0) made `.rules` a complete **passive** language:
+Rules. m1 made `.rules` a complete **passive** language:
 file recognition, syntax highlighting, a generated Grammar-Kit/JFlex parser and
 typed PSI, a PSI-aware formatter, structural and usage diagnostics (an annotator
 plus two inspections), and editor polish (icon, color settings page, brace
 matcher, quote handler, commenter).
 
-What v1 deliberately does **not** have is anything *interactive* that depends on
+What m1 deliberately does **not** have is anything *interactive* that depends on
 understanding which symbol is which. There is no code completion, no
 go-to-definition, no find-usages, no rename refactoring. The PSI is a tree of
 syntax, not a graph of meaning: a call to `isOwner(...)` is not linked to the
 `function isOwner(...)` that defines it, and a use of the path variable `city`
 is not linked to the `{city}` that binds it.
 
-v2 closes exactly that gap.
+m2 closes exactly that gap.
 
 ## Thesis
 
-**v2 builds the one thing v1 lacks — a PSI reference/resolve layer for Firestore
+**m2 builds the one thing m1 lacks — a PSI reference/resolve layer for Firestore
 Rules — and uses it to deliver the four features that ride on it together:
 go-to-definition, find-usages, rename refactoring, and code completion.**
 
@@ -43,30 +43,30 @@ would mean building the same resolver twice, so they ship as one milestone.
 
 These decisions were made deliberately and constrain the rest of this document.
 
-- **Release model: incremental 0.5.x, one milestone per release.** v2 is the
-  0.5 line. Later milestones ship as 0.6, 0.7, … This spec describes the v2
-  milestone in implementation detail and sketches the sequenced roadmap after
-  it; it does not try to fully specify 0.6+.
+- **Release model: one milestone per release.** m2 is the Symbol Intelligence &
+  Cloud Storage milestone; later milestones ship one per release after it. This
+  spec describes the m2 milestone in implementation detail and sketches the
+  sequenced roadmap after it; it does not try to fully specify later milestones.
 - **Anchor: first-principles parity with mature JetBrains language plugins.**
   The bar is "what Kotlin, Go, and Rust language plugins do for symbols." There
   is no external usage telemetry; scope is chosen from platform convention and
   what makes `.rules` feel like a first-class language, not from a feature
   request backlog.
-- **Hold every v1 non-goal.** v2 adds IDE intelligence *within the same
+- **Hold every m1 non-goal.** m2 adds IDE intelligence *within the same
   conservative, structural scope*. It does not evaluate authorization, connect
   to Firebase, or model runtime behavior. See Non-Goals.
 - **Emulator / in-IDE rules testing is out of scope and is not on the roadmap.**
-  Running rules against the emulator or the rules-test SDK would break v1's
+  Running rules against the emulator or the rules-test SDK would break m1's
   "no project connection" principle and is not part of language-plugin parity —
   it is a test-runner concern that `firebase-tools` and the emulator suite
   already serve. It is explicitly dropped, not deferred.
 - **Quick documentation (hover docs) is deferred to the authoring-polish
-  milestone, not v2.** Built-ins and helpers appear in completion in v2 but do
+  milestone, not m2.** Built-ins and helpers appear in completion in m2 but do
   not carry doc payloads yet.
 
 ## Non-Goals
 
-v2 inherits every v1 non-goal unchanged. The plugin must not:
+m2 inherits every m1 non-goal unchanged. The plugin must not:
 
 - Evaluate whether a request is allowed or denied, or otherwise infer
   authorization or security quality.
@@ -77,7 +77,7 @@ v2 inherits every v1 non-goal unchanged. The plugin must not:
 - Replace official Firebase tools for deployment or authorization testing.
 - Add web app frameworks or unrelated UI dependencies.
 
-Additionally, v2-specific non-goals:
+Additionally, m2-specific non-goals:
 
 - **No type inference.** Completion offers documented members from a static
   table; it does not infer the type of an arbitrary expression. `request.` and
@@ -164,7 +164,7 @@ a textual approximation. The following are confirmed from the sources above.
   documented standard claims and notes that custom claims exist.
 - `resource` and `request.resource` members: `data` (the field map), `id`,
   `__name__`.
-- Helper calls and their arity (already encoded in v1's diagnostics, reused
+- Helper calls and their arity (already encoded in m1's diagnostics, reused
   here): `exists(path)`, `existsAfter(path)`, `get(path)`, `getAfter(path)` each
   take exactly one path argument.
 
@@ -172,7 +172,7 @@ The member table is **illustrative** here; the implementer must build the
 authoritative version from the reference docs and tag anything uncertain
 `UNCONFIRMED`.
 
-## v2 Scope: Symbol Intelligence
+## m2 Scope: Symbol Intelligence
 
 ### Symbols the resolver covers
 
@@ -303,7 +303,7 @@ Add focused tests with each piece, using the existing test fixtures style under
 
 ## Milestone Definition
 
-### v2 / 0.5: Symbol Intelligence
+### m2: Symbol Intelligence
 
 Done when:
 
@@ -315,20 +315,20 @@ Done when:
 - Code completion offers in-scope symbols, keywords, operations, helpers, and
   shallow `request.`/`resource.` members from a static doc-sourced table, with
   scoping respected and no type inference.
-- All v1 non-goals still hold; nothing connects to Firebase or evaluates
+- All m1 non-goals still hold; nothing connects to Firebase or evaluates
   authorization.
 - Tests cover resolve, scoping negatives, shadowing, find-usages, rename, and
   completion as listed above.
 - Implementation choices follow current official JetBrains SDK and Firebase
   docs.
 
-## Future Milestones (sequenced, not v2 scope)
+## Future Milestones (sequenced, not m2 scope)
 
-Written here so the direction is explicit, but **not** part of the 0.5 release.
+Written here so the direction is explicit, but **not** part of the m2 release.
 One milestone per release.
 
-1. **0.6 — Actionable diagnostics.** Quick-fixes / intentions for the
-   diagnostics v1 already raises (e.g. insert missing `rules_version = '2';`,
+1. **m3 — Actionable Diagnostics.** Quick-fixes / intentions for the
+   diagnostics m1 already raises (e.g. insert missing `rules_version = '2';`,
    add a missing `if`), plus new semantic checks the resolver now makes possible
    — **unused functions** and **undefined references** (a name that resolves to
    nothing). Highest value per unit of effort because detection mostly exists
@@ -346,20 +346,20 @@ One milestone per release.
    Cloud Storage's cross-service `firestore.get`/`firestore.exists` are recognized.
    No new runtime/authorization claims. The user-facing identity was rebranded from
    "Firestore Rules" to "Firebase Rules" for this milestone.
-3. **Authoring polish.** Structure view, code folding for braced blocks,
+3. **m4 — Authoring Polish.** Structure view, code folding for braced blocks,
    quick-docs (the deferred hover docs for built-ins/helpers), and parameter
    info on calls.
-4. **Toward semantics.** Type/dataflow-aware expression analysis (field/member
+4. **m5 — Toward Semantics.** Type/dataflow-aware expression analysis (field/member
    validation against a model, obvious type mismatches), staying short of
    runtime evaluation.
 
 Explicitly **not planned:** emulator or rules-test-SDK integration and any
-in-IDE authorization evaluation. These would require revisiting v1's
+in-IDE authorization evaluation. These would require revisiting m1's
 no-connection, no-evaluation core principles and are out of the product's scope.
 
 ## Acceptance Criteria
 
-v2 is successful when a developer editing a `.rules` file can:
+m2 is successful when a developer editing a `.rules` file can:
 
 - Ctrl+click a function call, parameter, `let`, or path variable and land on its
   declaration; Find Usages from any of them; and Rename any of them with the

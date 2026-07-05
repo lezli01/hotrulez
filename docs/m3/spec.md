@@ -1,36 +1,36 @@
-# hotrulez Project Spec — v3 (Assisted Authoring)
+# hotrulez Project Spec — m3 (Actionable Diagnostics)
 
-Status: **archived — 0.7 shipped.** This is the v3 "Assisted Authoring" plan as
-it stood while **0.7 (Actionable Diagnostics)** was the active milestone. 0.7
-shipped (merged to `master` as PR #29; release-please cuts it as the 0.7 line).
-The document detailed 0.7 in full, with **0.8 (Authoring Polish)** and **0.9
+Status: **archived — m3 shipped.** This is the Assisted Authoring arc plan as
+it stood while **m3 (Actionable Diagnostics)** was the active milestone. m3
+shipped (merged to `master` as PR #29; released via release-please).
+The document detailed m3 in full, with **m4 (Authoring Polish)** and **m5
 (Toward Semantics)** as forward sketches. It is kept as the historical record for
-the 0.7 phase. Superseded by `docs/spec.md`, which continues the same Assisted
-Authoring arc and details **0.8 (Authoring Polish)** in full.
+the m3 phase. Superseded by `docs/m4/spec.md`, which continues the same Assisted
+Authoring arc and details **m4 (Authoring Polish)** in full.
 Last updated: 2026-07-02 (archived 2026-07-03).
-Supersedes: `docs/v2/spec.md` (archived). The v2 spec and task list cover
-symbol intelligence (shipped 0.5.0) and Cloud Storage support (shipped 0.6.0)
-and remain the historical record under `docs/v2/`. The v1 milestone lives under
-`docs/v1/`.
+Supersedes: `docs/m2/spec.md` (archived). The m2 spec and task list cover
+symbol intelligence (shipped in m2) and Cloud Storage support (shipped in m2)
+and remain the historical record under `docs/m2/`. The m1 milestone lives under
+`docs/m1/`.
 
 ## Context
 
 `hotrulez` is a JetBrains IDE plugin for Firebase Security Rules — both Cloud
 Firestore (`service cloud.firestore`) and Cloud Storage (`service
-firebase.storage`) `.rules` files. Through 0.6.1 it makes `.rules` a
+firebase.storage`) `.rules` files. Through m2 it makes `.rules` a
 first-class language:
 
-- **v1 (→ 0.4.0)** — passive language: file recognition, syntax highlighting,
+- **m1** — passive language: file recognition, syntax highlighting,
   a Grammar-Kit/JFlex parser and typed PSI, a PSI-aware formatter, structural
   diagnostics (an always-on annotator plus two configurable inspections, 18
   checks in total), and editor polish (icon, color settings page, brace
   matcher, quote handler, commenter).
-- **v2 (0.5.0)** — symbol intelligence: a PSI reference/resolve layer that
+- **m2** — symbol intelligence: a PSI reference/resolve layer that
   honors Firebase Rules scoping and path-variable shadowing, and the four
   features that ride on it — go-to-definition, find-usages, rename, and
   scope-aware completion — for functions, parameters, `let` bindings, and path
   variables.
-- **v2 (0.6.0)** — Cloud Storage as a sibling dialect of the same language,
+- **m2** — Cloud Storage as a sibling dialect of the same language,
   detected from the `service` declaration and modeled as data in
   `references/RulesService` (service name, root-match shape,
   `request`/`resource` member tables, path helpers).
@@ -43,32 +43,32 @@ And although the resolver knows exactly which names resolve and which do not, no
 diagnostic yet reports an *undefined* reference or an *unused* declaration —
 the two checks the resolver most directly makes possible.
 
-v3 closes that gap. It is the arc from *"the IDE reads your rules"* to *"the
+The Assisted Authoring arc closes that gap. It is the arc from *"the IDE reads your rules"* to *"the
 IDE helps you write them."*
 
 ## Thesis
 
-**v3 turns the plugin's existing understanding into active assistance,
+**The Assisted Authoring arc turns the plugin's existing understanding into active assistance,
 delivered as three sequenced releases — one milestone per release, matching the
 project's established cadence.** Each release stands on infrastructure that is
-already shipped; none of them relaxes a single v1/v2 non-goal.
+already shipped; none of them relaxes a single m1/m2 non-goal.
 
-1. **0.7 — Actionable Diagnostics.** Make the diagnostics the plugin already
-   raises *fixable*, and add the two new checks the 0.5 resolver unlocks
+1. **m3 — Actionable Diagnostics.** Make the diagnostics the plugin already
+   raises *fixable*, and add the two new checks the m2 resolver unlocks
    (undefined references, unused declarations). This is the highest value per
    unit of effort: the detection layer mostly exists, quick-fixes are the most
    visible "the IDE is smart" win after completion and navigation, and the new
    checks are the direct payoff of having built the resolver.
-2. **0.8 — Authoring Polish.** Reveal and navigate structure: a structure view
+2. **m4 — Authoring Polish.** Reveal and navigate structure: a structure view
    (the `service` / `match` / `function` outline), code folding for braced
    blocks, quick-documentation (hover) for built-ins and helpers (the docs
-   deferred out of v2), and parameter info on function and helper calls.
-3. **0.9 — Toward Semantics.** Begin type/dataflow-aware expression analysis —
+   deferred out of m2), and parameter info on function and helper calls.
+3. **m5 — Toward Semantics.** Begin type/dataflow-aware expression analysis —
    flagging *obvious*, doc-grounded member and type mistakes — staying strictly
    short of runtime evaluation.
 
-This spec describes **0.7 in full implementation detail**, **0.8 in enough
-detail to commit to it**, and **0.9 as a lightly-sketched direction** — the
+This spec describes **m3 in full implementation detail**, **m4 in enough
+detail to commit to it**, and **m5 as a lightly-sketched direction** — the
 later a milestone is, the less we should over-specify it before the earlier
 work teaches us what we actually need.
 
@@ -80,7 +80,7 @@ work teaches us what we actually need.
   like a first-class language. Quick-fixes, an undefined-symbol inspection, a
   structure view, folding, quick-docs, and parameter info are all table stakes
   for a first-class language plugin — and all are still missing here.
-- **Hold every v1/v2 non-goal.** v3 adds IDE assistance *within the same
+- **Hold every m1/m2 non-goal.** The Assisted Authoring arc adds IDE assistance *within the same
   conservative, structural scope*. It does not evaluate authorization, connect
   to Firebase, or model runtime behavior. See Non-Goals.
 - **Every fix is safe and obvious.** A quick-fix either makes one unambiguous
@@ -95,7 +95,7 @@ work teaches us what we actually need.
 
 ## Non-Goals
 
-v3 inherits every v1/v2 non-goal unchanged. The plugin must not:
+The Assisted Authoring arc inherits every m1/m2 non-goal unchanged. The plugin must not:
 
 - Evaluate whether a request is allowed or denied, or otherwise infer
   authorization or security quality. Diagnostics — including the new ones —
@@ -107,14 +107,14 @@ v3 inherits every v1/v2 non-goal unchanged. The plugin must not:
 - Replace official Firebase tooling for deployment or authorization testing.
 - Add web-app frameworks or unrelated UI dependencies.
 
-Additionally, v3-specific non-goals:
+Additionally, non-goals specific to the Assisted Authoring arc:
 
 - **No type inference (still).** The new undefined-reference check is *name
   resolution* — it reports an identifier that resolves to no declaration and is
   not a known built-in. It is **not** type analysis: members after `.`
   (`request.foo`, `resource.data.bar`) are **never** flagged, because that would
   require a type model, and custom `request.auth.token` claims are never
-  invented. (0.9 revisits type-shaped checks, and even there stays doc-grounded
+  invented. (m5 revisits type-shaped checks, and even there stays doc-grounded
   and short of runtime evaluation.)
 - **Path / wildcard variables are never "unused."** A match segment such as
   `/cities/{city}` is routinely declared without being referenced — it is a
@@ -135,7 +135,7 @@ re-check the relevant pages and do not encode a member, scoping, or fix
 behavior the docs do not confirm; tag anything uncertain `UNCONFIRMED`
 (matching the existing `.bnf` convention) with a TODO tied to the source.
 
-Firebase semantics load-bearing for v3 (already confirmed for v2 on 2026-06-28;
+Firebase semantics load-bearing for the Assisted Authoring arc (already confirmed for m2 on 2026-06-28;
 re-confirm the specific facts each milestone relies on before coding):
 
 - Rules structure, path/wildcard variables, and the per-service root match:
@@ -147,7 +147,7 @@ re-confirm the specific facts each milestone relies on before coding):
 - `request`/`resource` member reference (member-table source):
   `https://firebase.google.com/docs/reference/rules/rules.firestore.Request`
 
-IntelliJ Platform SDK topics to re-check before 0.7: attaching a
+IntelliJ Platform SDK topics to re-check before m3: attaching a
 `LocalQuickFix` to an inspection `ProblemDescriptor`; attaching a quick-fix /
 intention to an annotation (`AnnotationBuilder.withFix` and the current
 adapter for turning a `LocalQuickFix` into an `IntentionAction`, e.g.
@@ -155,9 +155,9 @@ adapter for turning a `LocalQuickFix` into an `IntentionAction`, e.g.
 values (`LIKE_UNKNOWN_SYMBOL`, `LIKE_UNUSED_SYMBOL`); and
 `localInspection` registration. Prefer extension points over startup code.
 
-## v3 Milestone Detail
+## Milestone Detail (the Assisted Authoring arc)
 
-### 0.7 — Actionable Diagnostics (specified in full)
+### m3 — Actionable Diagnostics (specified in full)
 
 Two halves that share one new package of fix classes.
 
@@ -228,7 +228,7 @@ severity philosophy that puts file-shape checks in an inspection.
   its function body: `Variable 'x' is never used`. Fix: *Remove 'let' binding*.
 - **Unused parameter.** A parameter never referenced in its function body:
   `Parameter 'x' is never used`, grayed. **Reported only, no removal fix in
-  0.7** — removing a parameter must update every call site's argument list,
+  m3** — removing a parameter must update every call site's argument list,
   which is refactoring-grade and deferred. Documented, not silent.
 - **Not flagged:** path / wildcard variables (see Non-Goals), and any name that
   resolves or is a built-in/helper.
@@ -240,13 +240,13 @@ severity philosophy that puts file-shape checks in an inspection.
   therefore *not* undefined. `FirebaseRulesScopes` already implements this; the
   inspection must consult it, never a textual/top-to-bottom heuristic.
 - A `let` is visible only *after* its declaration, and shadowing (nested path
-  variable / same-named function) follows the v2 rules. "Unused" and
+  variable / same-named function) follows the m2 rules. "Unused" and
   "undefined" must be computed through the resolver so these all hold.
 - Built-ins (`request`, `resource`) and helpers (`get`/`getAfter`/`exists`/
   `existsAfter`, and Storage's cross-service `firestore.get`/`firestore.exists`)
   are recognized, non-navigable, and never "undefined."
 
-#### Implementation components (0.7)
+#### Implementation components (m3)
 
 - New package `dev.lezli.hotrulez.diagnostics.fixes` — one `LocalQuickFix` per
   repair above, each mutating the PSI (insert/replace/delete) via the document
@@ -261,7 +261,7 @@ severity philosophy that puts file-shape checks in an inspection.
   `FirebaseRulesBuiltins`) and find-usages layer; regenerate the grammar only if
   a missing PSI accessor forces a narrow `.bnf` change.
 
-#### Tests (0.7)
+#### Tests (m3)
 
 - New `FirebaseRulesQuickFixTest`: for each fix, apply it to a before-fixture
   and assert the after-text (using the existing `testData` fixture style).
@@ -273,19 +273,19 @@ severity philosophy that puts file-shape checks in an inspection.
   malformed file (no exceptions; unrelated blocks unaffected).
 - `./gradlew test` green after the milestone.
 
-#### Acceptance (0.7)
+#### Acceptance (m3)
 
 - Every diagnostic in the Half-A table offers its fix; the "no automatic fix"
   set is reported without one, as designed.
 - The symbol inspection flags undefined references and unused
   functions/`let`s/parameters with correct, resolver-based scoping, and never
   flags members, built-ins, helpers, or path variables.
-- All v1/v2 non-goals still hold; nothing connects to Firebase, evaluates
+- All m1/m2 non-goals still hold; nothing connects to Firebase, evaluates
   authorization, or infers a type.
 - Tests cover fixes, the symbol inspection (positives and scoping negatives),
   and recovery; implementation follows current JetBrains SDK and Firebase docs.
 
-### 0.8 — Authoring Polish (committed; specified enough to start)
+### m4 — Authoring Polish (committed; specified enough to start)
 
 Structure and navigation features, each riding on the existing PSI and
 `RulesService` profile. All are read-only views over the PSI — no new
@@ -301,22 +301,22 @@ semantics.
   for built-ins (`request`, `resource` and their members), helpers, and
   `allow` operations, sourced from the same static, doc-sourced `RulesService`
   and `FirebaseRulesBuiltins` tables that drive completion. This is the hover
-  docs deferred out of v2. Still no type inference.
+  docs deferred out of m2. Still no type inference.
 - **Parameter info** — `codeInsight.parameterInfo`: on a call to a user
   `function` (parameter names from the declaration) and to the fixed-arity path
   helpers (`get`/`exists`/…), show the signature while typing arguments.
 
 Non-goals unchanged; docs strings stay structural and doc-grounded. Detailed
-task breakdown deferred until 0.7 ships.
+task breakdown deferred until m3 ships.
 
-### 0.9 — Toward Semantics (direction, not commitment)
+### m5 — Toward Semantics (direction, not commitment)
 
 Begin *doc-grounded* expression analysis, still short of runtime evaluation:
 flag *obvious* member and type mistakes that the static Firebase docs make
 unambiguous — e.g. a member that cannot exist on a known built-in in the
 detected dialect, or an operator applied to plainly incompatible literal types
 — while never asserting authorization, never inventing types for user data, and
-never evaluating a rule. The exact check set will be shaped by what 0.7/0.8
+never evaluating a rule. The exact check set will be shaped by what m3/m4
 reveal about false-positive risk; this milestone is intentionally left
 under-specified until then, and may itself split across releases.
 
@@ -326,18 +326,18 @@ Emulator / rules-test-SDK integration and any in-IDE authorization evaluation
 remain out of scope — they would require revisiting the no-connection,
 no-evaluation core principles that define the product.
 
-## Overall Acceptance Criteria (v3 program)
+## Overall Acceptance Criteria (the Assisted Authoring arc)
 
-v3 is successful when a developer editing a `.rules` file can:
+The Assisted Authoring arc is successful when a developer editing a `.rules` file can:
 
-- **0.7** — accept a one-click fix for the structural problems the plugin flags,
+- **m3** — accept a one-click fix for the structural problems the plugin flags,
   and see undefined references and unused functions/`let`s/parameters surfaced
   with correct scoping — without the plugin inventing meaning, types, or
   authorization judgments.
-- **0.8** — navigate a large file via a structure view, fold blocks, read
+- **m4** — navigate a large file via a structure view, fold blocks, read
   built-in/helper docs on hover, and see parameter info while calling functions
   and helpers.
-- **0.9** — receive conservative, doc-grounded warnings about obvious
+- **m5** — receive conservative, doc-grounded warnings about obvious
   expression mistakes, still with nothing connected to Firebase and no runtime
   evaluation.
 - Trust, throughout, that every check and fix is structural: the plugin never

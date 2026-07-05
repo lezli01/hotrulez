@@ -1,14 +1,14 @@
-# HotRulez Tasks — 0.9 (Toward Semantics)
+# HotRulez Tasks — m5 (Toward Semantics)
 
 Status: **committed plan.** Promoted from sketch on 2026-07-05 after doc-grounded
-FP-risk grounding. This breaks out milestone 0.9 in full: one conservative,
+FP-risk grounding. This breaks out milestone m5 in full: one conservative,
 service-aware semantic check — `FirebaseRulesMemberInspection` — that flags an
 unknown member on a *closed* built-in receiver, plus the prerequisite table fixes it
 depends on. Candidate B (operator/literal-type) is deferred (see `docs/spec.md`).
 Last updated: 2026-07-05.
-Source: `docs/spec.md` (0.9 — Toward Semantics).
-Predecessor: `docs/v4/tasks.md` (archived; the 0.8 Authoring Polish breakdown —
-shipped in PR #31 / released in the 0.7.0 line).
+Source: `docs/spec.md` (m5 — Toward Semantics).
+Predecessor: `docs/m4/tasks.md` (the m4 Authoring Polish breakdown, shipped in
+PR #31 and released alongside m3).
 
 ## Ground Rules
 
@@ -21,9 +21,9 @@ shipped in PR #31 / released in the 0.7.0 line).
 - [ ] Re-check current IntelliJ Platform SDK docs (via Context7) before registering
   the inspection: `com.intellij.codeInspection.LocalInspectionTool` /
   `localInspection` EP and the `ModCommand` `PsiUpdateModCommandAction` fix pattern
-  (both already used by 0.7). Platform target: IntelliJ IDEA 2025.2,
+  (both already used by m3). Platform target: IntelliJ IDEA 2025.2,
   `sinceBuild = 252`, Java 21.
-- [ ] Hold every v1/v2/0.7/0.8 non-goal: no authorization evaluation, no
+- [ ] Hold every m1/m2/m3/m4 non-goal: no authorization evaluation, no
   Firebase/emulator/rules-test-SDK connection, no project IDs, structural-not-JS.
 - [ ] **No type inference** — the member check is a fixed doc-sourced closed-set
   lookup; derive no type of any variable/member/call/user value.
@@ -34,7 +34,7 @@ shipped in PR #31 / released in the 0.7.0 line).
 - [ ] Keep diagnostic wording **structural** — "'x' is not a member of `request`" —
   never "insecure" / "authorizes".
 
-## Milestone 0.9: `FirebaseRulesMemberInspection`
+## Milestone m5: `FirebaseRulesMemberInspection`
 
 ### Prerequisite table fixes (correctness — land FIRST, in `RulesService`)
 
@@ -115,7 +115,7 @@ shipped in PR #31 / released in the 0.7.0 line).
   `params`.
 - [ ] Run `./gradlew test` (green); keep `verifyPlugin` green.
 
-## Release-Quality Acceptance (0.9)
+## Release-Quality Acceptance (m5)
 
 - [ ] Unknown member on a closed, service-correct receiver is flagged at
   weak-warning with a did-you-mean fix (near match) or dialect-aware message
@@ -145,7 +145,7 @@ reopens them. Load-bearing implementation calls:
 - `request.auth.token.firebase` is hard-forbidden from the closed model (adversarial
   finding: MFA/SAML members + open index signature).
 
-## Deferred / roadmap (not 0.9 scope)
+## Deferred / roadmap (not m5 scope)
 
 - **Candidate B** (operator on incompatible literal operands) — deferred; revisit
   with a real type-inference pass, where each flag can cite an inferred type. See

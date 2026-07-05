@@ -1,14 +1,12 @@
-# HotRulez Project Spec — 0.9 (Toward Semantics)
+# HotRulez Project Spec — m5 (Toward Semantics)
 
 Status: **committed plan.** Promoted from sketch on 2026-07-05 after a doc-grounded
-false-positive-risk assessment (see Evidence). 0.9 is the third and final milestone
-of the **v3 "Assisted Authoring"** arc (0.7 / 0.8 / 0.9); it will most likely
-release as semver **0.8.0** (release-please bundled milestones 0.7 + 0.8 into the
-0.7.0 line, so the milestone number runs one ahead of the tag).
+false-positive-risk assessment (see Evidence). m5 is the third and final milestone
+of the Assisted Authoring arc (m3 / m4 / m5).
 Last updated: 2026-07-05.
-Supersedes: `docs/v4/spec.md` (archived — the 0.8 "Authoring Polish" plan; **0.8
-shipped**). Earlier arcs live under `docs/v3/` (Assisted Authoring as of 0.7),
-`docs/v2/` (symbol intelligence 0.5.0 + Cloud Storage 0.6.0), and `docs/v1/`.
+Supersedes: `docs/m4/spec.md` (the m4 "Authoring Polish" plan; **m4 shipped**).
+Earlier milestones live under `docs/m3/` (Actionable Diagnostics), `docs/m2/`
+(Symbol Intelligence + Cloud Storage), and `docs/m1/` (Passive Language).
 
 ## Context
 
@@ -17,26 +15,26 @@ Firestore (`service cloud.firestore`) and Cloud Storage (`service
 firebase.storage`) `.rules` files. Through the Assisted Authoring arc it has grown
 to **read**, **understand**, **act on**, and **explain** a `.rules` file:
 
-- **v1 (→ 0.4.0)** — passive language (file type, highlighting, parser/PSI,
+- **m1** — passive language (file type, highlighting, parser/PSI,
   formatter, structural diagnostics, editor polish).
-- **v2 (0.5.0)** — symbol intelligence (resolve, go-to-definition, find-usages,
+- **m2** — symbol intelligence (resolve, go-to-definition, find-usages,
   rename, scope-aware completion).
-- **v2 (0.6.0)** — Cloud Storage as a sibling dialect, modeled as data in
+- **m2** — Cloud Storage as a sibling dialect, modeled as data in
   `RulesService`.
-- **v3 (0.7)** — Actionable Diagnostics: 12 `ModCommand` quick-fixes plus
+- **m3** — Actionable Diagnostics: 12 `ModCommand` quick-fixes plus
   `FirebaseRulesSymbolInspection` (undefined references, unused
   functions/`let`s/parameters through the shipped resolver).
-- **v3 (0.8)** — Authoring Polish: structure view, code folding, quick
+- **m4** — Authoring Polish: structure view, code folding, quick
   documentation, parameter info, and the `FirebaseRulesDocs` doc-prose table.
 
 Every diagnostic the plugin ships today is **structural** — does this brace close,
 does this symbol resolve, is this declaration used. None is **semantic** — none
-asks whether a member can exist on a receiver. 0.9 takes the first careful step
+asks whether a member can exist on a receiver. m5 takes the first careful step
 across that line, and *only* the first.
 
 ## Thesis
 
-**0.9 adds one conservative, doc-grounded semantic check — a service-aware
+**m5 adds one conservative, doc-grounded semantic check — a service-aware
 inspection that flags a member access on a *closed* built-in receiver when the
 member is not part of that receiver's fixed, documented set — extending the
 `FirebaseRulesSymbolInspection` philosophy (resolve against a fixed model, never
@@ -81,7 +79,7 @@ genuinely diverge: `request.auth.token` belongs in completion (standard claims a
 useful hints) but must be **open** for flagging (custom claims are unbounded); and
 `request.query` is a valid closed receiver to flag against but is not a completion
 member today. A drift-guard test keeps the flag model doc-consistent, mirroring the
-0.8 `FirebaseRulesDocsTableTest` pattern.
+m4 `FirebaseRulesDocsTableTest` pattern.
 
 **Cloud Firestore — closed receivers (safe to flag unknown members):**
 
@@ -122,7 +120,7 @@ returns without flagging. These are app / JWT / query schema the engine cannot k
 - Cloud Storage `request.params` — request/API-dependent query-parameter keys.
 
 The closed member sets stop exactly one level above these; the shallow `members`
-table (v2) already stops there, and the new flag model keeps the same discipline.
+table (m2) already stops there, and the new flag model keeps the same discipline.
 
 ### Service-scoping is load-bearing
 
@@ -143,7 +141,7 @@ in a Storage file are **true positives** *because* the sets are dialect-scoped
   escalate the four fully-documented interfaces (`request`, `resource`,
   `request.resource`, `request.auth`) to `WARNING` in a later release; keep
   `request.query` at weak-warning regardless.
-- **Quick-fix (continues the 0.7 Actionable Diagnostics theme):** on a flagged
+- **Quick-fix (continues the m3 Actionable Diagnostics theme):** on a flagged
   member, compute edit distance to the receiver's known members; when a close match
   exists (Levenshtein ≤ 2) offer a `ModCommand` rename fix — *"Did you mean 'X'?"*
   (`request.resourse` → `resource`, `resource.dta` → `data`,
@@ -224,9 +222,9 @@ can cite an inferred type.
 
 ## Non-Goals
 
-0.9 inherits **every** v1/v2/0.7/0.8 non-goal unchanged (no authorization
+m5 inherits **every** m1/m2/m3/m4 non-goal unchanged (no authorization
 evaluation; no Firebase/emulator/rules-test-SDK connection; no project IDs; not
-modeled as JavaScript/JSON; no unrelated UI deps). Additionally, 0.9-specific:
+modeled as JavaScript/JSON; no unrelated UI deps). Additionally, m5-specific:
 
 - **No type inference.** The member check is a fixed, doc-sourced closed-set lookup;
   it never derives the type of a variable, member, call result, or user value.
@@ -248,7 +246,7 @@ modeled as JavaScript/JSON; no unrelated UI deps). Additionally, 0.9-specific:
   set; anything the docs leave uncertain (`request.query` exhaustiveness) is tagged
   `UNCONFIRMED` and kept at weak-warning.
 - **Reuse, don't rebuild** — `FirebaseRulesMemberPath.receiverKey`,
-  `RulesService.forFile`/`forElement`, the `member_expression` PSI, and the 0.7
+  `RulesService.forFile`/`forElement`, the `member_expression` PSI, and the m3
   `ModCommand` (`PsiUpdateModCommandAction`) quick-fix pattern already ship.
 - **Dialect-correct or silent** — service-scoped closed sets; neutral files suppress.
 
@@ -309,10 +307,10 @@ modeled as JavaScript/JSON; no unrelated UI deps). Additionally, 0.9-specific:
 Resolved during the `/grill-me` session; the first three are your explicit choices,
 the rest are recommended defaults grounded in the evidence.
 
-1. **Theme = the roadmap** — 0.9 is the Toward Semantics milestone (your choice).
+1. **Theme = the roadmap** — m5 is the Toward Semantics milestone (your choice).
 2. **Scope = Candidate A only; defer B** — you initially chose A+B, then, once the
    inference-by-omission conflict with the doc-grounded anchor was surfaced, chose to
-   defer B and keep 0.9 doc-grounded-pure.
+   defer B and keep m5 doc-grounded-pure.
 3. **Severity = `WEAK WARNING`, on by default** (your choice).
 4. **Quick-fix = did-you-mean + dialect-aware messages** (your choice).
 5. **New `FirebaseRulesMemberInspection`**, not an extension of the symbol
@@ -323,11 +321,11 @@ the rest are recommended defaults grounded in the evidence.
 8. **Include `request.query`** as a closed Firestore sub-receiver at weak-warning,
    tagged `UNCONFIRMED` on exhaustiveness (cheaply reversible; omit if you'd rather
    ship the four fully-documented interfaces only).
-9. **Single release** — 0.9 ships as one milestone (semver 0.8.0).
+9. **Single release** — m5 ships as one milestone.
 
 ## Future (explicitly not planned)
 
 Emulator / rules-test-SDK integration and any in-IDE authorization *evaluation*
 remain out of scope. A type-aware semantic pass (which would revive Candidate B and
 enable member checks on inferred types) would be a new arc beyond Assisted
-Authoring, not part of 0.9.
+Authoring, not part of m5.

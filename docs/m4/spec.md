@@ -1,26 +1,23 @@
-# HotRulez Project Spec — 0.8 (Authoring Polish)
+# HotRulez Project Spec — m4 (Authoring Polish)
 
-Status: **archived — 0.8 shipped.** This is the **0.8 (Authoring Polish)** plan as
-it stood while 0.8 was the active milestone — the third and final milestone of the
-v3 "Assisted Authoring" arc (0.7 / 0.8 / 0.9). 0.8 shipped: merged to `master` as
+Status: **archived — m4 shipped.** This is the **m4 (Authoring Polish)** plan as
+it stood while m4 was the active milestone — the second milestone of the
+Assisted Authoring arc (m3 / m4 / m5). m4 shipped: merged to `master` as
 PR #31, with follow-up fixes (`4dbc6bc` comment attribution / dialect gate, PR #32
-brand casing), and released by release-please in the **0.7.0** line (2026-07-04).
-That release bundled milestone 0.7 (Actionable Diagnostics) and milestone 0.8
-(Authoring Polish) together, so from here the internal milestone number runs one
-ahead of the semver tag (milestone 0.9 will most likely release as **0.8.0**). This
-document detailed 0.8 in full, with **0.9 (Toward Semantics)** carried forward as a
-lightly-sketched direction. It is kept as the historical record for the 0.8 phase.
+brand casing), and released by release-please (2026-07-04). m3 (Actionable
+Diagnostics) and m4 (Authoring Polish) shipped in the same release. This
+document detailed m4 in full, with **m5 (Toward Semantics)** carried forward as a
+lightly-sketched direction. It is kept as the historical record for the m4 phase.
 Superseded by `docs/spec.md`, which continues the same Assisted Authoring arc and
-carries **0.9 (Toward Semantics)** forward as a well-scoped sketch.
+carries **m5 (Toward Semantics)** forward as a well-scoped sketch.
 Last updated: 2026-07-03 (archived 2026-07-05).
-Program: the third and final milestone of the **v3 "Assisted Authoring"** arc
-(0.7 / 0.8 / 0.9).
-Note on the folder name: the `docs/vN/` folders are a monotonic archive counter,
-not the arc number — this is the fourth archived working spec (`v4`), even though
-0.8 belongs to the third ("v3") arc.
-Supersedes: `docs/v3/spec.md` (archived — the Assisted Authoring plan as it stood
-while 0.7 was active; **0.7 shipped**). The v2 spec (symbol intelligence 0.5.0,
-Cloud Storage 0.6.0) is under `docs/v2/`; the v1 milestone under `docs/v1/`.
+Program: the second milestone of the **Assisted Authoring** arc
+(m3 / m4 / m5).
+Note on the folder name: the `docs/mN/` folders are the per-milestone archive —
+this one holds the m4 (Authoring Polish) milestone.
+Supersedes: `docs/m3/spec.md` (archived — the Assisted Authoring plan as it stood
+while m3 was active; **m3 shipped**). The m2 spec (symbol intelligence,
+Cloud Storage) is under `docs/m2/`; the m1 milestone under `docs/m1/`.
 
 ## Context
 
@@ -29,17 +26,17 @@ Firestore (`service cloud.firestore`) and Cloud Storage (`service
 firebase.storage`) `.rules` files. Through the Assisted Authoring arc it has
 grown from a passive language into an active assistant:
 
-- **v1 (→ 0.4.0)** — passive language: file recognition, syntax highlighting, a
+- **m1** — passive language: file recognition, syntax highlighting, a
   Grammar-Kit/JFlex parser and typed PSI, a PSI-aware formatter, structural
   diagnostics (an always-on annotator plus two configurable inspections), and
   editor polish (icon, color settings page, brace matcher, quote handler,
   commenter).
-- **v2 (0.5.0)** — symbol intelligence: a PSI reference/resolve layer honoring
+- **m2** — symbol intelligence: a PSI reference/resolve layer honoring
   Firebase Rules scoping and path-variable shadowing, plus go-to-definition,
   find-usages, rename, and scope-aware completion.
-- **v2 (0.6.0)** — Cloud Storage as a sibling dialect, detected from the
+- **m2** — Cloud Storage as a sibling dialect, detected from the
   `service` declaration and modeled as data in `RulesService`.
-- **v3 (0.7.0) — Actionable Diagnostics** *(shipped)*: 12 quick-fixes (as
+- **m3 — Actionable Diagnostics** *(shipped)*: 12 quick-fixes (as
   `ModCommand` `PsiUpdateModCommandAction`s serving both inspections and the
   annotator) for the structural diagnostics, plus a new
   `FirebaseRulesSymbolInspection` that flags undefined references and unused
@@ -54,15 +51,15 @@ parameter hints. Every input for those features already exists — the typed PSI
 the `FirebaseRulesBuiltins` vocabulary, and the resolver — but none of it is yet
 surfaced as a navigable or explanatory view.
 
-0.8 closes that gap. Where 0.7 was *"the IDE fixes your rules,"* 0.8 is *"the IDE
+m4 closes that gap. Where m3 was *"the IDE fixes your rules,"* m4 is *"the IDE
 shows you your rules."*
 
 ## Thesis
 
-**0.8 adds the read-only authoring surfaces a mature language plugin is expected
+**m4 adds the read-only authoring surfaces a mature language plugin is expected
 to have — structure view, code folding, quick documentation, and parameter
 info — each a projection of PSI and data the plugin already owns, adding no new
-semantics and relaxing no v1/v2/0.7 non-goal.** Three of the four features are
+semantics and relaxing no m1/m2/m3 non-goal.** Three of the four features are
 pure views over existing structures; the fourth (quick documentation) requires
 one genuinely new artifact — a doc-*prose* table — because today's tables carry
 symbol *names* but no descriptions.
@@ -79,7 +76,7 @@ symbol *names* but no descriptions.
   adds *prose* but no *inference*: it explains the fixed, doc-sourced vocabulary
   and shows a user symbol's own signature/comment — it never derives a type or a
   value.
-- **Hold every prior non-goal.** 0.8 adds no connection to Firebase, no
+- **Hold every prior non-goal.** m4 adds no connection to Firebase, no
   evaluation of authorization, no runtime model, and no type inference. See
   Non-Goals.
 - **Doc strings are doc-grounded and structural.** Every description shown on
@@ -89,7 +86,7 @@ symbol *names* but no descriptions.
 
 ## Non-Goals
 
-0.8 inherits every v1/v2/0.7 non-goal unchanged. The plugin must not:
+m4 inherits every m1/m2/m3 non-goal unchanged. The plugin must not:
 
 - Evaluate whether a request is allowed or denied, or infer authorization or
   security quality.
@@ -100,7 +97,7 @@ symbol *names* but no descriptions.
 - Replace official Firebase tooling for deployment or authorization testing.
 - Add web-app frameworks or unrelated UI dependencies.
 
-Additionally, 0.8-specific non-goals:
+Additionally, m4-specific non-goals:
 
 - **No type inference (still).** Quick documentation for a member (`request.auth`)
   is looked up in the fixed, per-dialect member table — it is *not* computed from
@@ -109,7 +106,7 @@ Additionally, 0.8-specific non-goals:
   a *declared* or *fixed* signature; it never infers argument types.
 - **Parameter info does not validate arity.** It is a display aid only. Whether a
   call has the wrong number of arguments is a diagnostic concern — and helper-call
-  arity is already on 0.7's *deliberately-no-fix* list. 0.8 must not turn
+  arity is already on m3's *deliberately-no-fix* list. m4 must not turn
   parameter info into a silent arity checker.
 - **Structure view and folding are non-authoritative navigational aids.** They
   degrade gracefully on malformed files and never suppress or alter diagnostics.
@@ -125,7 +122,7 @@ authoritative for extension points. Re-check the relevant pages before
 implementing; do not encode a member, signature, or description the docs do not
 confirm; tag anything uncertain `UNCONFIRMED` with a TODO tied to the source.
 
-Firebase semantics load-bearing for 0.8 (already confirmed for v2/0.7; re-confirm
+Firebase semantics load-bearing for m4 (already confirmed for m2/m3; re-confirm
 the specific facts the doc table relies on before coding):
 
 - Rules structure and the per-service root match:
@@ -139,7 +136,7 @@ the specific facts the doc table relies on before coding):
 - Storage `resource`/`request.resource` metadata:
   `https://firebase.google.com/docs/reference/rules/rules.storage`
 
-IntelliJ Platform SDK extension points for 0.8 (platform target: **IntelliJ IDEA
+IntelliJ Platform SDK extension points for m4 (platform target: **IntelliJ IDEA
 2025.2**, `sinceBuild = 252`, Java 21). Confirmed against the current SDK docs on
 2026-07-03; re-confirm class/method signatures before coding:
 
@@ -161,7 +158,7 @@ IntelliJ Platform SDK extension points for 0.8 (platform target: **IntelliJ IDEA
 
 Prefer extension points over startup code (as every prior milestone did).
 
-## 0.8 Milestone Detail
+## m4 Milestone Detail
 
 Four features. Three are read-only projections of existing PSI/data; the fourth
 adds a doc-prose table. Each lists the PSI it consumes (all already generated by
@@ -174,7 +171,7 @@ Today's tables give the plugin its *vocabulary* but not its *prose*:
 `FirebaseRulesBuiltins.OPERATIONS` / `.GLOBALS` / `.TYPE_NAMES` are lists of
 **names**. Quick documentation needs a short description per name. Rather than
 bloat the name-tables (which are also consumed by completion, the highlighter,
-and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
+and the resolver), m4 adds a dedicated, doc-sourced prose table:
 
 - New `dev.lezli.hotrulez.documentation.FirebaseRulesDocs` — a static object
   mapping each documentable entity to `(title, summaryHtml, docUrl)`:
@@ -195,7 +192,7 @@ and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
     `FirebaseRulesBuiltins.TYPE_NAMES` / `GLOBALS` (`math`, `timestamp`,
     `duration`, `int`, `string`, `debug`, …) — a brief "what it is" line. Members
     *of* these namespaces (`math.abs`, `timestamp.date`) are **not** enumerated in
-    0.8 (arity/return unconfirmed as a table) and are tagged `UNCONFIRMED` /
+    m4 (arity/return unconfirmed as a table) and are tagged `UNCONFIRMED` /
     deferred.
 - The table is the **single source of doc prose**, reused by quick documentation
   (below) and available to parameter info for helper summaries. Every entry cites
@@ -304,7 +301,7 @@ and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
   commas between `(` and the caret against the parameter list (`updateParameterInfo`
   → `updateUI` with the current index). Helper signatures may append the one-line
   purpose from `FirebaseRulesDocs`.
-- **Explicitly out of scope for 0.8:** global-namespace functions (`math.abs`,
+- **Explicitly out of scope for m4:** global-namespace functions (`math.abs`,
   `timestamp.date`, conversion functions) — their arities/returns are not a
   confirmed table; documented as deferred, not silently omitted. **No arity
   validation** (display only; see Non-Goals).
@@ -322,9 +319,9 @@ and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
   still documents and still shows parameters.
 - **Members are structurally distinct:** a `member_expression` is not a
   `reference_expression`; member docs come from the fixed table, never from type
-  inference — the same boundary 0.7's symbol inspection relies on.
+  inference — the same boundary m3's symbol inspection relies on.
 
-## Implementation components (0.8)
+## Implementation components (m4)
 
 - `dev.lezli.hotrulez.documentation.FirebaseRulesDocs` — the doc-prose table
   (shared source of truth; doc-sourced, `UNCONFIRMED`-tagged where needed).
@@ -344,7 +341,7 @@ and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
   accessor forces a narrow `.bnf` change (none anticipated — the needed nodes all
   exist).
 
-## Tests (0.8)
+## Tests (m4)
 
 - **`FirebaseRulesStructureViewTest`** — build the model for a representative
   Firestore file and a Storage file; assert the tree shape (service → matches →
@@ -373,7 +370,7 @@ and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
 - `./gradlew test` green after the milestone (artifacts are git-ignored; re-run
   before release). Keep `verifyPlugin` green (new EPs are all stable).
 
-## Acceptance (0.8)
+## Acceptance (m4)
 
 - The **Structure** tool window shows a `.rules` file's service → match →
   function / allow outline with correct labels, navigation, and alpha-sort, for
@@ -388,7 +385,7 @@ and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
 - **Parameter info** (Ctrl-P) shows and highlights the signature for user-function
   calls and fixed-arity path helpers, and shows nothing for the deliberately
   out-of-scope calls — never validating arity.
-- All v1/v2/0.7 non-goals still hold: nothing connects to Firebase, evaluates
+- All m1/m2/m3 non-goals still hold: nothing connects to Firebase, evaluates
   authorization, or infers a type; every doc string is doc-grounded or the user's
   own text.
 - Tests cover all four features (positives, dialect-awareness, and recovery) and
@@ -398,16 +395,16 @@ and the resolver), 0.8 adds a dedicated, doc-sourced prose table:
   updated (description stays text-only — the in-IDE renderer is a limited Swing
   HTML kit, no images).
 
-## 0.9 — Toward Semantics (direction, not commitment)
+## m5 — Toward Semantics (direction, not commitment)
 
-Carried forward from the v3 plan. Begin *doc-grounded* expression analysis, still
+Carried forward from the m3 plan. Begin *doc-grounded* expression analysis, still
 short of runtime evaluation: flag *obvious* member and type mistakes that the
 static Firebase docs make unambiguous — e.g. a member that cannot exist on a
 known built-in in the detected dialect, or an operator applied to plainly
 incompatible literal types — while never asserting authorization, never inventing
-types for user data, and never evaluating a rule. The 0.8 member/doc tables (now
+types for user data, and never evaluating a rule. The m4 member/doc tables (now
 carrying prose) become an obvious input for a conservative "unknown member on a
-known built-in" check. The exact check set will be shaped by what 0.8 reveals
+known built-in" check. The exact check set will be shaped by what m4 reveals
 about false-positive risk; this milestone stays under-specified until then and
 may split across releases.
 
@@ -422,16 +419,17 @@ no-evaluation core principles that define the product.
 These were resolved with a recommended default during the `/grill-me` session
 because you were away from the keyboard; each is cheaply reversible.
 
-1. **Archive model.** Archived the current spec/tasks wholesale to `docs/v3/`
-   (matching how `docs/v1/`, `docs/v2/` hold retired programs and your v2→v3
-   "retire + plan" commit), rather than rolling the v3 doc forward in place. The
-   v3 spec itself said 0.8's breakdown was "deferred until 0.7 ships," so a
+1. **Archive model.** Archived the current spec/tasks wholesale to `docs/m3/`
+   (matching how `docs/m1/`, `docs/m2/` hold retired programs and your m2→m3
+   "retire + plan" commit), rather than rolling the m3 doc forward in place. The
+   m3 spec itself said m4's breakdown was "deferred until m3 ships," so a
    roll-forward was the alternative; the wholesale archive matches your literal
    instruction and the existing folder structure.
-2. **New-spec identity.** Titled the new working spec by milestone ("0.8 —
-   Authoring Polish") and framed it as a continuation of the v3 Assisted Authoring
-   arc, rather than minting a "v4." 0.8/0.9 genuinely belong to Assisted Authoring.
-3. **Feature set.** Kept exactly the four features the v3 plan committed to
+2. **New-spec identity.** Titled the new working spec by milestone ("m4 —
+   Authoring Polish") and framed it as a continuation of the Assisted Authoring
+   arc, rather than minting a standalone new-program identity. m4/m5 genuinely
+   belong to Assisted Authoring.
+3. **Feature set.** Kept exactly the four features the m3 plan committed to
    (structure view, folding, quick docs, parameter info) — no additions
    (breadcrumbs, live templates, go-to-symbol) and no drops.
 4. **Doc provider API.** Classic `AbstractDocumentationProvider` /

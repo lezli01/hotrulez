@@ -2,7 +2,7 @@
 
 Status: draft
 Last updated: 2026-06-23
-Source: `docs/spec.md`
+Source: `docs/m1/spec.md`
 
 ## Ground Rules
 
