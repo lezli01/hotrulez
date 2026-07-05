@@ -149,10 +149,20 @@ the editor highlighter. The `.rules` file icon is an SVG in
 Diagnostics live in `dev.lezli.hotrulez.diagnostics`. Severity decides the home:
 always-wrong, grammar-inexpressible ERRORS go in `FirebaseRulesAnnotator`
 (always on); configurable WARNINGS go in `FirebaseRulesStructureInspection`
-(file shape), `FirebaseRulesUsageInspection` (element-local usage), and
+(file shape), `FirebaseRulesUsageInspection` (element-local usage),
 `FirebaseRulesSymbolInspection` (unresolved references and unused
 functions/`let`s/parameters, resolved through `FirebaseRulesScopes` so it agrees
-with go-to-definition and rename). Quick-fixes live in the `diagnostics.fixes`
+with go-to-definition and rename), and `FirebaseRulesMemberInspection` (the m5
+"Toward Semantics" check: an unknown member on a closed, service-scoped built-in
+receiver, at WEAK WARNING). It flags ONLY against `RulesService.closedReceivers`
+— the flag authority, deliberately separate from the completion `members` — and
+skips open namespaces (`request.auth.token.*`, `*.data.*`, Storage `*.metadata.*`
+/ `request.params.*`), a shadowed built-in root (a `let`/param/path-var named
+`request`/`resource`), non-chain receivers (`resource().foo`), and neutral files;
+cross-dialect accesses (`resource.size` in Firestore) are true positives. A
+`FirebaseRulesClosedReceiverDriftTest` keeps the flag model doc-consistent and
+proves no open receiver leaks into a closed one. Quick-fixes live in the
+`diagnostics.fixes`
 subpackage: each is a single `ModCommandAction` (`PsiUpdateModCommandAction`)
 attached to the annotator via `AnnotationBuilder.withFix(action.asIntention())`
 and to the inspections via `LocalQuickFix.from(action)` (see `asQuickFix`). Keep
@@ -161,7 +171,8 @@ rule is secure or authorizes a request. Confirm Firebase Rules semantics against
 official Firebase docs before adding or changing a check (e.g. a condition-less
 `allow` is legal, and a recursive wildcard may appear anywhere in a v2 match
 path), and add a focused test for each diagnostic in `FirebaseRulesAnnotatorTest`,
-`FirebaseRulesInspectionTest`, `FirebaseRulesSymbolInspectionTest`, or
+`FirebaseRulesInspectionTest`, `FirebaseRulesSymbolInspectionTest`,
+`FirebaseRulesMemberInspectionTest`, `FirebaseRulesClosedReceiverDriftTest`, or
 `FirebaseRulesQuickFixTest`.
 
 Symbol intelligence (v2 / 0.5) lives in four packages and rides on a single PSI

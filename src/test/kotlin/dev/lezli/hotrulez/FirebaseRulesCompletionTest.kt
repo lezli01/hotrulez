@@ -104,7 +104,10 @@ class FirebaseRulesCompletionTest : BasePlatformTestCase() {
 
     fun testRequestMembers() {
         val items = complete(inCity("allow read: if request.<caret>"))
-        assertContainsAll(items, "auth", "resource", "method", "time", "params", "path")
+        assertContainsAll(items, "auth", "resource", "method", "time", "path")
+        // Firestore has no request.params (path wildcards bind as named variables); it is a
+        // Storage-only member and must not be offered here.
+        assertDoesNotContain(items, "params")
     }
 
     fun testResourceMembers() {

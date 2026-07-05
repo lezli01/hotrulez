@@ -38,6 +38,8 @@ import dev.lezli.hotrulez.psi.FirebaseRulesServiceDeclaration
 enum class RulesService(
     /** The exact `service` identifier this dialect targets, e.g. `cloud.firestore`. */
     val serviceName: String,
+    /** Human-readable dialect name for diagnostic wording, e.g. `Cloud Firestore`. */
+    val label: String,
     /** The conventional root match path, used only in diagnostic wording. */
     val rootMatchHint: String,
     /** Top-level built-in variables offered in expression position for this dialect. */
@@ -46,24 +48,50 @@ enum class RulesService(
     val bareHelpers: List<String>,
     /** Shallow member table keyed by whitespace-stripped receiver text, one to two levels deep. */
     val members: Map<String, List<String>>,
+    /**
+     * Closed built-in receivers this dialect flags unknown members against — the
+     * *flag authority*, deliberately separate from [members] (the completion source),
+     * because the two diverge: `request.auth.token` belongs in [members] (standard-claim
+     * hints) but is OPEN for flagging (custom claims are unbounded), and `request.query`
+     * is flag-closed but not a completion member. This is the only authority the member
+     * inspection (`diagnostics.FirebaseRulesMemberInspection`) flags against. Keyed by
+     * whitespace-stripped receiver text; values keep documented order for messages.
+     */
+    val closedReceivers: Map<String, Set<String>>,
 ) {
     FIRESTORE(
         serviceName = "cloud.firestore",
+        label = "Cloud Firestore",
         rootMatchHint = "/databases/{database}/documents",
         globals = listOf("request", "resource"),
         bareHelpers = listOf("get", "exists", "getAfter", "existsAfter"),
         members = mapOf(
             // `query` is a Request member used for `list` operations; the rest are
-            // confirmed in the Firestore conditions/structure guides.
-            "request" to listOf("auth", "method", "path", "params", "resource", "time", "query"),
+            // confirmed in the Firestore conditions/structure guides. Firestore has no
+            // `request.params` (path wildcards bind as named variables), so it is absent.
+            "request" to listOf("auth", "method", "path", "resource", "time", "query"),
             "request.auth" to listOf("uid", "token"),
             "request.auth.token" to listOf("email", "email_verified", "phone_number", "name", "sub", "firebase"),
             "resource" to listOf("data", "id", "__name__"),
             "request.resource" to listOf("data", "id", "__name__"),
         ),
+        // Flag authority (NOT completion): `request.auth.token`/`.firebase` are absent
+        // on purpose — they are OPEN (custom claims / MFA-SAML members).
+        closedReceivers = mapOf(
+            "request" to setOf("auth", "method", "path", "query", "resource", "time"),
+            "request.auth" to setOf("uid", "token"),
+            "resource" to setOf("data", "id", "__name__"),
+            "request.resource" to setOf("data", "id", "__name__"),
+            // The docs use "e.g." phrasing for query members — treated as closed for this
+            // receiver only, kept at weak-warning. TODO(UNCONFIRMED): re-confirm the
+            // exhaustiveness of request.query —
+            // https://firebase.google.com/docs/firestore/security/rules-conditions
+            "request.query" to setOf("limit", "offset", "orderBy"),
+        ),
     ),
     STORAGE(
         serviceName = "firebase.storage",
+        label = "Cloud Storage",
         rootMatchHint = "/b/{bucket}/o",
         // `firestore` is the namespace for the cross-service firestore.get/exists calls.
         globals = listOf("request", "resource", "firestore"),
@@ -88,6 +116,22 @@ enum class RulesService(
             ),
             // Cross-service Firestore access available from Storage rules.
             "firestore" to listOf("get", "exists"),
+        ),
+        // Flag authority (NOT completion). `resource`/`request.resource` close WITH
+        // `metadata` as a member, but the sets stop there: `*.metadata.*` (custom object
+        // metadata) and `request.params.*` (API params) are OPEN and never closed.
+        closedReceivers = mapOf(
+            "request" to setOf("auth", "params", "path", "resource", "time"),
+            "request.auth" to setOf("uid", "token"),
+            "resource" to setOf(
+                "name", "bucket", "generation", "metageneration", "size", "timeCreated",
+                "updated", "md5Hash", "crc32c", "etag", "contentDisposition", "contentEncoding",
+                "contentLanguage", "contentType", "metadata",
+            ),
+            "request.resource" to setOf(
+                "name", "bucket", "size", "md5Hash", "crc32c", "contentDisposition",
+                "contentEncoding", "contentLanguage", "contentType", "metadata",
+            ),
         ),
     ),
     ;
@@ -116,6 +160,33 @@ enum class RulesService(
             entries.flatMap { it.members.keys }.toSet().associateWith { key ->
                 entries.flatMap { it.members[key].orEmpty() }.distinct()
             }
+
+        /**
+         * Built-in receivers that are deliberately **open** — app / JWT / query-schema
+         * namespaces the engine cannot enumerate — and therefore must NEVER appear in any
+         * dialect's [closedReceivers], nor sit above a closed receiver. This set is
+         * *documentation + drift-test authority only*: the member inspection never reads it
+         * at runtime, because an open receiver is simply absent from [closedReceivers], so
+         * the closed-key lookup already yields the right (silent) verdict on it. The
+         * drift-guard test uses this set to prove the invariant (`FirebaseRulesClosedReceiverDriftTest`).
+         */
+        val OPEN_RECEIVERS: Set<String> = setOf(
+            // Developer-defined custom claims (setCustomUserClaims) — unbounded, both dialects.
+            "request.auth.token",
+            // DecodedIdToken.firebase: MFA (sign_in_second_factor, second_factor_identifier),
+            // SAML (sign_in_attributes), plus an open `[key: string]: any` index signature.
+            "request.auth.token.firebase",
+            // Keyed by sign-in provider — unbounded.
+            "request.auth.token.firebase.identities",
+            // User document fields (Cloud Firestore).
+            "resource.data",
+            "request.resource.data",
+            // Custom object metadata (Cloud Storage).
+            "resource.metadata",
+            "request.resource.metadata",
+            // Request/API-dependent query-parameter keys (Cloud Storage).
+            "request.params",
+        )
 
         /** The dialect for [name] (whitespace already stripped), or null if unrecognised. */
         fun fromServiceName(name: String?): RulesService? =

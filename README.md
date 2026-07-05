@@ -66,9 +66,10 @@ language:
   consistently indented output while preserving your comments, blank lines, and
   multiline conditions.
 - **Diagnostics & quick-fixes** — checks flag always-wrong constructs as errors
-  and surface suspicious-but-legal structure and unresolved/unused symbols as
-  configurable warnings; most come with a one-keystroke fix (Alt+Enter), and the
-  wording stays structural (it never claims a rule is "secure").
+  and surface suspicious-but-legal structure, unresolved/unused symbols, and
+  unknown built-in members as configurable warnings; most come with a
+  one-keystroke fix (Alt+Enter), and the wording stays structural (it never
+  claims a rule is "secure").
 - **Symbol intelligence** — go to declaration, find usages, rename refactoring,
   and scope-aware code completion for functions, parameters, `let` bindings, and
   path variables, all built on a PSI resolve layer that honors Firebase Rules
@@ -206,11 +207,11 @@ block rather than left untouched.
 
 Severity decides the home. Always-wrong, grammar-inexpressible mistakes are
 reported as **errors** by an always-on annotator. Configurable **warnings** for
-file shape, suspicious usage, and unresolved/unused symbols live in three
-inspections you can tune under **Settings | Editor | Inspections | Firebase
-Rules**. Most diagnostics — errors and warnings alike — carry an Alt+Enter
-quick-fix. None of the wording asserts that a rule is secure or that a request
-would be authorized.
+file shape, suspicious usage, unresolved/unused symbols, and unknown built-in
+members live in four inspections you can tune under **Settings | Editor |
+Inspections | Firebase Rules**. Most diagnostics — errors and warnings alike —
+carry an Alt+Enter quick-fix. None of the wording asserts that a rule is secure
+or that a request would be authorized.
 
 ### Errors (always reported)
 
@@ -257,6 +258,27 @@ evaluating authorization:
 - **Unused function / `let`** — a declaration nothing references → `Function 'isOwner' is never used.` / `Variable 'tmp' is never used.`
 - **Unused parameter** — a parameter never read in its body → `Parameter 'uid' is never used.` (reported only; removing it would change every call site).
 
+### Member warnings
+
+A conservative, service-aware semantic check — the plugin's first that reasons
+about whether a member *can exist* on a receiver, not just whether a symbol
+resolves — reported as a **weak warning** (on by default):
+
+- **Unknown member on a closed built-in** — accessing a member that a dialect's
+  fixed, doc-sourced set does not define on `request`, `resource`,
+  `request.auth`, `request.resource`, or (Firestore) `request.query` →
+  `'foo' is not a member of 'request'.` A close typo offers a *Change to 'X'*
+  rename (`request.resourse` → `resource`); a member that belongs to the *other*
+  service gets a dialect-aware message instead — `resource.size` in a Firestore
+  file (`'size' is a Cloud Storage member; …`), `request.method` in a Storage
+  file.
+- It **never** fires on an open namespace — user document data
+  (`resource.data.*`), custom auth claims (`request.auth.token.*`, including the
+  MFA/SAML `.firebase.*` members), Cloud Storage object metadata
+  (`resource.metadata.*`), or request params (`request.params.*`) — nor on a
+  neutral (no-`service`) file, nor on a variable that merely shares a built-in's
+  name. It infers no types.
+
 ### Quick-fixes
 
 Most diagnostics offer an Alt+Enter fix that edits the file for you:
@@ -266,6 +288,7 @@ Most diagnostics offer an Alt+Enter fix that edits the file for you:
 - Replace an unknown operation with the closest real one, remove a duplicate parameter, or add a missing `return false;`.
 - Add a placeholder `: if <condition>` to a condition-less `allow`.
 - Create a missing function for an unresolved call, or remove an unused function or `let`.
+- Rename an unknown member to a near match on its receiver (*Change to 'resource'*).
 
 The "no automatic fix" cases are deliberate: an empty operation list, a bare
 `return;`, multiple `service` blocks, and helper-call arity have no unambiguous

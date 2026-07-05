@@ -17,6 +17,12 @@
             <li>Syntax highlighting with a configurable color scheme</li>
             <li>Structural validation and inspections (file-structure and
                 suspicious-usage warnings)</li>
+            <li><b>Unknown-member inspection</b> &mdash; a conservative,
+                dialect-aware weak warning when a member access on a closed
+                built-in (<code>request</code>, <code>resource</code>, &hellip;)
+                names a member that dialect does not define, with did-you-mean
+                rename fixes; it never flags user data, custom auth claims, or
+                object metadata, and infers no types</li>
             <li>Code formatting, brace matching, quote handling, and line/block
                 commenting</li>
             <li><b>Symbol intelligence</b> &mdash; go to definition, find usages,
@@ -128,6 +134,15 @@
             enabledByDefault="true"
             level="WARNING"
             implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesSymbolInspection"/>
+
+        <localInspection
+            language="FirebaseRules"
+            shortName="FirebaseRulesMember"
+            displayName="Firebase Rules unknown member"
+            groupName="Firebase Rules"
+            enabledByDefault="true"
+            level="WEAK WARNING"
+            implementationClass="dev.lezli.hotrulez.diagnostics.FirebaseRulesMemberInspection"/>
 
         <!-- Symbol intelligence (v2): resolve/go-to-definition, find usages, rename, completion.
              References are attached directly on the PSI (see

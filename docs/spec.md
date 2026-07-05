@@ -69,7 +69,9 @@ A `member_expression` `<receiver>.<member>` is flagged **iff all** of:
    below).
 
 Anything else is silent. In particular a member on an unknown/user receiver, a call
-result, a slice, or any open namespace is never flagged.
+result, a slice, a member in **call position** (a method call such as
+`request.auth.get(...)` — `request.auth` is a `rules.Map`, so its methods cannot be
+enumerated without type inference), or any open namespace is never flagged.
 
 ### The closed-receiver model (flag authority)
 
@@ -122,6 +124,18 @@ returns without flagging. These are app / JWT / query schema the engine cannot k
 The closed member sets stop exactly one level above these; the shallow `members`
 table (m2) already stops there, and the new flag model keeps the same discipline.
 
+> **Implementation note (grilled 2026-07-05).** The per-hop short-circuit is
+> *provably redundant* with the "flag only when `receiverKey` is a closed key" gate:
+> every open receiver is simply absent from `closedReceivers`, and no closed receiver
+> sits beneath an open one, so the immediate-receiver lookup already yields the right
+> verdict on every trap above. The inspection therefore implements a single
+> `closedReceivers[receiverKey]` lookup, and the open-receiver invariant (no open key
+> in `closedReceivers`; no closed key beneath an open one) is enforced *statically* by
+> the drift-guard test via a companion `OPEN_RECEIVERS` set — not re-walked at runtime.
+> See `docs/tasks.md` "Implementation Decisions (CONFIRMED)" for the full set
+> (shadowing guard, `chainRoot` purity guard, `buildVisitor` shape, anchor/severity,
+> and the three-case message taxonomy).
+
 ### Service-scoping is load-bearing
 
 Closed sets are **per service**. This is not an optimization — it is where the
@@ -146,12 +160,12 @@ in a Storage file are **true positives** *because* the sets are dialect-scoped
   exists (Levenshtein ≤ 2) offer a `ModCommand` rename fix — *"Did you mean 'X'?"*
   (`request.resourse` → `resource`, `resource.dta` → `data`,
   `request.query.limitt` → `limit`). For cross-dialect true positives with no close
-  in-dialect match, prefer a **dialect-aware message** over a rename — e.g. Storage
-  `request.method` → *"'method' is not a member of request in Cloud Storage rules;
-  the operation is expressed by the match (get/list/create/update/delete)"*;
-  Firestore `resource.size` → *"'size' is a Cloud Storage member; Firestore
-  `resource` exposes {data, id, __name__}"*. No fix when there is no near match —
-  just the warning.
+  in-dialect match, prefer a **dialect-aware message** over a rename, generated from
+  the other dialect's model — e.g. Storage `request.method` → *"'method' is a Cloud
+  Firestore member; Cloud Storage `request` exposes {auth, params, path, resource,
+  time}."*; Firestore `resource.size` → *"'size' is a Cloud Storage member; Cloud
+  Firestore `resource` exposes {data, id, __name__}."*. No fix when there is no near
+  match — just the warning.
 - **Neutral files: suppress.** When `RulesService.forFile` returns null (no
   recognized `service` — an incomplete/fragment/parse-broken file), the flag does
   **not** run. Unioning both dialects' member sets would accept a Storage-only
@@ -302,10 +316,12 @@ modeled as JavaScript/JSON; no unrelated UI deps). Additionally, m5-specific:
 - `README.md`, `AGENTS.md`, and the `plugin.xml` `<description>` feature list are
   updated (text-only).
 
-## Decisions taken (grilled 2026-07-05 — please confirm)
+## Decisions taken (grilled 2026-07-05 — confirmed)
 
-Resolved during the `/grill-me` session; the first three are your explicit choices,
-the rest are recommended defaults grounded in the evidence.
+Resolved during the first `/grill-me` session (product scope); the first three are
+your explicit choices, the rest are recommended defaults grounded in the evidence. A
+second `/grill-me` pass the same day resolved the *implementation-level* branches
+against the actual code — see `docs/tasks.md` "Implementation Decisions (CONFIRMED)".
 
 1. **Theme = the roadmap** — m5 is the Toward Semantics milestone (your choice).
 2. **Scope = Candidate A only; defer B** — you initially chose A+B, then, once the
