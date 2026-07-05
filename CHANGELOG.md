@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/lezli01/hotrulez/compare/v0.7.0...v0.8.0) (2026-07-05)
+
+
+### Features
+
+* flag unknown members on closed Firebase Rules built-in receivers ([#34](https://github.com/lezli01/hotrulez/issues/34)) ([a4139c0](https://github.com/lezli01/hotrulez/commit/a4139c01664544fff74eedc1c4ec902f3cd2f3b7))
+
 ## [0.7.0](https://github.com/lezli01/hotrulez/compare/v0.6.1...v0.7.0) (2026-07-04)
 
 
