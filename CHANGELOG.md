@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/lezli01/hotrulez/compare/v0.8.0...v0.8.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* drop deprecated ParameterInfoHandler overrides flagged by the verifier ([#36](https://github.com/lezli01/hotrulez/issues/36)) ([32def5d](https://github.com/lezli01/hotrulez/commit/32def5dd79c1fa19cdd7031b4b824de742e99fd9))
+
 ## [0.8.0](https://github.com/lezli01/hotrulez/compare/v0.7.0...v0.8.0) (2026-07-05)
 
 
