@@ -1,11 +1,8 @@
 package dev.lezli.hotrulez.parameterinfo
 
-import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.lang.parameterInfo.CreateParameterInfoContext
-import com.intellij.lang.parameterInfo.ParameterInfoContext
 import com.intellij.lang.parameterInfo.ParameterInfoHandler
 import com.intellij.lang.parameterInfo.ParameterInfoUIContext
-import com.intellij.lang.parameterInfo.ParameterInfoUtils
 import com.intellij.lang.parameterInfo.UpdateParameterInfoContext
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -112,14 +109,12 @@ class FirebaseRulesParameterInfoHandler :
         )
     }
 
-    // Lookup / documentation surfaces are not driven from parameter info here.
-    override fun couldShowInLookup(): Boolean = false
-
-    override fun getParametersForLookup(item: LookupElement?, context: ParameterInfoContext?): Array<Any>? = null
-
-    override fun getParameterCloseChars(): String = ParameterInfoUtils.DEFAULT_PARAMETER_CLOSE_CHARS
-
-    override fun tracksParameterIndex(): Boolean = true
+    // couldShowInLookup / getParametersForLookup / getParameterCloseChars /
+    // tracksParameterIndex are intentionally NOT overridden: the platform marks them
+    // @Deprecated(forRemoval) and "not used", so their defaults already apply and
+    // overriding them has no runtime effect — it only trips the plugin verifier's
+    // scheduled-for-removal check. The current-parameter highlight is driven entirely by
+    // updateParameterInfo -> setCurrentParameter below, not by tracksParameterIndex().
 
     /** The innermost [FirebaseRulesArgumentList] enclosing [offset] in [file], or null. */
     private fun argumentListAt(file: PsiFile, offset: Int): FirebaseRulesArgumentList? {
