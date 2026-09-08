@@ -68,6 +68,19 @@ class FirebaseRulesDocumentationTest : BasePlatformTestCase() {
         assertDocContains(doc, "bytes")
     }
 
+    fun testStorageMemberUrlPointsAtLiveStoragePage() {
+        // Firebase retired `docs/reference/rules/rules.storage` (404). The Storage
+        // object-metadata table now lives in the Cloud Storage rules-conditions guide,
+        // and that is the page "open in browser" must reach from a Storage member.
+        val target = builtinTarget(inObject("allow read: if resource.content${CARET}Type == 'image/png';"))
+        val urls = provider.getUrlFor(target, null)
+        assertNotNull("expected a docs URL for a Storage metadata member", urls)
+        assertEquals(
+            listOf("https://firebase.google.com/docs/storage/security/rules-conditions"),
+            urls,
+        )
+    }
+
     fun testStorageOnlyMemberDoesNotLeakIntoFirestoreFile() {
         // `resource.size` is Storage-only; inside a Firestore file it must document nothing.
         val target = builtinTarget(inCity("allow read: if resource.si${CARET}ze < 100;"))

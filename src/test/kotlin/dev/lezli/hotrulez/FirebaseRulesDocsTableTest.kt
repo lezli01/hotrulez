@@ -150,4 +150,33 @@ class FirebaseRulesDocsTableTest : BasePlatformTestCase() {
         val orphans = FirebaseRulesDocs.namespaceKeys - liveNamespaces
         assertTrue("FirebaseRulesDocs namespace prose with no live type name: $orphans", orphans.isEmpty())
     }
+
+    // --- Reference-page liveness ------------------------------------------------------
+    // `Entry.docUrl` is what quick documentation's "open in browser" reaches. Firebase
+    // retires reference pages without redirecting them, so the set of pages this table may
+    // link is pinned here: a new or edited `docUrl` has to be a page someone actually
+    // fetched, not whatever URL the nearest entry happened to carry.
+
+    /** Every `docUrl` is one of the Firebase pages verified reachable on 2026-09-08. */
+    fun testEveryDocUrlIsAVerifiedFirebasePage() {
+        val verified = setOf(
+            "https://firebase.google.com/docs/firestore/security/rules-structure",
+            "https://firebase.google.com/docs/rules/rules-language",
+            "https://firebase.google.com/docs/firestore/security/rules-conditions",
+            "https://firebase.google.com/docs/reference/rules/rules.firestore.Request",
+            "https://firebase.google.com/docs/storage/security/rules-conditions",
+        )
+        val unverified = FirebaseRulesDocs.docUrls - verified
+        assertTrue("FirebaseRulesDocs docUrl pointing at an unverified page: $unverified", unverified.isEmpty())
+    }
+
+    /**
+     * The retired Cloud Storage reference page is not linked anywhere. Firebase withdrew
+     * `https://firebase.google.com/docs/reference/rules/rules.storage`; it returns 404, so
+     * every Storage entry must cite the storage/security/rules-conditions guide instead.
+     */
+    fun testRetiredStorageReferencePageIsNotLinked() {
+        val retired = FirebaseRulesDocs.docUrls.filter { it.contains("reference/rules/rules.storage") }
+        assertTrue("FirebaseRulesDocs still links the retired rules.storage page: $retired", retired.isEmpty())
+    }
 }

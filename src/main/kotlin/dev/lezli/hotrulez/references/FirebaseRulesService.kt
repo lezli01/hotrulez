@@ -102,7 +102,8 @@ enum class RulesService(
             "request" to listOf("auth", "params", "path", "resource", "time"),
             "request.auth" to listOf("uid", "token"),
             "request.auth.token" to listOf("email", "email_verified", "phone_number", "name", "sub", "firebase"),
-            // The existing object's full metadata (rules.storage Resource reference).
+            // The existing object's full metadata (Cloud Storage rules-conditions guide;
+            // the rules.storage reference page it used to cite was retired and now 404s).
             "resource" to listOf(
                 "name", "bucket", "generation", "metageneration", "size", "timeCreated",
                 "updated", "md5Hash", "crc32c", "etag", "contentDisposition", "contentEncoding",

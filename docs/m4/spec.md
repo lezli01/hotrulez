@@ -134,7 +134,9 @@ the specific facts the doc table relies on before coding):
 - `request`/`resource` member reference (the member-table + doc-prose source):
   `https://firebase.google.com/docs/reference/rules/rules.firestore.Request`
 - Storage `resource`/`request.resource` metadata:
-  `https://firebase.google.com/docs/reference/rules/rules.storage`
+  `https://firebase.google.com/docs/storage/security/rules-conditions`
+  (replaces `https://firebase.google.com/docs/reference/rules/rules.storage`, which
+  Firebase retired — it 404s as of 2026-09-08)
 
 IntelliJ Platform SDK extension points for m4 (platform target: **IntelliJ IDEA
 2025.2**, `sinceBuild = 252`, Java 21). Confirmed against the current SDK docs on

@@ -50,8 +50,10 @@ import dev.lezli.hotrulez.references.RulesService
  * a table) — only the namespace itself is documented. Anything the official Firebase
  * docs do not directly confirm is tagged `UNCONFIRMED` with a TODO tied to its source.
  *
- * Firebase reference pages, re-checked 2026-07-03 (see spec "Documentation Sources"):
- * rules-structure, rules-language, rules-conditions, rules.firestore.Request, rules.storage.
+ * Firebase reference pages, re-checked 2026-09-08 (see spec "Documentation Sources"):
+ * rules-structure, rules-language, rules-conditions, rules.firestore.Request, and the
+ * Cloud Storage storage/security/rules-conditions guide (which replaces the retired
+ * rules.storage reference page — see [URL_STORAGE]).
  */
 object FirebaseRulesDocs {
 
@@ -84,9 +86,17 @@ object FirebaseRulesDocs {
     private const val URL_REQUEST =
         "https://firebase.google.com/docs/reference/rules/rules.firestore.Request"
 
-    /** The Cloud Storage `resource` / `request.resource` metadata reference. */
+    /**
+     * The Cloud Storage `resource` / `request.resource` metadata reference.
+     *
+     * Firebase retired `docs/reference/rules/rules.storage` — it 404s as of 2026-09-08.
+     * The live page carrying the object-metadata tables these Storage entries are
+     * sourced from is the Cloud Storage rules-conditions guide, so `docUrl` points
+     * there. (`docs/reference/security/storage` is also live but publishes a narrower
+     * `request.resource` list than the one this plugin models.)
+     */
     private const val URL_STORAGE =
-        "https://firebase.google.com/docs/reference/rules/rules.storage"
+        "https://firebase.google.com/docs/storage/security/rules-conditions"
 
     // ------------------------------------------------------------------------------------
     // Members — keyed by full whitespace-stripped path, as RulesService.members composes.
@@ -626,4 +636,15 @@ object FirebaseRulesDocs {
 
     /** The type / namespace names this table documents (see [forNamespace]). */
     internal val namespaceKeys: Set<String> get() = NAMESPACES.keys
+
+    /**
+     * Every distinct [Entry.docUrl] in this table — the pages `getUrlFor` opens from quick
+     * documentation. Firebase retires reference pages (`docs/reference/rules/rules.storage`
+     * 404s as of 2026-09-08), so `FirebaseRulesDocsTableTest` pins these to a checked list
+     * rather than letting a new entry inherit whatever URL its neighbour happened to carry.
+     */
+    internal val docUrls: Set<String>
+        get() = sequenceOf(MEMBERS, OPERATIONS, GLOBALS, HELPERS, NAMESPACES)
+            .flatMap { it.values.asSequence() }
+            .mapTo(mutableSetOf()) { it.docUrl }
 }
