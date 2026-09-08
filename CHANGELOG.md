@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/lezli01/hotrulez/compare/v0.8.1...v0.8.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* point Storage quick-doc links at live Firebase page ([c59169b](https://github.com/lezli01/hotrulez/commit/c59169b32f2f139318397bc2089241cddd96b2fc))
+
 ## [0.8.1](https://github.com/lezli01/hotrulez/compare/v0.8.0...v0.8.1) (2026-07-06)
 
 
