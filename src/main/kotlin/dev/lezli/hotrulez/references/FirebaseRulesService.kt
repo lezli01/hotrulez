@@ -82,10 +82,13 @@ enum class RulesService(
             "request.auth" to setOf("uid", "token"),
             "resource" to setOf("data", "id", "__name__"),
             "request.resource" to setOf("data", "id", "__name__"),
-            // The docs use "e.g." phrasing for query members — treated as closed for this
-            // receiver only, kept at weak-warning. TODO(UNCONFIRMED): re-confirm the
-            // exhaustiveness of request.query —
-            // https://firebase.google.com/docs/firestore/security/rules-conditions
+            // Closed for this receiver only, kept at weak-warning. Confirmed exhaustive on
+            // 2026-09-16: the "e.g." phrasing an earlier UNCONFIRMED tag hedged against is
+            // gone, and both live authorities now enumerate exactly these three —
+            // "The request.query variable contains the limit, offset, and orderBy
+            // properties of a query" and the Request reference's `query` row.
+            // https://firebase.google.com/docs/firestore/security/rules-query
+            // https://firebase.google.com/docs/reference/rules/rules.firestore.Request
             "request.query" to setOf("limit", "offset", "orderBy"),
         ),
     ),
