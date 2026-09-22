@@ -38,7 +38,7 @@ jobs:
       # verifyPlugin (below) downloads full IDE builds; free up runner disk first.
       - name: Free disk space
         if: ${{ steps.release.outputs.release_created == 'true' }}
-        uses: jlumbroso/free-disk-space@v1.3.1
+        uses: jlumbroso/free-disk-space@v2.0.0
         with:
           tool-cache: false
           large-packages: false
