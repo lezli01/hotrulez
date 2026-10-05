@@ -566,7 +566,7 @@ highlighting.
 - The included Gradle wrapper.
 - A JetBrains IDE compatible with build `252` or newer.
 
-The Gradle project currently targets IntelliJ IDEA `2025.2.6.2` for plugin
+The Gradle project currently targets IntelliJ IDEA `2025.2.6.3` for plugin
 development and tests.
 
 ## Build And Test
